@@ -4,6 +4,7 @@ using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using ChainRulesCore: AbstractDifferential
 using FiniteDifferences
+using LinearAlgebra
 using Test
 
 const _fdm = central_fdm(5, 1)
