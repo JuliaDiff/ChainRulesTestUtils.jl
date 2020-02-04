@@ -5,7 +5,7 @@
 
 > Utilities for testing forward- and reverse-mode AD sensitivities.
 
-`ChainRulesTestUtils.jl` is designed to test help you test `ChainRulesCore.frule` and `ChainRulesCore.rrule` methods.
+`ChainRulesTestUtils.jl` is designed to help you test `ChainRulesCore.frule` and `ChainRulesCore.rrule` methods.
 Currently this is done via testing the rules against numerical differentiation (using [`FiniteDifferences.jl`](https://github.com/JuliaDiff/FiniteDifferences.jl)).
 
 `ChainRulesTestUtils.jl` is separate from [`ChainRulesCore.jl`](https://github.com/JuliaDiff/ChainRulesCore.jl) so that it can be a test-only dependency, allowing it to have potentially heavy dependencies, while keeping `ChainRulesCore.jl` as light-weight as possible.
