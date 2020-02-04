@@ -174,7 +174,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     @test ∂self === NO_FIELDS
 
     # Correctness testing via finite differencing.
-    x̄s_fd = j′vp(fdm, f, ȳ, xs...)
+    x̄s_fd = _make_fdm_call(fdm, f, ȳ, xs, x̄s .== nothing)
     map(x̄s_ad, x̄s_fd) do x̄_ad, x̄_fd
         @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
     end
