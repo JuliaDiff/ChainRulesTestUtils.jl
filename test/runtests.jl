@@ -9,7 +9,7 @@ using Test
     test_scalar(double, 2)
 
     fst(x, y) = x
-    ChainRulesCore.frule(::typeof(fst), x, y, _, dx, dy) = (x, dx)
+    ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
 
     function ChainRulesCore.rrule(::typeof(fst), x, y)
         function fst_pullback(Δx)

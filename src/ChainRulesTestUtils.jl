@@ -63,7 +63,7 @@ function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
     ensure_not_running_on_functor(f, "test_scalar")
 
     r_res = rrule(f, x)
-    f_res = frule(f, x, Zero(), 1)
+    f_res = frule((Zero(), 1), f, x)
     @test r_res !== nothing  # Check the rule was defined
     @test f_res !== nothing
     r_fx, prop_rule = r_res
@@ -111,7 +111,7 @@ end
 function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
     ensure_not_running_on_functor(f, "frule_test")
     xs, ẋs = collect(zip(xẋs...))
-    Ω, dΩ_ad = frule(f, xs..., NO_FIELDS, ẋs...)
+    Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...)
     @test f(xs...) == Ω
 
     # Correctness testing via finite differencing.
