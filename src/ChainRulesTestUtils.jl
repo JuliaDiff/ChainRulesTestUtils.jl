@@ -2,7 +2,6 @@ module ChainRulesTestUtils
 
 using ChainRulesCore
 using ChainRulesCore: frule, rrule
-using ChainRulesCore: AbstractDifferential
 using Compat: only
 using FiniteDifferences
 using LinearAlgebra
