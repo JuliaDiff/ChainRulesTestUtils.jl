@@ -12,8 +12,12 @@ const _fdm = central_fdm(5, 1)
 
 export test_scalar, frule_test, rrule_test, isapprox, generate_well_conditioned_matrix
 
+# TODO: recondiser these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
+Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
+Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
-Base.isapprox(d_ad::AbstractDifferential, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
+# Call `all` to handle the case where `Zero` is standing in for a non-scalar zero
+Base.isapprox(d_ad::Zero, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
 
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     sig = Expr(:tuple)
