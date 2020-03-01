@@ -3,6 +3,7 @@ module ChainRulesTestUtils
 using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using ChainRulesCore: AbstractDifferential
+using Compat: only
 using FiniteDifferences
 using LinearAlgebra
 using Test
@@ -33,7 +34,6 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     end
     fdexpr = :(j′vp($fdm, $sig -> $call, $ȳ, $(newxs...)))
     fd = eval(fdexpr)
-    fd isa Tuple || (fd = (fd,))
     args = Any[nothing for _ in 1:length(xs)]
     for (dx, ind) in zip(fd, arginds)
         args[ind] = dx
@@ -154,7 +154,7 @@ function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm
 
     @test ∂self === NO_FIELDS  # No internal fields
     # Correctness testing via finite differencing.
-    x̄_fd = j′vp(fdm, f, ȳ, x)
+    x̄_fd = only(j′vp(fdm, f, ȳ, x))  # j′vp returns a tuple, but `f` is a unary function.
     @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
 end
 
