@@ -25,10 +25,10 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 - `ȳ`: adjoint w.r.t. output of `f`.
 - `xs`: Inputs to `f`, such that `y = f(xs...)`.
 - `ignores`: Collection of `Bool`s, the same length as `xs`.
-  If `ignores[i] === true`, then `xs[i]` is ignored; `∂f_∂xs[i] === nothing`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
 
 # Returns
-- `∂f_∂xs::Tuple`: Derivatives estimated by finite differencing.
+- `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     sig = Expr(:tuple)
