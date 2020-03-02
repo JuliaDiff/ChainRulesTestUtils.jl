@@ -1,7 +1,6 @@
 using ChainRulesTestUtils
 using Documenter
 
-@show ENV
 
 makedocs(
     modules=[ChainRulesTestUtils],
