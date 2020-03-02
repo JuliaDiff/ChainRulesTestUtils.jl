@@ -2,7 +2,7 @@ module ChainRulesTestUtils
 
 using ChainRulesCore
 using ChainRulesCore: frule, rrule
-using ChainRulesCore: AbstractDifferential
+using Compat: only
 using FiniteDifferences
 using LinearAlgebra
 using Test
@@ -11,8 +11,12 @@ const _fdm = central_fdm(5, 1)
 
 export test_scalar, frule_test, rrule_test, isapprox, generate_well_conditioned_matrix
 
+# TODO: reconsider these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
+Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
+Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
-Base.isapprox(d_ad::AbstractDifferential, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
+# Call `all` to handle the case where `Zero` is standing in for a non-scalar zero
+Base.isapprox(d_ad::Zero, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
 
 """
     _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
@@ -49,7 +53,6 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     end
     fdexpr = :(j′vp($fdm, $sig -> $call, $ȳ, $(newxs...)))
     fd = eval(fdexpr)
-    fd isa Tuple || (fd = (fd,))
     args = Any[nothing for _ in 1:length(xs)]
     for (dx, ind) in zip(fd, arginds)
         args[ind] = dx
@@ -170,7 +173,7 @@ function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm
 
     @test ∂self === NO_FIELDS  # No internal fields
     # Correctness testing via finite differencing.
-    x̄_fd = j′vp(fdm, f, ȳ, x)
+    x̄_fd = only(j′vp(fdm, f, ȳ, x))  # j′vp returns a tuple, but `f` is a unary function.
     @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
 end
 
