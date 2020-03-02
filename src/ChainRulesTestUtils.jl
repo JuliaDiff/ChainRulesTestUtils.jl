@@ -14,6 +14,22 @@ export test_scalar, frule_test, rrule_test, isapprox, generate_well_conditioned_
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
 Base.isapprox(d_ad::AbstractDifferential, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 
+"""
+    _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
+
+Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
+
+# Arguments
+- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
+- `f`: The function to differentiate.
+- `ȳ`: adjoint w.r.t. output of `f`.
+- `xs`: Inputs to `f`, such that `y = f(xs...)`.
+- `ignores`: Collection of `Bool`s, the same length as `xs`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
+
+# Returns
+- `∂xs::Tuple`: Derivatives estimated by finite differencing.
+"""
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     sig = Expr(:tuple)
     call = Expr(:call, f)
