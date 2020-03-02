@@ -3,6 +3,9 @@
 [![Travis](https://travis-ci.org/JuliaDiff/ChainRulesTestUtils.jl.svg?branch=master)](https://travis-ci.org/JuliaDiff/ChainRulesTestUtils.jl)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
+[![](https://img.shields.io/badge/docs-master-blue.svg)](https://JuliaDiff.github.io/ChainRulesTestUtils.jl/dev)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaDiff.github.io/ChainRulesTestUtils.jl/stable)
+
 > Utilities for testing forward- and reverse-mode AD sensitivities.
 
 `ChainRulesTestUtils.jl` is designed to help you test `ChainRulesCore.frule` and `ChainRulesCore.rrule` methods.
