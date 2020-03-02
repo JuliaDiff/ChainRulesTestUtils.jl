@@ -11,7 +11,7 @@ const _fdm = central_fdm(5, 1)
 
 export test_scalar, frule_test, rrule_test, isapprox, generate_well_conditioned_matrix
 
-# TODO: recondiser these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
+# TODO: reconsider these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
 Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
 Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
