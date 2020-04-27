@@ -32,7 +32,7 @@ function Base.isapprox(
     return isapprox_vec(d_ad, d_fd; kwargs...)
 end
 # Must be for same primal
-Base.isapprox(d_ad::Composite{P}, d_fd::Composite{Q}; kwargs...) where {P,Q} = false
+Base.isapprox(d_ad::Composite{P}, d_fd::Composite{Q}; kwargs...) where {P, Q} = false
 
 """
     _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
