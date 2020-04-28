@@ -4,6 +4,7 @@ using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using Compat: only
 using FiniteDifferences
+using FiniteDifferences: to_vec
 using LinearAlgebra
 using Test
 
@@ -11,12 +12,27 @@ const _fdm = central_fdm(5, 1)
 
 export test_scalar, frule_test, rrule_test, isapprox, generate_well_conditioned_matrix
 
+include("to_vec.jl")
+
 # TODO: reconsider these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
 Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
 Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
 # Call `all` to handle the case where `Zero` is standing in for a non-scalar zero
 Base.isapprox(d_ad::Zero, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
+
+isapprox_vec(a, b; kwargs...) = isapprox(first(to_vec(a)), first(to_vec(b)); kwargs...)
+Base.isapprox(a, b::Composite; kwargs...) = isapprox(b, a; kwargs...)
+function Base.isapprox(d_ad::Composite{<:Tuple}, d_fd::Tuple; kwargs...)
+    return isapprox_vec(d_ad, d_fd; kwargs...)
+end
+function Base.isapprox(
+    d_ad::Composite{P, <:Tuple}, d_fd::Composite{P, <:Tuple}; kwargs...
+) where {P <: Tuple}
+    return isapprox_vec(d_ad, d_fd; kwargs...)
+end
+# Must be for same primal
+Base.isapprox(d_ad::Composite{P}, d_fd::Composite{Q}; kwargs...) where {P, Q} = false
 
 """
     _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
@@ -129,7 +145,7 @@ end
 
 function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
     ensure_not_running_on_functor(f, "frule_test")
-    xs, ẋs = collect(zip(xẋs...))
+    xs, ẋs = first.(xẋs), last.(xẋs)
     Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...)
     @test f(xs...) == Ω
 
