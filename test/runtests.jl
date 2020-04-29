@@ -7,4 +7,5 @@ using Test
     include("to_vec.jl")
     include("isapprox.jl")
     include("testers.jl")
+    include("data_generation.jl")
 end
