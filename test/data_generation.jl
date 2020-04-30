@@ -1,14 +1,18 @@
 @testset "Data Generation" begin
-    @testset "Generate Well Conditioned Matrix - RNG" begin
-        rng = MersenneTwister(1)
-        matrix = generate_well_conditioned_matrix(rng, 5)
+    @testset "Generate Well Conditioned Matrix" begin
+        @testset "Pass in RNG" begin
+            rng = MersenneTwister(1)
+            matrix = generate_well_conditioned_matrix(rng, 5)
 
-        @test isempty(matrix) == false
-    end
+            @test !isempty(matrix)
+            @test isposdef(matrix)
+        end
 
-    @testset "Generate Well Conditioned Matrix - Global RNG" begin
-        matrix = generate_well_conditioned_matrix(5)
+        @testset "Global RNG" begin
+            matrix = generate_well_conditioned_matrix(5)
 
-        @test isempty(matrix) == false
+            @test !isempty(matrix)
+            @test isposdef(matrix)
+        end
     end
 end
