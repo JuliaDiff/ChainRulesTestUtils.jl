@@ -2,6 +2,7 @@
     function _is_well_conditioned(matrix::Array{Float64})
         @test !isempty(matrix)
         @test isposdef(matrix)
+        @assert length(matrix) ≤ 25  
         @test cond(matrix) < 20
     end
 
