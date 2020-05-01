@@ -1,5 +1,5 @@
 @testset "Data Generation" begin
-    function _is_well_conditioned(matrix::Array{Float64})
+    function _is_well_conditioned(matrix)
         @test !isempty(matrix)
         @test isposdef(matrix)
         @assert length(matrix) ≤ 25  
