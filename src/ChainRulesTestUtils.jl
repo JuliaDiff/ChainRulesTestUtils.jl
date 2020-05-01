@@ -6,6 +6,7 @@ using Compat: only
 using FiniteDifferences
 using FiniteDifferences: to_vec
 using LinearAlgebra
+using Random
 using Test
 
 const _fdm = central_fdm(5, 1)
