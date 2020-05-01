@@ -3,7 +3,7 @@
         @test !isempty(matrix)
         @test isposdef(matrix)
         @assert length(matrix) ≤ 25  
-        @test cond(matrix) < 20
+        @test cond(matrix) < 100
     end
 
 
