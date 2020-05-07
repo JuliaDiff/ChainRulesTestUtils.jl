@@ -28,25 +28,28 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 - `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
-    sig = Expr(:tuple)
-    call = Expr(:call, f)
-    newxs = Any[]
-    arginds = Int[]
-    i = 1
-    for (x, ignore) in zip(xs, ignores)
-        if ignore
-            push!(call.args, x)
-        else
-            push!(call.args, Symbol(:x, i))
-            push!(sig.args, Symbol(:x, i))
-            push!(newxs, x)
-            push!(arginds, i)
+    ignores = collect(ignores)
+    function f2(sigargs...)
+        callargs = Any[]
+        j = 1
+        for (i, (x, ignore)) in enumerate(zip(xs, ignores))
+            if ignore
+                push!(callargs, x)
+            else
+                push!(callargs, sigargs[j])
+                j += 1
+            end
         end
-        i += 1
+        @assert j == length(sigargs) + 1
+        @assert length(callargs) == length(xs)
+        return f(callargs...)
     end
-    fdexpr = :(j′vp($fdm, $sig -> $call, $ȳ, $(newxs...)))
-    fd = eval(fdexpr)
+
     args = Any[nothing for _ in 1:length(xs)]
+    all(ignores) && return (args...,)
+    sigargs = xs[.!ignores]
+    arginds = (1:length(xs))[.!ignores]
+    fd = j′vp(fdm, f2, ȳ, sigargs...)
     for (dx, ind) in zip(fd, arginds)
         args[ind] = dx
     end
