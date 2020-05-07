@@ -64,4 +64,22 @@
             rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)))
         end
     end
+
+    @testset "symbol input: fsymtest" begin
+        fsymtest(x, s) = x
+        ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
+        function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
+            function fsymtest_pullback(Δx)
+                return NO_FIELDS, Δx, DoesNotExist()
+            end
+            return x, fsymtest_pullback
+        end
+
+        # @testset "frule_test" begin
+        #     frule_test(fsymtest, (randn(), randn()), (:x, nothing))
+        # end
+        @testset "rrule_test" begin
+            rrule_test(fsymtest, randn(), (randn(), randn()), (:x, nothing))
+        end
+    end
 end
