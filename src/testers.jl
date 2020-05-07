@@ -132,40 +132,26 @@ end
 
 All keyword arguments except for `fdm` are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
+function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
-    fx, pullback = rrule(f, x)
-    @test collect(fx) ≈ collect(f(x))  # use collect so can do vector equality
-    (∂self, x̄_ad) = if fx isa Tuple
+    xs, x̄s = collect(zip(xx̄s...))
+    y_ad, pullback = rrule(f, xs...)
+    y = f(xs...)
+    # use collect so can do vector equality
+    @test isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
+    @assert !(isa(ȳ, Thunk))
+    ∂s = if y_ad isa Tuple
         # If the function returned multiple values,
         # then it must have multiple seeds for propagating backwards
         pullback(ȳ...)
     else
         pullback(ȳ)
     end
-
-    @test ∂self === NO_FIELDS  # No internal fields
-    # Correctness testing via finite differencing.
-    x̄_fd = only(j′vp(fdm, f, ȳ, x))  # j′vp returns a tuple, but `f` is a unary function.
-    @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
-end
-
-# case where `f` takes multiple arguments
-function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
-    _ensure_not_running_on_functor(f, "rrule_test")
-
-    # Check correctness of evaluation.
-    xs, x̄s = collect(zip(xx̄s...))
-    y, pullback = rrule(f, xs...)
-    @test f(xs...) == y
-
-    @assert !(isa(ȳ, Thunk))
-    ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
-    @test ∂self === NO_FIELDS
+    @test ∂self === NO_FIELDS  # No internal fields
 
     # Correctness testing via finite differencing.
     x̄s_fd = _make_fdm_call(fdm, f, ȳ, xs, x̄s .== nothing)
