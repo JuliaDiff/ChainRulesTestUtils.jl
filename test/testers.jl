@@ -81,6 +81,7 @@ fbtestkws(x, y; err = true) = err ? error() : x
             return futestkws(x; err = err), futestkws_pullback
         end
 
+        # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException futestkws(randn())
         @test_throws ErrorException test_scalar(futestkws, randn())
         @test_throws ErrorException frule((nothing, randn()), futestkws, randn())
@@ -114,6 +115,7 @@ fbtestkws(x, y; err = true) = err ? error() : x
             return fbtestkws(x, y; err = err), fbtestkws_pullback
         end
 
+        # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException fbtestkws(randn(), randn())
         @test_throws ErrorException frule((nothing, randn(), nothing), fbtestkws, randn(), randn())
         @test_throws ErrorException rrule(fbtestkws, randn(), randn())
