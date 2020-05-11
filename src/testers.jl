@@ -28,7 +28,6 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 - `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
-    ignores = collect(ignores)
     function f2(sigargs...)
         callargs = Any[]
         j = 1
@@ -46,12 +45,13 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
         return f(callargs...)
     end
 
+    ignores = collect(ignores)
     args = Any[nothing for _ in 1:length(xs)]
     all(ignores) && return (args...,)
     sigargs = xs[.!ignores]
     arginds = (1:length(xs))[.!ignores]
     fd = j′vp(fdm, f2, ȳ, sigargs...)
-    
+
     for (dx, ind) in zip(fd, arginds)
         args[ind] = dx
     end
