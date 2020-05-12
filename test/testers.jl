@@ -1,3 +1,8 @@
+# For some reason if these aren't defined here, then they are interpreted as closures
+futestkws(x; err = true) = err ? error() : x
+
+fbtestkws(x, y; err = true) = err ? error() : x
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         double(x) = 2x
@@ -62,6 +67,70 @@
         @testset "rrule_test" begin
             rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
             rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)))
+        end
+    end
+
+    @testset "unary with kwargs: futestkws(x; err)" begin
+        function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err = true)
+            return futestkws(x; err = err), ẋ
+        end
+        function ChainRulesCore.rrule(::typeof(futestkws), x; err = true)
+            function futestkws_pullback(Δx)
+                return (NO_FIELDS, Δx)
+            end
+            return futestkws(x; err = err), futestkws_pullback
+        end
+
+        # we defined these functions at top of file to throw errors unless we pass `err=false`
+        @test_throws ErrorException futestkws(randn())
+        @test_throws ErrorException test_scalar(futestkws, randn())
+        @test_throws ErrorException frule((nothing, randn()), futestkws, randn())
+        @test_throws ErrorException rrule(futestkws, randn())
+
+        @test_throws ErrorException futestkws(randn(4))
+        @test_throws ErrorException frule((nothing, randn(4)), futestkws, randn(4))
+        @test_throws ErrorException rrule(futestkws, randn(4))
+
+        @testset "scalar_test" begin
+            test_scalar(futestkws, randn(); fkwargs=(; err = false))
+        end
+        @testset "frule_test" begin
+            frule_test(futestkws, (randn(), randn()); fkwargs=(; err = false))
+            frule_test(futestkws, (randn(4), randn(4)); fkwargs=(; err = false))
+        end
+        @testset "rrule_test" begin
+            rrule_test(futestkws, randn(), (randn(), randn()); fkwargs=(; err = false))
+            rrule_test(futestkws, randn(4), (randn(4), randn(4)); fkwargs=(; err = false))
+        end
+    end
+
+    @testset "binary with kwargs: fbtestkws(x, y; err)" begin
+        function ChainRulesCore.frule((_, ẋ, _), ::typeof(fbtestkws), x, y; err = true)
+            return fbtestkws(x, y; err = err), ẋ
+        end
+        function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
+            function fbtestkws_pullback(Δx)
+                return (NO_FIELDS, Δx, Zero())
+            end
+            return fbtestkws(x, y; err = err), fbtestkws_pullback
+        end
+
+        # we defined these functions at top of file to throw errors unless we pass `err=false`
+        @test_throws ErrorException fbtestkws(randn(), randn())
+        @test_throws ErrorException frule((nothing, randn(), nothing), fbtestkws, randn(), randn())
+        @test_throws ErrorException rrule(fbtestkws, randn(), randn())
+
+        @test_throws ErrorException fbtestkws(randn(4), randn(4))
+        @test_throws ErrorException frule((nothing, randn(4), nothing), fbtestkws, randn(4), randn(4))
+        @test_throws ErrorException rrule(fbtestkws, randn(4), randn(4))
+
+        @testset "frule_test" begin
+            frule_test(fbtestkws, (randn(), randn()), (randn(), randn()); fkwargs=(; err = false))
+            frule_test(fbtestkws, (randn(4), randn(4)), (randn(4), randn(4)); fkwargs=(; err = false))
+        end
+        @testset "rrule_test" begin
+            rrule_test(fbtestkws, randn(), (randn(), randn()), (randn(), randn()); fkwargs=(; err = false))
+            rrule_test(fbtestkws, randn(4), (randn(4), randn(4)), (randn(4), randn(4)); fkwargs=(; err = false))
         end
     end
 end
