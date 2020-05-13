@@ -51,6 +51,7 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
     sigargs = xs[.!ignores]
     arginds = (1:length(xs))[.!ignores]
     fd = j′vp(fdm, f2, ȳ, sigargs...)
+    @assert length(fd) == length(arginds)
 
     for (dx, ind) in zip(fd, arginds)
         args[ind] = dx
