@@ -70,6 +70,21 @@ fbtestkws(x, y; err = true) = err ? error() : x
         end
     end
 
+    @testset "symbol input: fsymtest" begin
+        fsymtest(x, s::Symbol) = x
+        ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
+        function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
+            function fsymtest_pullback(Δx)
+                return NO_FIELDS, Δx, DoesNotExist()
+            end
+            return x, fsymtest_pullback
+        end
+
+        @testset "rrule_test" begin
+            rrule_test(fsymtest, randn(), (randn(), randn()), (:x, nothing))
+        end
+    end
+
     @testset "unary with kwargs: futestkws(x; err)" begin
         function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err = true)
             return futestkws(x; err = err), ẋ
