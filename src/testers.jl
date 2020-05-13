@@ -59,7 +59,7 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
 end
 
 """
-    test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), kwargs...)
+    test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
 at input point `x` to confirm that there are correct `frule` and `rrule`s provided.
@@ -68,13 +68,14 @@ at input point `x` to confirm that there are correct `frule` and `rrule`s provid
 - `f`: Function for which the `frule` and `rrule` should be tested.
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 
-All keyword arguments except for `fdm` is passed to `isapprox`.
+`fkwargs` are passed to `f` as keyword arguments.
+All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
-function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
+function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
 
-    r_res = rrule(f, x)
-    f_res = frule((Zero(), 1), f, x)
+    r_res = rrule(f, x; fkwargs...)
+    f_res = frule((Zero(), 1), f, x; fkwargs...)
     @test r_res !== nothing  # Check the rule was defined
     @test f_res !== nothing
     r_fx, prop_rule = r_res
@@ -83,38 +84,35 @@ function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
         (rrule, r_fx, prop_rule(1)),
         (frule, f_fx, f_∂x)
     )
-        @test fx == f(x)  # Check we still get the normal value, right
+        @test fx == f(x; fkwargs...)  # Check we still get the normal value, right
 
         if rule == rrule
             ∂self, ∂x = ∂x
             @test ∂self === NO_FIELDS
         end
-        @test isapprox(∂x, fdm(f, x); rtol=rtol, atol=atol, kwargs...)
+        @test isapprox(∂x, fdm(x -> f(x; fkwargs...), x); rtol=rtol, atol=atol, kwargs...)
     end
 end
 
 """
-    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), kwargs...)
+    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
-All keyword arguments except for `fdm` are passed to `isapprox`.
+`fkwargs` are passed to `f` as keyword arguments.
+All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
-function frule_test(f, (x, ẋ); rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
-    return frule_test(f, ((x, ẋ),); rtol=rtol, atol=atol, fdm=fdm, kwargs...)
-end
-
-function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
+function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "frule_test")
     xs, ẋs = first.(xẋs), last.(xẋs)
-    Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...)
-    @test f(xs...) == Ω
+    Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...; fkwargs...)
+    @test f(xs...; fkwargs...) == Ω
 
     # Correctness testing via finite differencing.
-    dΩ_fd = jvp(fdm, xs->f(xs...), (xs, ẋs))
+    dΩ_fd = jvp(fdm, xs->f(xs...; fkwargs...), (xs, ẋs))
     @test isapprox(
         collect(extern.(dΩ_ad)),  # Use collect so can use vector equality
         collect(dΩ_fd);
@@ -126,7 +124,7 @@ end
 
 
 """
-    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), kwargs...)
+    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
@@ -135,14 +133,15 @@ end
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
-All keyword arguments except for `fdm` are passed to `isapprox`.
+`fkwargs` are passed to `f` as keyword arguments.
+All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
+function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
-    fx, pullback = rrule(f, x)
-    @test collect(fx) ≈ collect(f(x))  # use collect so can do vector equality
+    fx, pullback = rrule(f, x; fkwargs...)
+    @test collect(fx) ≈ collect(f(x; fkwargs...))  # use collect so can do vector equality
     (∂self, x̄_ad) = if fx isa Tuple
         # If the function returned multiple values,
         # then it must have multiple seeds for propagating backwards
@@ -153,18 +152,18 @@ function rrule_test(f, ȳ, (x, x̄)::Tuple{Any, Any}; rtol=1e-9, atol=1e-9, fdm
 
     @test ∂self === NO_FIELDS  # No internal fields
     # Correctness testing via finite differencing.
-    x̄_fd = only(j′vp(fdm, f, ȳ, x))  # j′vp returns a tuple, but `f` is a unary function.
+    x̄_fd = only(j′vp(fdm, x -> f(x; fkwargs...), ȳ, x))  # j′vp returns a tuple, but `f` is a unary function.
     @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
 end
 
 # case where `f` takes multiple arguments
-function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, kwargs...)
+function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
     xs, x̄s = collect(zip(xx̄s...))
-    y, pullback = rrule(f, xs...)
-    @test f(xs...) == y
+    y, pullback = rrule(f, xs...; fkwargs...)
+    @test f(xs...; fkwargs...) == y
 
     @assert !(isa(ȳ, Thunk))
     ∂s = pullback(ȳ)
@@ -173,7 +172,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     @test ∂self === NO_FIELDS
 
     # Correctness testing via finite differencing.
-    x̄s_fd = _make_fdm_call(fdm, f, ȳ, xs, x̄s .== nothing)
+    x̄s_fd = _make_fdm_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s .== nothing)
     for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
         if x̄_fd === nothing
             # The way we've structured the above, this tests the propagator is returning a DoesNotExist
