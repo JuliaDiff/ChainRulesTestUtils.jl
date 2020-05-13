@@ -71,7 +71,7 @@ fbtestkws(x, y; err = true) = err ? error() : x
     end
 
     @testset "symbol input: fsymtest" begin
-        fsymtest(x, s) = x
+        fsymtest(x, s::Symbol) = x
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
