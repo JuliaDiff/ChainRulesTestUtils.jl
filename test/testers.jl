@@ -49,6 +49,28 @@ fbtestkws(x, y; err = true) = err ? error() : x
         end
     end
 
+    @testset "single input, multiple output" begin
+        simo(x) = (x, 2x)
+        function ChainRulesCore.rrule(simo, x)
+            simo_pullback((a, b)) = (NO_FIELDS, a .+ 2 .* b)
+            return simo(x), simo_pullback
+        end
+        function ChainRulesCore.frule((_, ẋ), simo, x)
+            y = simo(x)
+            return y, Composite{typeof(y)}(ẋ, 2ẋ)
+        end
+
+        @testset "frule_test" begin
+            frule_test(simo, (randn(), randn()))  # on scalar
+            frule_test(simo, (randn(4), randn(4)))  # on array
+        end
+        @testset "rrule_test" begin
+            # note: we are pulling back tuples (could use Composites here instead)
+            rrule_test(simo, (randn(), rand()), (randn(), randn()))  # on scalar
+            rrule_test(simo, (randn(4), rand(4)), (randn(4), randn(4))) # on array
+        end
+    end
+
 
     @testset "tuple input: first" begin
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
