@@ -1,6 +1,6 @@
 name = "ChainRulesTestUtils"
 uuid = "cdddcdb0-9152-4a09-a978-84456f9df70a"
-version = "0.3"
+version = "0.3.1"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -13,5 +13,5 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [compat]
 ChainRulesCore = "0.8"
 Compat = "3"
-FiniteDifferences = "0.9"
+FiniteDifferences = "0.9, 0.10"
 julia = "1"
