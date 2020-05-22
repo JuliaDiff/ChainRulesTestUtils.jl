@@ -147,9 +147,8 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     # use collect so can do vector equality
     @test isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
     @assert !(isa(ȳ, Thunk))
-    # If the function returned multiple values,
-    # then it must have multiple seeds for propagating backwards
-    ∂s = (y_ad isa Tuple) ? pullback(ȳ...) : pullback(ȳ)
+    
+    ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields
