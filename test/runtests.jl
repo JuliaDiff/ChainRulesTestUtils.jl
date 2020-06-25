@@ -5,6 +5,7 @@ using Random
 using Test
 
 @testset "ChainRulesTestUtils.jl" begin
+    include("generate_tangent.jl")
     include("to_vec.jl")
     include("isapprox.jl")
     include("testers.jl")
