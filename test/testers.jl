@@ -3,6 +3,8 @@ futestkws(x; err = true) = err ? error() : x
 
 fbtestkws(x, y; err = true) = err ? error() : x
 
+sinconj(x) = sin(x)
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         double(x) = 2x
@@ -28,6 +30,19 @@ fbtestkws(x, y; err = true) = err ? error() : x
             rrule_test(identity, randn(), (randn(), randn()))
             rrule_test(identity, randn(4), (randn(4), randn(4)))
         end
+    end
+
+    @testset "test derivative conjugated in pullback" begin
+        ChainRulesCore.frule((_, Δx), ::typeof(sinconj), x) = (sin(x), cos(x) * Δx)
+
+        # define rrule using ChainRulesCore's v0.9.0 convention, conjugating the derivative
+        # in the rrule
+        function ChainRulesCore.rrule(::typeof(sinconj), x)
+            sinconj_pullback(ΔΩ) = (NO_FIELDS, @thunk(conj(cos(x)) * ΔΩ))
+            return sin(x), sinconj_pullback
+        end
+        rrule_test(sinconj, randn(ComplexF64), (randn(ComplexF64), randn(ComplexF64)))
+        test_scalar(sinconj, randn(ComplexF64))
     end
 
     @testset "binary: fst(x, y)" begin
