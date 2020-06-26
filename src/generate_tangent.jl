@@ -16,7 +16,7 @@ rand_tangent(rng::AbstractRNG, x::T) where {T<:Number} = randn(rng, T)
 rand_tangent(rng::AbstractRNG, x::StridedArray) = rand_tangent.(rng, x)
 
 function rand_tangent(rng::AbstractRNG, x::T) where {T<:Tuple}
-    return Composite{T}(rand_tangent.(rng, x)...)
+    return Composite{T}(rand_tangent.(Ref(rng), x)...)
 end
 
 function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
