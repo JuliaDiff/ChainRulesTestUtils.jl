@@ -89,6 +89,8 @@ function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 
         if rule == rrule
             ∂self, ∂x = ∂x
+            # un-conjugate to get same derivative as fdm/forward mode
+            ∂x = conj(∂x)
             @test ∂self === NO_FIELDS
         end
         @test isapprox(∂x, fdm(x -> f(x; fkwargs...), x); rtol=rtol, atol=atol, kwargs...)
@@ -147,7 +149,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     # use collect so can do vector equality
     @test isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
     @assert !(isa(ȳ, Thunk))
-    
+
     ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
