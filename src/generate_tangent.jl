@@ -17,3 +17,5 @@ end
 function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
     return Composite{T}(; map(x -> rand_tangent(rng, x), xs)...)
 end
+
+rand_tangent(x) = rand_tangent(Random.default_rng(), x)
