@@ -1,4 +1,10 @@
-rand_tangent(rng::AbstractRNG, x::Integer) = Zero()
+rand_tangent(x) = rand_tangent(Random.GLOBAL_RNG, x)
+
+function rand_tangent(rng::AbstractRNG, x::Union{Symbol, AbstractChar, AbstractString})
+    return DoesNotExist()
+end
+
+rand_tangent(rng::AbstractRNG, x::Integer) = DoesNotExist()
 
 rand_tangent(rng::AbstractRNG, x::T) where {T<:Number} = randn(rng, T)
 
@@ -9,5 +15,5 @@ function rand_tangent(rng::AbstractRNG, x::T) where {T<:Tuple}
 end
 
 function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
-    return Composite{T}(;map(x -> rand_tangent(rng, x), xs)...)
+    return Composite{T}(; map(x -> rand_tangent(rng, x), xs)...)
 end
