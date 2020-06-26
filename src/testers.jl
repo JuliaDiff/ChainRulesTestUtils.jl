@@ -71,6 +71,10 @@ at input point `x` to confirm that there are correct `frule` and `rrule`s provid
 
 `fkwargs` are passed to `f` as keyword arguments.
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+
+!!! note
+    this function has the same assumptions as the `@scalar_rule` macro. For example, it
+    assumes that a complex scalar function is holomorphic.
 """
 function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
