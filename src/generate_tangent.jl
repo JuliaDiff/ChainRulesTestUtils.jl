@@ -1,5 +1,5 @@
 """
-    rand_tangent([rng::AbstractRNG], x)
+    rand_tangent([rng::AbstractRNG,] x)
 
 Returns a randomly generated tangent vector appropriate for the primal value `x`.
 """
