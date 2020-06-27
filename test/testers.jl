@@ -9,7 +9,7 @@ sinconj(x) = sin(x)
     @testset "test_scalar" begin
         double(x) = 2x
         @scalar_rule(double(x), 2)
-        test_scalar(double, 2)
+        test_scalar(double, 2.0)
     end
 
     @testset "unary: identity(x)" begin
@@ -41,6 +41,7 @@ sinconj(x) = sin(x)
             sinconj_pullback(ΔΩ) = (NO_FIELDS, @thunk(conj(cos(x)) * ΔΩ))
             return sin(x), sinconj_pullback
         end
+
         rrule_test(sinconj, randn(ComplexF64), (randn(ComplexF64), randn(ComplexF64)))
         test_scalar(sinconj, randn(ComplexF64))
     end
