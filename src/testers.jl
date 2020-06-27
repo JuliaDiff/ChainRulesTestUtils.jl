@@ -83,6 +83,16 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     @testset "$f at $z, with tangent $Δx" begin
         # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
         frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if z isa Complex
+            # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
+            @test isapprox(
+                frule((Zero(), real(Δx)), f, z; fkwargs...)[2],
+                frule((Zero(), Δx), f, z; fkwargs...)[2],
+                rtol=rtol,
+                atol=atol,
+                kwargs...,
+            )
+        end
     end
     if z isa Complex
         Δy = one(z) * im
@@ -97,6 +107,17 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     @testset "$f at $z, with cotangent $Δu" begin
         # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
         rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if Ω isa Complex
+            # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
+            back = rrule(f, z)[2]
+            @test isapprox(
+                extern(back(real(Δu))[2]),
+                extern(back(Δu)[2]),
+                rtol=rtol,
+                atol=atol,
+                kwargs...,
+            )
+        end
     end
     if Ω isa Complex
         Δv = one(Ω) * im
