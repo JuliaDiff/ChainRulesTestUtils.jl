@@ -60,44 +60,50 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
 end
 
 """
-    test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
-at input point `x` to confirm that there are correct `frule` and `rrule`s provided.
+at input point `z` to confirm that there are correct `frule` and `rrule`s provided.
 
 # Arguments
 - `f`: Function for which the `frule` and `rrule` should be tested.
-- `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
+- `z`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 
 `fkwargs` are passed to `f` as keyword arguments.
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
-
-!!! note
-    this function has the same assumptions as the `@scalar_rule` macro. For example, it
-    assumes that a complex scalar function is holomorphic.
 """
-function test_scalar(f, x; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
+    # z = x + im * y
+    # Ω = u(x, y) + im * v(x, y)
+    Ω = f(z; fkwargs...)
 
-    r_res = rrule(f, x; fkwargs...)
-    f_res = frule((Zero(), 1), f, x; fkwargs...)
-    @test r_res !== nothing  # Check the rule was defined
-    @test f_res !== nothing
-    r_fx, prop_rule = r_res
-    f_fx, f_∂x = f_res
-    @testset "$f at $x, $(nameof(rule))" for (rule, fx, ∂x) in (
-        (rrule, r_fx, prop_rule(1)),
-        (frule, f_fx, f_∂x)
-    )
-        @test fx == f(x; fkwargs...)  # Check we still get the normal value, right
-
-        if rule == rrule
-            ∂self, ∂x = ∂x
-            # un-conjugate to get same derivative as fdm/forward mode
-            ∂x = conj(∂x)
-            @test ∂self === NO_FIELDS
+    # test jacobian using forward mode
+    Δx = one(z)
+    @testset "$f at $z, with tangent $Δx" begin
+        # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
+        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs)
+    end
+    if z isa Complex
+        Δy = one(z) * im
+        @testset "$f at $z, with tangent $Δy" begin
+            # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
+            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs)
         end
-        @test isapprox(∂x, fdm(x -> f(x; fkwargs...), x); rtol=rtol, atol=atol, kwargs...)
+    end
+
+    # test jacobian transpose using reverse mode
+    Δu = one(Ω)
+    @testset "$f at $z, with cotangent $Δu" begin
+        # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
+        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs)
+    end
+    if Ω isa Complex
+        Δv = one(Ω) * im
+        @testset "$f at $z, with cotangent $Δv" begin
+            # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
+            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs)
+        end
     end
 end
 
