@@ -13,7 +13,7 @@ rand_tangent(rng::AbstractRNG, x::Integer) = DoesNotExist()
 
 rand_tangent(rng::AbstractRNG, x::T) where {T<:Number} = randn(rng, T)
 
-rand_tangent(rng::AbstractRNG, x::StridedArray) = rand_tangent.(rng, x)
+rand_tangent(rng::AbstractRNG, x::StridedArray) = rand_tangent.(Ref(rng), x)
 
 function rand_tangent(rng::AbstractRNG, x::T) where {T<:Tuple}
     return Composite{T}(rand_tangent.(Ref(rng), x)...)
