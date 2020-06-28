@@ -7,6 +7,7 @@ using ChainRulesTestUtils: rand_tangent
         ("hi", DoesNotExist),
         ('a', DoesNotExist),
         (:a, DoesNotExist),
+        (true, DoesNotExist),
         (4, DoesNotExist),
         (5.0, Float64),
         (5.0 + 0.4im, Complex{Float64}),
