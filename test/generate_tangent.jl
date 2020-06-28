@@ -1,5 +1,12 @@
 using ChainRulesTestUtils: rand_tangent
 
+# Test struct for `rand_tangent`.
+struct Foo
+   a::Float64
+   b::Int
+   c::Any
+end
+
 @testset "generate_tangent" begin
     rng = MersenneTwister(123456)
 
@@ -20,6 +27,8 @@ using ChainRulesTestUtils: rand_tangent
         ((5.0, randn(3)), Composite{Tuple{Float64, Vector{Float64}}}),
         ((a=4.0, ), Composite{NamedTuple{(:a,), Tuple{Float64}}}),
         ((a=5.0, b=1), Composite{NamedTuple{(:a, :b), Tuple{Float64, Int}}}),
+        (sin, typeof(NO_FIELDS)),
+        (Foo(5.0, 4, rand(rng, 3)), Composite{Foo}),
     ]) do (x, T_tangent)
         @test rand_tangent(rng, x) isa T_tangent
         @test rand_tangent(x) isa T_tangent

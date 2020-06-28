@@ -22,3 +22,15 @@ end
 function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
     return Composite{T}(; map(x -> rand_tangent(rng, x), xs)...)
 end
+
+function rand_tangent(rng::AbstractRNG, x::T) where {T}
+    field_names = fieldnames(T)
+    if length(field_names) > 0
+        tangents = map(field_names) do field_name
+            rand_tangent(rng, getfield(x, field_name))
+        end
+        return Composite{T}(; NamedTuple{field_names}(tangents)...)
+    else
+        return NO_FIELDS
+    end
+end
