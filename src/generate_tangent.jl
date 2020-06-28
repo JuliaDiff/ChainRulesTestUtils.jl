@@ -24,6 +24,7 @@ function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
 end
 
 function rand_tangent(rng::AbstractRNG, x::T) where {T}
+    isstructtype(T) || ArgumentError("Non-struct types are not supported by this fallback.")
     field_names = fieldnames(T)
     if length(field_names) > 0
         tangents = map(field_names) do field_name
