@@ -35,4 +35,7 @@ end
         @test rand_tangent(x) isa T_tangent
         @test x + rand_tangent(rng, x) isa typeof(x)
     end
+
+    # Ensure struct fallback errors for non-struct types.
+    @test_throws ArgumentError invoke(rand_tangent, Tuple{AbstractRNG, Any}, rng, 5.0)
 end
