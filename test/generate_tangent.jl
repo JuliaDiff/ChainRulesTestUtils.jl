@@ -29,6 +29,7 @@ end
         ((a=5.0, b=1), Composite{NamedTuple{(:a, :b), Tuple{Float64, Int}}}),
         (sin, typeof(NO_FIELDS)),
         (Foo(5.0, 4, rand(rng, 3)), Composite{Foo}),
+        (Foo(4.0, 3, Foo(5.0, 2, 4)), Composite{Foo}),
     ]) do (x, T_tangent)
         @test rand_tangent(rng, x) isa T_tangent
         @test rand_tangent(x) isa T_tangent
