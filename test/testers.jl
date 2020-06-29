@@ -5,6 +5,8 @@ fbtestkws(x, y; err = true) = err ? error() : x
 
 sinconj(x) = sin(x)
 
+primalapprox(x) = x
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         double(x) = 2x
@@ -188,5 +190,19 @@ sinconj(x) = sin(x)
             rrule_test(fbtestkws, randn(), (randn(), randn()), (randn(), randn()); fkwargs=(; err = false))
             rrule_test(fbtestkws, randn(4), (randn(4), randn(4)), (randn(4), randn(4)); fkwargs=(; err = false))
         end
+    end
+
+    @testset "primal can be only approximately equal" begin
+        ChainRulesCore.frule((_, Δx), ::typeof(primalapprox), x) = (x + sqrt(eps(x)), Δx)
+
+        function ChainRulesCore.rrule(::typeof(primalapprox), x)
+            function primalapprox_pullback(Δx)
+                return (NO_FIELDS, Δx)
+            end
+            return x + sqrt(eps(x)), primalapprox_pullback
+        end
+
+        frule_test(primalapprox, (randn(), randn()); atol = 1e-6)
+        rrule_test(primalapprox, randn(), (randn(), randn()); atol = 1e-6)
     end
 end
