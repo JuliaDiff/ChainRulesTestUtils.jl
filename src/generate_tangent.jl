@@ -3,7 +3,7 @@
 
 Returns a randomly generated tangent vector appropriate for the primal value `x`.
 """
-rand_tangent(x) = rand_tangent(Random.default_rng(), x)
+rand_tangent(x) = rand_tangent(Random.GLOBAL_RNG, x)
 
 function rand_tangent(rng::AbstractRNG, x::Union{Symbol, AbstractChar, AbstractString})
     return DoesNotExist()
