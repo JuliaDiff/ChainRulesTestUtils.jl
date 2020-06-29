@@ -143,7 +143,8 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
     _ensure_not_running_on_functor(f, "frule_test")
     xs, ẋs = first.(xẋs), last.(xẋs)
     Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...; fkwargs...)
-    @test f(xs...; fkwargs...) == Ω
+    # use collect so can do vector equality
+    @test isapprox(collect(Ω), collect(f(xs...; fkwargs...)); rtol=rtol, atol=atol)
 
     # Correctness testing via finite differencing.
     dΩ_fd = jvp(fdm, xs->f(xs...; fkwargs...), (xs, ẋs))
