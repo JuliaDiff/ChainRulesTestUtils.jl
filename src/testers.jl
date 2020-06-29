@@ -142,9 +142,12 @@ All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "frule_test")
     xs, ẋs = first.(xẋs), last.(xẋs)
-    Ω, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...; fkwargs...)
+    Ω_ad, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...; fkwargs...)
+    Ω = f(xs...; fkwargs...)
+    # if equality check fails, check approximate equality
     # use collect so can do vector equality
-    @test isapprox(collect(Ω), collect(f(xs...; fkwargs...)); rtol=rtol, atol=atol)
+    # TODO: add isapprox replacement that works for more types
+    @test Ω_ad == Ω || isapprox(collect(Ω_ad), collect(Ω); rtol=rtol, atol=atol)
 
     # Correctness testing via finite differencing.
     dΩ_fd = jvp(fdm, xs->f(xs...; fkwargs...), (xs, ẋs))
@@ -178,8 +181,10 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     xs, x̄s = collect(zip(xx̄s...))
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
+    # if equality check fails, check approximate equality
     # use collect so can do vector equality
-    @test isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
+    # TODO: add isapprox replacement that works for more types
+    @test y_ad == y || isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
     @assert !(isa(ȳ, Thunk))
 
     ∂s = pullback(ȳ)
