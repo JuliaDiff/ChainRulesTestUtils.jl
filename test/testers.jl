@@ -40,10 +40,7 @@ primalapprox(x) = x
         # define rrule using ChainRulesCore's v0.9.0 convention, conjugating the derivative
         # in the rrule
         function ChainRulesCore.rrule(::typeof(sinconj), x)
-            # usually we would not thunk for a single output, because it will of course be
-            # used, but we do here to ensure that test_scalar works even if a scalar rrule
-            # thunks
-            sinconj_pullback(ΔΩ) = (NO_FIELDS, @thunk(conj(cos(x)) * ΔΩ))
+            sinconj_pullback(ΔΩ) = (NO_FIELDS, conj(cos(x)) * ΔΩ)
             return sin(x), sinconj_pullback
         end
 
