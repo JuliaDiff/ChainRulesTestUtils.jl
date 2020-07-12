@@ -192,8 +192,9 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields
 
+    x̄s_is_dne = x̄s .== nothing
     # Correctness testing via finite differencing.
-    x̄s_fd = _make_fdm_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s .== nothing)
+    x̄s_fd = _make_fdm_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
     for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
         if x̄_fd === nothing
             # The way we've structured the above, this tests the propagator is returning a DoesNotExist
@@ -201,5 +202,12 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
         else
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
         end
+    end
+
+    if count(!, x̄s_is_dne) == 1
+        # for functions with pullbacks that only produce a single non-DNE adjoint, that
+        # single adjoint should not be thunked.
+        i = findfirst(!, x̄s_is_dne)
+        @test !(isa(x̄s_ad[i], Thunk))
     end
 end
