@@ -206,7 +206,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
 
     if count(!, x̄s_is_dne) == 1
         # for functions with pullbacks that only produce a single non-DNE adjoint, that
-        # single adjoint should not be thunked.
+        # single adjoint should not be `Thunk`ed. InplaceableThunk is fine.
         i = findfirst(!, x̄s_is_dne)
         @test !(isa(x̄s_ad[i], Thunk))
     end
