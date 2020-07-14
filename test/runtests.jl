@@ -8,6 +8,7 @@ using Test
     include("generate_tangent.jl")
     include("to_vec.jl")
     include("isapprox.jl")
+    include("iterator.jl")
     include("testers.jl")
     include("data_generation.jl")
 end
