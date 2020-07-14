@@ -17,5 +17,6 @@ include("generate_tangent.jl")
 include("to_vec.jl")
 include("isapprox.jl")
 include("data_generation.jl")
+include("iterator.jl")
 include("testers.jl")
 end # module
