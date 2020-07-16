@@ -39,6 +39,10 @@ Base.:(==)(iter1::T, iter2::T) where {T<:TestIterator} = iter1.data == iter2.dat
 
 Base.isequal(iter1::T, iter2::T) where {T<:TestIterator} = isequal(iter1.data, iter2.data)
 
+function Base.hash(iter::TestIterator{<:Any,IT,IS}) where {IT,IS}
+    return mapreduce(hash, hash, (iter.data, IT, IS))
+end
+
 Base.isapprox(iter1::TestIterator, iter2::TestIterator) = false
 function Base.isapprox(
     iter1::TestIterator{T1,IS,IE},

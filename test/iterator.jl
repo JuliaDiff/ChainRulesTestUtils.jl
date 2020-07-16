@@ -69,6 +69,16 @@
         @test isequal(iter3, iter1)
     end
 
+    @testset "hash" begin
+        data = randn(2, 3, 4)
+        iter1 = TestIterator(data, Base.HasLength(), Base.HasEltype())
+        iter2 = TestIterator(data, Base.HasLength(), Base.EltypeUnknown())
+        @test hash(iter2) != hash(iter1)
+
+        iter3 = TestIterator(copy(data), Base.HasLength(), Base.HasEltype())
+        @test hash(iter3) == hash(iter1)
+    end
+
     @testset "isapprox" begin
         data = randn(3)
         iter1 = TestIterator(data, Base.HasLength(), Base.HasEltype())
