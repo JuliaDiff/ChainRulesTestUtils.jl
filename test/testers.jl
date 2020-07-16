@@ -120,6 +120,10 @@ primalapprox(x) = x
             return x, fsymtest_pullback
         end
 
+        @testset "frule_test" begin
+            frule_test(fsymtest, (randn(), randn()), (:x, nothing))
+        end
+
         @testset "rrule_test" begin
             rrule_test(fsymtest, randn(), (randn(), randn()), (:x, nothing))
         end
