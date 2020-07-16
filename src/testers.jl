@@ -78,6 +78,35 @@ function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
 end
 
 """
+    _make_jvp_call(fdm, f, xs, ẋs, ignores)
+
+Call `FiniteDifferences.jvp`, with the option to ignore certain `xs`.
+
+# Arguments
+- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
+- `f`: The function to differentiate.
+- `xs`: Inputs to `f`, such that `y = f(xs...)`.
+- `ẋs`: Derivative of `xs` w.r.t. some real number `t`.
+- `ignores`: Collection of `Bool`s, the same length as `xs` and `ẋs`.
+   If `ignores[i] === true`, then `ẋs[i]` is ignored for derivative estimation.
+
+# Returns
+- `∂Ω`: Derivative of output w.r.t. `t` estimated by finite differencing.
+"""
+function _make_jvp_call(fdm, f, xs, ẋs, ignores)
+    f2 = _wrap_function(f, xs, ignores)
+
+    ignores = collect(ignores)
+    args = Any[nothing for _ in 1:length(xs)]
+    all(ignores) && return (args...,)
+    sigargs = zip(xs[.!ignores], ẋs[.!ignores])
+    arginds = (1:length(xs))[.!ignores]
+    fd = jvp(fdm, f2, sigargs...)
+
+    return fd
+end
+
+"""
     test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
@@ -167,8 +196,9 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
     # TODO: add isapprox replacement that works for more types
     @test Ω_ad == Ω || isapprox(collect(Ω_ad), collect(Ω); rtol=rtol, atol=atol)
 
+    ẋs_is_dne = ẋs .== nothing
     # Correctness testing via finite differencing.
-    dΩ_fd = jvp(fdm, xs->f(xs...; fkwargs...), (xs, ẋs))
+    dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(xs...; fkwargs...), xs, ẋs, ẋs_is_dne)
     @test isapprox(
         collect(extern.(dΩ_ad)),  # Use collect so can use vector equality
         collect(dΩ_fd);
