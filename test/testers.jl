@@ -7,6 +7,39 @@ sinconj(x) = sin(x)
 
 primalapprox(x) = x
 
+function iterfun(iter)
+    state = iterate(iter)
+    state === nothing && error()
+    (x, i) = state
+    s = x^2
+    while true
+        state = iterate(iter, i)
+        state === nothing && break
+        (x, i) = state
+        s += x^2
+    end
+    return s
+end
+
+function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
+    iter_Δiter = zip(iter, Δiter)
+    state = iterate(iter_Δiter)
+    state === nothing && error()
+    # for some reason the following line errors if the frule is defined within a testset
+    ((x, Δx), i) = state
+    return iterfun(iter), sum(2 .* iter.data .* Δiter.data)
+    s = x^2
+    ∂s = 2 * x * Δx
+    while true
+        state = iterate(iter_Δiter, i)
+        state === nothing && break
+        ((x, Δx), i) = state
+        s += x^2
+        ∂s += 2 * x * Δx
+    end
+    return s, ∂s
+end
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         double(x) = 2x
@@ -205,5 +238,29 @@ primalapprox(x) = x
 
         frule_test(primalapprox, (randn(), randn()); atol = 1e-6)
         rrule_test(primalapprox, randn(), (randn(), randn()); atol = 1e-6)
+    end
+
+    @testset "TestIterator input" begin
+        function ChainRulesCore.rrule(::typeof(iterfun), iter::TestIterator)
+            function iterfun_pullback(Δs)
+                data = iter.data
+                ∂data = (2 * Δs) .* conj.(data)
+                ∂iter = TestIterator(
+                    ∂data,
+                    Base.IteratorSize(iter),
+                    Base.IteratorEltype(iter),
+                )
+                return (NO_FIELDS, ∂iter)
+            end
+            return iterfun(iter), iterfun_pullback
+        end
+
+        # define iterator with the minimal iterator interface
+        x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+        ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+        x̄ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+
+        frule_test(iterfun, (x, ẋ))
+        rrule_test(iterfun, randn(), (x, x̄))
     end
 end
