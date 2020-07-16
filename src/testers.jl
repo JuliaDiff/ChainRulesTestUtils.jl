@@ -12,6 +12,37 @@ end
 
 
 """
+    _wrap_function(f, xs, ignores)
+
+Return a new version of `f`, `fnew`, that ignores some of the arguments `xs`.
+
+# Arguments
+- `f`: The function to be wrapped.
+- `xs`: Inputs to `f`, such that `y = f(xs...)`.
+- `ignores`: Collection of `Bool`s, the same length as `xs`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
+"""
+function _wrap_function(f, xs, ignores)
+    function fnew(sigargs...)
+        callargs = Any[]
+        j = 1
+
+        for (i, (x, ignore)) in enumerate(zip(xs, ignores))
+            if ignore
+                push!(callargs, x)
+            else
+                push!(callargs, sigargs[j])
+                j += 1
+            end
+        end
+        @assert j == length(sigargs) + 1
+        @assert length(callargs) == length(xs)
+        return f(callargs...)
+    end
+    return fnew
+end
+
+"""
     _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
 
 Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
@@ -28,22 +59,7 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 - `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
 function _make_fdm_call(fdm, f, ȳ, xs, ignores)
-    function f2(sigargs...)
-        callargs = Any[]
-        j = 1
-
-        for (i, (x, ignore)) in enumerate(zip(xs, ignores))
-            if ignore
-                push!(callargs, x)
-            else
-                push!(callargs, sigargs[j])
-                j += 1
-            end
-        end
-        @assert j == length(sigargs) + 1
-        @assert length(callargs) == length(xs)
-        return f(callargs...)
-    end
+    f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
     args = Any[nothing for _ in 1:length(xs)]
