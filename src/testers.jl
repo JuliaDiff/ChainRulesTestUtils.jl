@@ -42,8 +42,10 @@ function _wrap_function(f, xs, ignores)
     return fnew
 end
 
+@deprecate _make_fdm_call(fdm, f, ȳ, xs, ignores) _make_j′vp_call(fdm, f, ȳ, xs, ignores)
+
 """
-    _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
+    _make_j′vp_call(fdm, f, ȳ, xs, ignores) -> Tuple
 
 Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 
@@ -58,7 +60,7 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 # Returns
 - `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
-function _make_fdm_call(fdm, f, ȳ, xs, ignores)
+function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
     f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
@@ -210,7 +212,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
 
     x̄s_is_dne = x̄s .== nothing
     # Correctness testing via finite differencing.
-    x̄s_fd = _make_fdm_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
+    x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
     for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
         if x̄_fd === nothing
             # The way we've structured the above, this tests the propagator is returning a DoesNotExist
