@@ -42,8 +42,6 @@ function _wrap_function(f, xs, ignores)
     return fnew
 end
 
-@deprecate _make_fdm_call(fdm, f, ȳ, xs, ignores) _make_j′vp_call(fdm, f, ȳ, xs, ignores)
-
 """
     _make_j′vp_call(fdm, f, ȳ, xs, ignores) -> Tuple
 
