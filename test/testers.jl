@@ -143,7 +143,7 @@ end
         end
     end
 
-    @testset "symbol input: fsymtest" begin
+    @testset "ignoring arguments" begin
         fsymtest(x, s::Symbol) = x
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
