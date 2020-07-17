@@ -12,23 +12,18 @@ end
 
 
 """
-    _make_fdm_call(fdm, f, ȳ, xs, ignores) -> Tuple
+    _wrap_function(f, xs, ignores)
 
-Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
+Return a new version of `f`, `fnew`, that ignores some of the arguments `xs`.
 
 # Arguments
-- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
-- `f`: The function to differentiate.
-- `ȳ`: adjoint w.r.t. output of `f`.
+- `f`: The function to be wrapped.
 - `xs`: Inputs to `f`, such that `y = f(xs...)`.
 - `ignores`: Collection of `Bool`s, the same length as `xs`.
   If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
-
-# Returns
-- `∂xs::Tuple`: Derivatives estimated by finite differencing.
 """
-function _make_fdm_call(fdm, f, ȳ, xs, ignores)
-    function f2(sigargs...)
+function _wrap_function(f, xs, ignores)
+    function fnew(sigargs...)
         callargs = Any[]
         j = 1
 
@@ -44,6 +39,27 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
         @assert length(callargs) == length(xs)
         return f(callargs...)
     end
+    return fnew
+end
+
+"""
+    _make_j′vp_call(fdm, f, ȳ, xs, ignores) -> Tuple
+
+Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
+
+# Arguments
+- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
+- `f`: The function to differentiate.
+- `ȳ`: The adjoint w.r.t. output of `f`.
+- `xs`: Inputs to `f`, such that `y = f(xs...)`.
+- `ignores`: Collection of `Bool`s, the same length as `xs`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
+
+# Returns
+- `∂xs::Tuple`: Derivatives estimated by finite differencing.
+"""
+function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
+    f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
     args = Any[nothing for _ in 1:length(xs)]
@@ -57,6 +73,31 @@ function _make_fdm_call(fdm, f, ȳ, xs, ignores)
         args[ind] = dx
     end
     return (args...,)
+end
+
+"""
+    _make_jvp_call(fdm, f, xs, ẋs, ignores)
+
+Call `FiniteDifferences.jvp`, with the option to ignore certain `xs`.
+
+# Arguments
+- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
+- `f`: The function to differentiate.
+- `xs`: Inputs to `f`, such that `y = f(xs...)`.
+- `ẋs`: The directional derivatives of `xs` w.r.t. some real number `t`.
+- `ignores`: Collection of `Bool`s, the same length as `xs` and `ẋs`.
+   If `ignores[i] === true`, then `ẋs[i]` is ignored for derivative estimation.
+
+# Returns
+- `Ω̇`: Derivative of output w.r.t. `t` estimated by finite differencing.
+"""
+function _make_jvp_call(fdm, f, xs, ẋs, ignores)
+    f2 = _wrap_function(f, xs, ignores)
+
+    ignores = collect(ignores)
+    all(ignores) && return ntuple(_->nothing, length(xs))
+    sigargs = zip(xs[.!ignores], ẋs[.!ignores])
+    return jvp(fdm, f2, sigargs...)
 end
 
 """
@@ -149,8 +190,9 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
     # TODO: add isapprox replacement that works for more types
     @test Ω_ad == Ω || isapprox(collect(Ω_ad), collect(Ω); rtol=rtol, atol=atol)
 
+    ẋs_is_ignored = ẋs .== nothing
     # Correctness testing via finite differencing.
-    dΩ_fd = jvp(fdm, xs->f(xs...; fkwargs...), (xs, ẋs))
+    dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(xs...; fkwargs...), xs, ẋs, ẋs_is_ignored)
     @test isapprox(
         collect(extern.(dΩ_ad)),  # Use collect so can use vector equality
         collect(dΩ_fd);
@@ -194,7 +236,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
 
     x̄s_is_dne = x̄s .== nothing
     # Correctness testing via finite differencing.
-    x̄s_fd = _make_fdm_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
+    x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
     for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
         if x̄_fd === nothing
             # The way we've structured the above, this tests the propagator is returning a DoesNotExist
