@@ -60,6 +60,10 @@ function Base.isapprox(
     return isapprox(iter1.data, iter2.data; kwargs...)
 end
 
+function check_equal(expected::TestIterator, actual::TestIterator; kwargs...)
+    return isapprox(expected, actual; kwargs...)
+end
+
 function rand_tangent(rng::AbstractRNG, x::TestIterator{<:Any,IS,IE}) where {IS,IE}
     ∂data = rand_tangent(rng, x.data)
     return TestIterator{typeof(∂data),IS,IE}(∂data)

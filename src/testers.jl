@@ -126,9 +126,9 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         if z isa Complex
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
-            @test isapprox(
-                frule((Zero(), real(Δx)), f, z; fkwargs...)[2],
-                frule((Zero(), Δx), f, z; fkwargs...)[2],
+            check_equal(
+                frule((Zero(), real(Δx)), f, z; fkwargs...)[2]::Number,
+                frule((Zero(), Δx), f, z; fkwargs...)[2]::Number,
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
@@ -150,10 +150,10 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         if Ω isa Complex
             # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
-            back = rrule(f, z)[2]
-            @test isapprox(
-                extern(back(real(Δu))[2]),
-                extern(back(Δu)[2]),
+            _, back = rrule(f, z)
+            check_equal(
+                back(real(Δu))[2],
+                back(Δu)[2],
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
@@ -249,16 +249,20 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
             # The main test of the actual deriviative being correct:
-            @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
-
+            check_result(accumulated_x̄, x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
             _check_add!!_behavour(x̄_acc, x̄_ad; rtol=rtol, atol=atol, kwargs...)
         end
     end
 
-    if count(!, x̄s_is_dne) == 1
-        # for functions with pullbacks that only produce a single non-DNE adjoint, that
-        # single adjoint should not be `Thunk`ed. InplaceableThunk is fine.
-        i = findfirst(!, x̄s_is_dne)
-        @test !(isa(x̄s_ad[i], Thunk))
+    check_thunking_is_appropriate(x̄s_ad)
+end
+
+function check_thunking_is_appropriate(x̄s)
+    @testset "Don't thunk only non_zero argument" begin
+        num_zeros = count(x->x isa AbstractZero, x̄s)
+        num_thunks = count(x->x isa Thunk, x̄s)
+        if num_zeros + num_thunks == length(x̄s)
+            @test num_thunks !== 1
+        end
     end
 end
