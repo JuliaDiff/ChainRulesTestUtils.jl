@@ -10,7 +10,7 @@ Invoking it via `metatest_get_failures(f)` will prevent those `@test` being adde
 current testset, and will return a collection of all nonpassing test results.
 """
 function metatest_get_failures(f)
-    redirect_stdout(stdout) do
+    redirect_stdout(devnull) do
         failures = []
         @testset "dummy" begin
             f()
