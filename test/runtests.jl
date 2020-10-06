@@ -1,5 +1,6 @@
 using ChainRulesCore
 using ChainRulesTestUtils
+using FiniteDifferences
 using LinearAlgebra
 using Quaternions
 using Random
