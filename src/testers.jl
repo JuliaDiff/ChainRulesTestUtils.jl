@@ -115,56 +115,45 @@ All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
-    # z = x + im * y
-    # Ω = u(x, y) + im * v(x, y)
     Ω = f(z; fkwargs...)
 
+    vz, z_from_vec = to_vec(z)
+    # orthonormal tangent vectors
+    Δzs = z_from_vec.(eachcol(one(first(vz)) * I(length(vz))))
+
     # test jacobian using forward mode
-    Δx = one(z)
-    @testset "$f at $z, with tangent $Δx" begin
-        # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
-        if z isa Complex
-            # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
+    @testset "$f at $z, with tangent $Δz" for (i, Δz) in enumerate(Δzs)
+        frule_test(f, (z, Δz); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if !isa(Δz, Real) && i == 1
+            # check that same tangent is produced for tangent real(one(z)) and one(z)
             @test isapprox(
-                frule((Zero(), real(Δx)), f, z; fkwargs...)[2],
-                frule((Zero(), Δx), f, z; fkwargs...)[2],
+                frule((Zero(), real(Δz)), f, z; fkwargs...)[2],
+                frule((Zero(), Δz), f, z; fkwargs...)[2],
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
             )
-        end
-    end
-    if z isa Complex
-        Δy = one(z) * im
-        @testset "$f at $z, with tangent $Δy" begin
-            # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         end
     end
 
+    vΩ, Ω_from_vec = to_vec(Ω)
+    # orthonormal cotangent vectors
+    ΔΩs = Ω_from_vec.(eachcol(one(first(vΩ)) * I(length(vΩ))))
+
+    Δx = Δzs[1]
     # test jacobian transpose using reverse mode
-    Δu = one(Ω)
-    @testset "$f at $z, with cotangent $Δu" begin
-        # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
-        if Ω isa Complex
-            # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
+    @testset "$f at $z, with cotangent $ΔΩ" for (i, ΔΩ) in enumerate(ΔΩs)
+        rrule_test(f, ΔΩ, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if !isa(ΔΩ, Real) && i == 1
+            # check that same cotangent is produced for cotangent real(one(Ω)) and one(Ω)
             back = rrule(f, z)[2]
             @test isapprox(
-                extern(back(real(Δu))[2]),
-                extern(back(Δu)[2]),
+                extern(back(real(ΔΩ))[2]),
+                extern(back(ΔΩ)[2]),
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
             )
-        end
-    end
-    if Ω isa Complex
-        Δv = one(Ω) * im
-        @testset "$f at $z, with cotangent $Δv" begin
-            # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         end
     end
 end
