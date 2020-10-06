@@ -14,7 +14,7 @@ function metatest_get_failures(f)
         failures = []
         @testset "dummy" begin
             f()
-            ts = Test.get_testset()
+            ts = Test.get_testset()  # this is the current testset "dummy"
             failures = _extract_failures(ts)
             # Prevent the failure being recorded in parent testset.
             empty!(ts.results)
