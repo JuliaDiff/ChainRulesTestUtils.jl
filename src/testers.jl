@@ -220,7 +220,8 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
-    xs, x̄s = collect(zip(xx̄s...))
+    xs = first.(xx̄s)
+    x̄s_acc = last.(xx̄s)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
     # if equality check fails, check approximate equality
@@ -234,15 +235,25 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields
 
-    x̄s_is_dne = x̄s .== nothing
+    x̄s_is_dne = x̄s_acc .== nothing
     # Correctness testing via finite differencing.
     x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
-    for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
-        if x̄_fd === nothing
-            # The way we've structured the above, this tests the propagator is returning a DoesNotExist
-            @test x̄_ad isa DoesNotExist
+    for (x̄_acc, x̄_ad, x̄_fd) in zip(x̄s_acc, x̄s_ad, x̄s_fd)
+        if  x̄_acc === nothing
+            @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
+            @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
+            # The main test of the actual deriviative being correct:
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
+
+            # Test accumulation
+            # Note, we don't test that the accumulant is actually mutated because it doesn't
+            # have to be. e.g. if it is immutable. We do test the `add!!` return value.
+            # That is what people should rely on. The mutation is just to save allocations.
+            acc_mutated = deepcopy(x̄_acc)  # prevent this test changing others
+            @test isapprox(
+                add!!(acc_mutated, x̄_ad), x̄_acc + x̄_fd; rtol=rtol, atol=atol, kwargs...
+            )
         end
     end
 
