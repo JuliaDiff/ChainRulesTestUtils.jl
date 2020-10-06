@@ -112,6 +112,9 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 
 `fkwargs` are passed to `f` as keyword arguments.
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+
+To use this tester for a scalar type `MyNumber <: AbstractNumber`,
+`FiniteDifferences.to_vec(::MyNumber)` must be implemented.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
