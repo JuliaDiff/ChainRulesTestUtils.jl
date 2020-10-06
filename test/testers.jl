@@ -40,6 +40,8 @@ function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
     return s, ∂s
 end
 
+quatfun(q::Quaternion) = Quaternion(q.v3, 2 * q.v1, 3 * q.s, 4 * q.v2)
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         double(x) = 2x
@@ -262,5 +264,30 @@ end
 
         frule_test(iterfun, (x, ẋ))
         rrule_test(iterfun, randn(), (x, x̄))
+    end
+
+    @testset "test quaternion non-standard scalar" begin
+        function FiniteDifferences.to_vec(q::Quaternion)
+            function Quaternion_from_vec(q_vec)
+                return Quaternion(q_vec[1], q_vec[2], q_vec[3], q_vec[4])
+            end
+            return [q.s, q.v1, q.v2, q.v3], Quaternion_from_vec
+        end
+
+        function ChainRulesCore.frule((_, Δq), ::typeof(quatfun), q)
+            ∂q = Quaternion(Δq)
+            return quatfun(q), Quaternion(∂q.v3, 2 * ∂q.v1, 3 * ∂q.s, 4 * ∂q.v2)
+        end
+
+        function ChainRulesCore.rrule(::typeof(quatfun), q)
+            function quatfun_pullback(ΔΩ)
+                ∂Ω = Quaternion(ΔΩ)
+                return (NO_FIELDS, Quaternion(3 * ∂Ω.v2, 2 * ∂Ω.v1, 4 * ∂Ω.v3, ∂Ω.s))
+            end
+            return quatfun(q), quatfun_pullback
+        end
+
+        q = quatrand()
+        test_scalar(quatfun, q)
     end
 end
