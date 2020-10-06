@@ -246,7 +246,6 @@ primalapprox(x) = x
             function iterfun_pullback(Δs)
                 data = iter.data
                 ∂data = (2 * Δs) .* conj.(data)
-                @show ∂data
                 ∂iter = TestIterator(
                     ∂data,
                     Base.IteratorSize(iter),
