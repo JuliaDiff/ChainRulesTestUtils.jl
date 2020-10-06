@@ -10,18 +10,22 @@ Invoking it via `metatest_get_failures(f)` will prevent those `@test` being adde
 current testset, and will return a collection of all nonpassing test results.
 """
 function metatest_get_failures(f)
-    redirect_stdout(devnull) do
-        failures = []
-        @testset "dummy" begin
-            f()
-            ts = Test.get_testset()  # this is the current testset "dummy"
-            failures = _extract_failures(ts)
-            # Prevent the failure being recorded in parent testset.
-            empty!(ts.results)
-            ts.anynonpass = false
-        end
-        return failures
-   end
+    # TODO: once we are on Julia 1.6 this can be change to just use
+    # `redirect_stdout(devnull)` See: https://github.com/JuliaLang/julia/pull/36146
+    mktemp() do path, tempio
+        redirect_stdout(tempio) do 
+            failures = []
+            @testset "dummy" begin
+                f()
+                ts = Test.get_testset()  # this is the current testset "dummy"
+                failures = _extract_failures(ts)
+                # Prevent the failure being recorded in parent testset.
+                empty!(ts.results)
+                ts.anynonpass = false
+            end
+            return failures
+       end
+    end
 end
 
 "extracts as flat collection of failures from a (potential nested) testset"
