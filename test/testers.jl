@@ -42,16 +42,15 @@ end
 
 @testset "testers.jl" begin
     @testset "test_scalar" begin
-        @testset "happy path" begin
+        @testset "Ensure correct rules succeed" begin
             double(x) = 2x
             @scalar_rule(double(x), 2)
             test_scalar(double, 2.1)
         end
-        @testset "unhappy path" begin
+        @testset "Ensure incorrect rules caught" begin
             alt_double(x) = 2x
             @scalar_rule(alt_double(x), 3)  # this is wrong, on purpose
-            failures = metatest_get_failures(()->test_scalar(alt_double, 2.1))
-            @test !isempty(failures)
+            @test fails(()->test_scalar(alt_double, 2.1))
         end
     end
 
@@ -285,10 +284,8 @@ end
                 return 2.5 * x, identity_pullback
             end
 
-            @test !isempty(metatest_get_failures(()->frule_test(my_identity1, (2.2, 3.3))))
-            @test !isempty(metatest_get_failures(
-                ()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
-            )
+            @test fails(()->frule_test(my_identity1, (2.2, 3.3))))
+            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3))))
         end
 
         @testset "deriviative wrong" begin
@@ -303,10 +300,8 @@ end
                 return x, identity_pullback
             end
 
-            @test !isempty(metatest_get_failures(()->frule_test(my_identity2, (2.2, 3.3))))
-            @test !isempty(metatest_get_failures(
-                ()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
-            )
+            @test fails(()->frule_test(my_identity2, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
         end
     end
 end
