@@ -9,24 +9,24 @@ using Test: DefaultTestSet
     nonpassing_results(f)
 
 `f` should be a function that takes no argument, and calls some code that used `@test`.
-Invoking it via `metatest_get_failures(f)` will prevent those `@test` being added to the
+Invoking it via `nonpassing_results(f)` will prevent those `@test` being added to the
 current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
     mute() do
-        failures = []
+        nonpasses = []
         # Specify testset type incase parent testset is some other typer
         @testset DefaultTestSet "nonpassing internal" begin
             f()
             ts = Test.get_testset()  # this is the current testset "nonpassing internal"
-            failures = _extract_nonpasses(ts)
+            nonpasses = _extract_nonpasses(ts)
             # Prevent the failure being recorded in parent testset.
             empty!(ts.results)
             ts.anynonpass = false
         end
         # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
         # passing testset in its parent testset. We could remove that if we wanted
-        return failures
+        return nonpasses
     end
 end
 
