@@ -276,7 +276,7 @@ end
         @testset "primal wrong" begin
             my_identity1(x) = x
             function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity1), x)
-                return 2.5*x, ẏ
+                return 2.5 * x, ẏ
             end
             function ChainRulesCore.rrule(::typeof(my_identity1), x)
                 function identity_pullback(ȳ)
