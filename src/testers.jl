@@ -121,9 +121,9 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Ω = f(z; fkwargs...)
 
     vz, z_from_vec = to_vec(z)
-    ident_mat = Diagonal(ones(eltype(vz), length(vz)))
     # orthonormal tangent vectors
-    Δzs = z_from_vec.(eachcol(ident_mat))
+    vz_basis = Diagonal(ones(eltype(vz), length(vz)))
+    Δzs = [z_from_vec(vz_basis[:, i]) for i in axes(vz_basis, 2)]
 
     # test jacobian using forward mode
     @testset "$f at $z, with tangent $Δz" for (i, Δz) in enumerate(Δzs)
@@ -142,7 +142,8 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 
     vΩ, Ω_from_vec = to_vec(Ω)
     # orthonormal cotangent vectors
-    ΔΩs = Ω_from_vec.(eachcol(ident_mat))
+    vΩ_basis = Diagonal(ones(eltype(vΩ), length(vΩ)))
+    ΔΩs = [Ω_from_vec(vΩ_basis[:, i]) for i in axes(vΩ_basis, 2)]
 
     Δx = Δzs[1]
     # test jacobian transpose using reverse mode
