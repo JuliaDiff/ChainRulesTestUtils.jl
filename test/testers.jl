@@ -284,8 +284,8 @@ end
                 return 2.5 * x, identity_pullback
             end
 
-            @test fails(()->frule_test(my_identity1, (2.2, 3.3))))
-            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3))))
+            @test fails(()->frule_test(my_identity1, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
         end
 
         @testset "deriviative wrong" begin
