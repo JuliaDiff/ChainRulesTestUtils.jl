@@ -6,27 +6,27 @@
 using Test: DefaultTestSet
 
 """
-    nonpassing_results(f)
+    results(f)
 
 `f` should be a function that takes no argument, and calls some code that used `@test`.
-Invoking it via `nonpassing_results(f)` will prevent those `@test` being added to the
-current testset, and will return a collection of all nonpassing test results.
+Invoking it via `results(f)` will prevent those `@test` being added to the current testset,
+and will instead return a (flat) collection of all the test results.
 """
-function nonpassing_results(f)
+function results(f)
     mute() do
-        nonpasses = []
+        res = []
         # Specify testset type incase parent testset is some other typer
-        @testset DefaultTestSet "nonpassing internal" begin
+        @testset DefaultTestSet "results internal" begin
             f()
             ts = Test.get_testset()  # this is the current testset "nonpassing internal"
-            nonpasses = _extract_nonpasses(ts)
+            res = _flatten_results(ts)
             # Prevent the failure being recorded in parent testset.
             empty!(ts.results)
             ts.anynonpass = false
         end
-        # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
+        # Note: we allow the "results internal" testset to still be pushed as an empty
         # passing testset in its parent testset. We could remove that if we wanted
-        return nonpasses
+        return res
     end
 end
 
@@ -45,15 +45,13 @@ function mute(f)
     end
 end
 
-"extracts as flat collection of failures from a (potential nested) testset"
-_extract_nonpasses(x::Test.Result) = [x,]
-_extract_nonpasses(x::Test.Pass) = Test.Result[]
-_extract_nonpasses(ts::Test.DefaultTestSet) = _extract_nonpasses(ts.results)
-function _extract_nonpasses(xs::Vector)
+_flatten_results(x::Test.Result) = [x,]
+_flatten_results(ts::Test.DefaultTestSet) = _flatten_results(ts.results)
+function _flatten_results(xs::Vector)
     if isempty(xs)
         return Test.Result[]
     else
-        return mapreduce(_extract_nonpasses, vcat, xs)
+        return mapreduce(_flatten_results, vcat, xs)
     end
 end
 
@@ -65,13 +63,11 @@ end
 If a test errors then it will display that error and throw an error of its own.
 """
 function fails(f)
-    results = nonpassing_results(f)
     did_fail = false
-    for result in results
+    for result in results(f)
         did_fail |= result isa Test.Fail
         if result isa Test.Error
-            # Log a error message, with original backtrace
-            show(result)
+            show(result)  # Log a error message, with original backtrace
             # Sadly we can't throw the original exception as it is only stored as a String
             error("Error occurred during `fails`")
         end
@@ -79,36 +75,65 @@ function fails(f)
     return did_fail
 end
 
+"""
+    passes(f)
+
+`f` should be a function that takes no argument, and calls some code that used `@test`.
+`passes(f)` returns true if at least 1 `@test` passes and none error or fail.
+If a test errors then it will display that error and throw an error of its own.
+If a test fails then it will display that failure and return false
+(Tests that are marked as broken are ignored).
+"""
+function passes(f)
+    did_pass = false
+    for result in results(f)
+        did_pass |= result isa Test.Pass
+        if result isa Test.Fail
+            show(result)  # display failure
+            return false
+        end
+        if result isa Test.Error
+            show(result)  # Log a error message, with original backtrace
+            # Sadly we can't throw the original exception as it is only stored as a String
+            error("Error occurred during `passes`")
+        end
+    end
+    return did_pass
+end
+
+
 #Meta Meta tests
 @testset "meta_testing_tools.jl" begin
-    @testset "Checking for non-passes" begin
+    @testset "results" begin
         @testset "No Tests" begin
-            fails = nonpassing_results(()->nothing)
-            @test length(fails) === 0
+            res = results(()->nothing)
+            @test length(res) === 0
         end
 
-        @testset "No Failures" begin
-            fails = nonpassing_results(()->@test true)
-            @test length(fails) === 0
+        @testset "Single Test Pass" begin
+            res = results(()->@test true)
+            @test length(res) === 1
+            @test res[1].orig_expr == true
         end
 
-
-        @testset "Single Test" begin
-            fails = nonpassing_results(()->@test false)
-            @test length(fails) === 1
-            @test fails[1].orig_expr == false
+        @testset "Single Test Fails" begin
+            res = results(()->@test false)
+            @test length(res) === 1
+            @test res[1].orig_expr == false
         end
 
         @testset "Single Testset" begin
-            fails = nonpassing_results() do
+            res = results() do
                 @testset "inner" begin
                     @test false == true
+                    @test true == true
                     @test true == false
                 end
             end
-            @test length(fails) === 2
-            @test fails[1].orig_expr == :(false==true)
-            @test fails[2].orig_expr == :(true==false)
+            @test length(res) === 3
+            @test res[1].orig_expr == :(false==true)
+            @test res[2].orig_expr == :(true==true)
+            @test res[3].orig_expr == :(true==false)
         end
     end
 
@@ -127,6 +152,32 @@ end
 
         @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
             fails(()->@test error("Bad"))
+        end
+    end
+
+    @testset "passes" begin
+        @test passes(()->@test true)
+        @test !passes(()->@test false)
+        @test !passes(()->@test_broken false)
+
+        @test passes() do
+            @testset "eg" begin
+                @test true
+                @test_broken false
+                @test true
+            end
+        end
+
+        @test !(passes() do
+            @testset "eg" begin
+                @test true
+                @test false
+                @test true
+            end
+        end)
+
+        @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
+            passes(()->@test error("Bad"))
         end
     end
 end
