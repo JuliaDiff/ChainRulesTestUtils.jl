@@ -42,9 +42,16 @@ end
 
 @testset "testers.jl" begin
     @testset "test_scalar" begin
-        double(x) = 2x
-        @scalar_rule(double(x), 2)
-        test_scalar(double, 2.0)
+        @testset "Ensure correct rules succeed" begin
+            double(x) = 2x
+            @scalar_rule(double(x), 2)
+            test_scalar(double, 2.1)
+        end
+        @testset "Ensure incorrect rules caught" begin
+            alt_double(x) = 2x
+            @scalar_rule(alt_double(x), 3)  # this is wrong, on purpose
+            @test fails(()->test_scalar(alt_double, 2.1))
+        end
     end
 
     @testset "unary: identity(x)" begin
@@ -262,5 +269,39 @@ end
 
         frule_test(iterfun, (x, ẋ))
         rrule_test(iterfun, randn(), (x, x̄))
+    end
+
+    @testset "unhappy path" begin
+        @testset "primal wrong" begin
+            my_identity1(x) = x
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity1), x)
+                return 2.5 * x, ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(my_identity1), x)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, ȳ)
+                end
+                return 2.5 * x, identity_pullback
+            end
+
+            @test fails(()->frule_test(my_identity1, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
+        end
+
+        @testset "deriviative wrong" begin
+            my_identity2(x) = x
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity2), x)
+                return x, 2.7 * ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(my_identity2), x)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, 31.8 * ȳ)
+                end
+                return x, identity_pullback
+            end
+
+            @test fails(()->frule_test(my_identity2, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
+        end
     end
 end
