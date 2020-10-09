@@ -42,6 +42,66 @@ primalapprox(x) = x
         end
     end
 
+    @testset "Inplace accumumulation: first on Array" begin
+        @testset "Correct definitions" begin
+            function ChainRulesCore.frule((_, ẋ), ::typeof(first), x::Array)
+                ẏ = InplaceableThunk(
+                    @thunk(first(ẋ)),
+                    ȧ -> ȧ + first(ẋ),  # This won't actually happen inplace
+                )
+                return first(x), ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(first), x::Array{T}) where T
+                x_dims = size(x)
+                function first_pullback(ȳ)
+                    x̄_ret = InplaceableThunk(
+                        Thunk() do
+                            x̄ = zeros(T, x_dims)
+                            x̄[1]=ȳ
+                            x̄
+                        end,
+                        ā -> (ā[1] += ȳ; ā)
+                    )
+                    return (NO_FIELDS, x̄_ret)
+                end
+                return first(x), first_pullback
+            end
+
+            frule_test(first, (randn(4), randn(4)))
+            rrule_test(first, randn(), (randn(4), randn(4)))
+        end
+
+        @testset "Incorrect inplace definitions" begin
+            bad_first(value) = first(value)
+            function ChainRulesCore.frule((_, ẋ), ::typeof(bad_first), x::Array)
+                ẏ = InplaceableThunk(
+                    @thunk(first(ẋ)),  # correct
+                    ȧ -> ȧ + 1000*first(ẋ),  # incorrect (also not actually inplace)
+                )
+                return first(x), ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(bad_first), x::Array{T}) where T
+                x_dims = size(x)
+                function badfirst_pullback(ȳ)
+                    x̄_ret = InplaceableThunk(
+                        Thunk() do  # correct
+                            x̄ = zeros(T, x_dims)
+                            x̄[1]=ȳ
+                            x̄
+                        end,
+                        ā -> (ā[1] += 1000*ȳ; ā)  # incorrect
+                    )
+                    return (NO_FIELDS, x̄_ret)
+                end
+                return first(x), badfirst_pullback
+            end
+
+            @test fails(()->frule_test(bad_first, (randn(4), randn(4))))
+            @test fails(()->rrule_test(bad_first, randn(), (randn(4), randn(4))))
+        end
+    end
+
+
     @testset "test derivative conjugated in pullback" begin
         ChainRulesCore.frule((_, Δx), ::typeof(sinconj), x) = (sin(x), cos(x) * Δx)
 

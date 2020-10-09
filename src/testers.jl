@@ -200,6 +200,11 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
         atol=atol,
         kwargs...
     )
+
+    # No tangent is passed in to test accumlation, so generate one
+    # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
+    acc = rand_tangent(Ω)
+    _check_add!!_behavour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
 end
 
 
@@ -246,14 +251,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             # The main test of the actual deriviative being correct:
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
 
-            # Test accumulation
-            # Note, we don't test that the accumulant is actually mutated because it doesn't
-            # have to be. e.g. if it is immutable. We do test the `add!!` return value.
-            # That is what people should rely on. The mutation is just to save allocations.
-            acc_mutated = deepcopy(x̄_acc)  # prevent this test changing others
-            @test isapprox(
-                add!!(acc_mutated, x̄_ad), x̄_acc + x̄_fd; rtol=rtol, atol=atol, kwargs...
-            )
+            _check_add!!_behavour(x̄_acc, x̄_ad; rtol=rtol, atol=atol, kwargs...)
         end
     end
 
