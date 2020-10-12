@@ -200,6 +200,11 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
         atol=atol,
         kwargs...
     )
+
+    # No tangent is passed in to test accumlation, so generate one
+    # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
+    acc = rand_tangent(Ω)
+    _check_add!!_behavour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
 end
 
 
@@ -220,7 +225,8 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
-    xs, x̄s = collect(zip(xx̄s...))
+    xs = first.(xx̄s)
+    x̄s_acc = last.(xx̄s)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
     # if equality check fails, check approximate equality
@@ -234,15 +240,18 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields
 
-    x̄s_is_dne = x̄s .== nothing
+    x̄s_is_dne = x̄s_acc .== nothing
     # Correctness testing via finite differencing.
     x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
-    for (x̄_ad, x̄_fd) in zip(x̄s_ad, x̄s_fd)
-        if x̄_fd === nothing
-            # The way we've structured the above, this tests the propagator is returning a DoesNotExist
-            @test x̄_ad isa DoesNotExist
+    for (x̄_acc, x̄_ad, x̄_fd) in zip(x̄s_acc, x̄s_ad, x̄s_fd)
+        if  x̄_acc === nothing
+            @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
+            @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
+            # The main test of the actual deriviative being correct:
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
+
+            _check_add!!_behavour(x̄_acc, x̄_ad; rtol=rtol, atol=atol, kwargs...)
         end
     end
 

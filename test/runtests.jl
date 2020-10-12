@@ -10,6 +10,7 @@ using Test
     include("to_vec.jl")
     include("isapprox.jl")
     include("iterator.jl")
+    include("check_result.jl")
     include("testers.jl")
     include("data_generation.jl")
 end
