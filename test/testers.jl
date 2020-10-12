@@ -72,17 +72,17 @@ primalapprox(x) = x
         end
 
         @testset "Incorrect inplace definitions" begin
-            bad_first(value) = first(value)
-            function ChainRulesCore.frule((_, ẋ), ::typeof(bad_first), x::Array)
+            my_first(value) = first(value)  # we are going to define bad rules on this
+            function ChainRulesCore.frule((_, ẋ), ::typeof(my_first), x::Array)
                 ẏ = InplaceableThunk(
                     @thunk(first(ẋ)),  # correct
                     ȧ -> ȧ + 1000*first(ẋ),  # incorrect (also not actually inplace)
                 )
                 return first(x), ẏ
             end
-            function ChainRulesCore.rrule(::typeof(bad_first), x::Array{T}) where T
+            function ChainRulesCore.rrule(::typeof(my_first), x::Array{T}) where T
                 x_dims = size(x)
-                function badfirst_pullback(ȳ)
+                function my_first_pullback(ȳ)
                     x̄_ret = InplaceableThunk(
                         Thunk() do  # correct
                             x̄ = zeros(T, x_dims)
@@ -93,11 +93,11 @@ primalapprox(x) = x
                     )
                     return (NO_FIELDS, x̄_ret)
                 end
-                return first(x), badfirst_pullback
+                return first(x), my_first_pullback
             end
 
-            @test fails(()->frule_test(bad_first, (randn(4), randn(4))))
-            @test fails(()->rrule_test(bad_first, randn(), (randn(4), randn(4))))
+            @test fails(()->frule_test(my_first, (randn(4), randn(4))))
+            @test fails(()->rrule_test(my_first, randn(), (randn(4), randn(4))))
         end
     end
 
