@@ -113,7 +113,7 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 `fkwargs` are passed to `f` as keyword arguments.
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 
-To use this tester for a scalar type `MyNumber <: AbstractNumber`,
+To use this tester for a scalar type `MyNumber <: Number`,
 `FiniteDifferences.to_vec(::MyNumber)` must be implemented.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
@@ -123,7 +123,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     vz, z_from_vec = to_vec(z)
     # orthonormal tangent vectors
     vz_basis = Diagonal(ones(eltype(vz), length(vz)))
-    Δzs = [z_from_vec(vz_basis[:, i]) for i in axes(vz_basis, 2)]
+    Δzs = [z_from_vec(@view vz_basis[:, i]) for i in axes(vz_basis, 2)]
 
     # test jacobian using forward mode
     @testset "$f at $z, with tangent $Δz" for (i, Δz) in enumerate(Δzs)
