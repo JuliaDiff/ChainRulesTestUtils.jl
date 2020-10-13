@@ -101,6 +101,21 @@ function _make_jvp_call(fdm, f, xs, ẋs, ignores)
 end
 
 """
+    _basis_vectors(x::T) -> Vector{T}
+
+Get a set of basis (co)tangent vectors for `x`.
+
+This function assumes that the (co)tangent vectors are of the same type as `x` and requires
+that `FiniteDifferences.to_vec` be implemented for inputs of the same type as `x`.
+"""
+function _basis_vectors(x)
+    v, from_vec = FiniteDifferences.to_vec(x)
+    basis_coords = Diagonal(ones(eltype(v), length(v)))
+    basis_vecs = [from_vec(@view basis_coords[:, i]) for i in axes(basis_coords, 2)]
+    return basis_vecs
+end
+
+"""
     test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
@@ -120,10 +135,9 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     _ensure_not_running_on_functor(f, "test_scalar")
     Ω = f(z; fkwargs...)
 
-    vz, z_from_vec = to_vec(z)
-    # orthonormal tangent vectors
-    vz_basis = Diagonal(ones(eltype(vz), length(vz)))
-    Δzs = [z_from_vec(@view vz_basis[:, i]) for i in axes(vz_basis, 2)]
+    Δzs = _basis_vectors(z)
+    Δx = first(Δzs)
+    ΔΩs = _basis_vectors(Ω)
 
     # test jacobian using forward mode
     @testset "$f at $z, with tangent $Δz" for (i, Δz) in enumerate(Δzs)
@@ -140,12 +154,6 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         end
     end
 
-    vΩ, Ω_from_vec = to_vec(Ω)
-    # orthonormal cotangent vectors
-    vΩ_basis = Diagonal(ones(eltype(vΩ), length(vΩ)))
-    ΔΩs = [Ω_from_vec(vΩ_basis[:, i]) for i in axes(vΩ_basis, 2)]
-
-    Δx = Δzs[1]
     # test jacobian transpose using reverse mode
     @testset "$f at $z, with cotangent $ΔΩ" for (i, ΔΩ) in enumerate(ΔΩs)
         rrule_test(f, ΔΩ, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
