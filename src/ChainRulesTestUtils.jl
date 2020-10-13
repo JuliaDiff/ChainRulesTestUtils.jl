@@ -15,7 +15,6 @@ export TestIterator
 export test_scalar, frule_test, rrule_test, generate_well_conditioned_matrix
 
 include("generate_tangent.jl")
-include("to_vec.jl")
 include("isapprox.jl")
 include("data_generation.jl")
 include("iterator.jl")
