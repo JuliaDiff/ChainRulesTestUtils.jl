@@ -7,46 +7,21 @@ sinconj(x) = sin(x)
 
 primalapprox(x) = x
 
-function iterfun(iter)
-    state = iterate(iter)
-    state === nothing && error()
-    (x, i) = state
-    s = x^2
-    while true
-        state = iterate(iter, i)
-        state === nothing && break
-        (x, i) = state
-        s += x^2
-    end
-    return s
-end
-
-function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
-    iter_Δiter = zip(iter, Δiter)
-    state = iterate(iter_Δiter)
-    state === nothing && error()
-    # for some reason the following line errors if the frule is defined within a testset
-    ((x, Δx), i) = state
-    return iterfun(iter), sum(2 .* iter.data .* Δiter.data)
-    s = x^2
-    ∂s = 2 * x * Δx
-    while true
-        state = iterate(iter_Δiter, i)
-        state === nothing && break
-        ((x, Δx), i) = state
-        s += x^2
-        ∂s += 2 * x * Δx
-    end
-    return s, ∂s
-end
 
 quatfun(q::Quaternion) = Quaternion(q.v3, 2 * q.v1, 3 * q.s, 4 * q.v2)
 
 @testset "testers.jl" begin
     @testset "test_scalar" begin
-        double(x) = 2x
-        @scalar_rule(double(x), 2)
-        test_scalar(double, 2.0)
+        @testset "Ensure correct rules succeed" begin
+            double(x) = 2x
+            @scalar_rule(double(x), 2)
+            test_scalar(double, 2.1)
+        end
+        @testset "Ensure incorrect rules caught" begin
+            alt_double(x) = 2x
+            @scalar_rule(alt_double(x), 3)  # this is wrong, on purpose
+            @test fails(()->test_scalar(alt_double, 2.1))
+        end
     end
 
     @testset "unary: identity(x)" begin
@@ -68,6 +43,66 @@ quatfun(q::Quaternion) = Quaternion(q.v3, 2 * q.v1, 3 * q.s, 4 * q.v2)
             rrule_test(identity, randn(4), (randn(4), randn(4)))
         end
     end
+
+    @testset "Inplace accumumulation: first on Array" begin
+        @testset "Correct definitions" begin
+            function ChainRulesCore.frule((_, ẋ), ::typeof(first), x::Array)
+                ẏ = InplaceableThunk(
+                    @thunk(first(ẋ)),
+                    ȧ -> ȧ + first(ẋ),  # This won't actually happen inplace
+                )
+                return first(x), ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(first), x::Array{T}) where T
+                x_dims = size(x)
+                function first_pullback(ȳ)
+                    x̄_ret = InplaceableThunk(
+                        Thunk() do
+                            x̄ = zeros(T, x_dims)
+                            x̄[1]=ȳ
+                            x̄
+                        end,
+                        ā -> (ā[1] += ȳ; ā)
+                    )
+                    return (NO_FIELDS, x̄_ret)
+                end
+                return first(x), first_pullback
+            end
+
+            frule_test(first, (randn(4), randn(4)))
+            rrule_test(first, randn(), (randn(4), randn(4)))
+        end
+
+        @testset "Incorrect inplace definitions" begin
+            my_first(value) = first(value)  # we are going to define bad rules on this
+            function ChainRulesCore.frule((_, ẋ), ::typeof(my_first), x::Array)
+                ẏ = InplaceableThunk(
+                    @thunk(first(ẋ)),  # correct
+                    ȧ -> ȧ + 1000*first(ẋ),  # incorrect (also not actually inplace)
+                )
+                return first(x), ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(my_first), x::Array{T}) where T
+                x_dims = size(x)
+                function my_first_pullback(ȳ)
+                    x̄_ret = InplaceableThunk(
+                        Thunk() do  # correct
+                            x̄ = zeros(T, x_dims)
+                            x̄[1]=ȳ
+                            x̄
+                        end,
+                        ā -> (ā[1] += 1000*ȳ; ā)  # incorrect
+                    )
+                    return (NO_FIELDS, x̄_ret)
+                end
+                return first(x), my_first_pullback
+            end
+
+            @test fails(()->frule_test(my_first, (randn(4), randn(4))))
+            @test fails(()->rrule_test(my_first, randn(), (randn(4), randn(4))))
+        end
+    end
+
 
     @testset "test derivative conjugated in pullback" begin
         ChainRulesCore.frule((_, Δx), ::typeof(sinconj), x) = (sin(x), cos(x) * Δx)
@@ -243,6 +278,39 @@ quatfun(q::Quaternion) = Quaternion(q.v3, 2 * q.v1, 3 * q.s, 4 * q.v2)
     end
 
     @testset "TestIterator input" begin
+        function iterfun(iter)
+            state = iterate(iter)
+            state === nothing && error()
+            (x, i) = state
+            s = x^2
+            while true
+                state = iterate(iter, i)
+                state === nothing && break
+                (x, i) = state
+                s += x^2
+            end
+            return s
+        end
+
+        function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
+            iter_Δiter = zip(iter, Δiter)
+            state = iterate(iter_Δiter)
+            state === nothing && error()
+            # for some reason the following line errors if the frule is defined within a testset
+            ((x, Δx), i) = state
+            return iterfun(iter), sum(2 .* iter.data .* Δiter.data)
+            s = x^2
+            ∂s = 2 * x * Δx
+            while true
+                state = iterate(iter_Δiter, i)
+                state === nothing && break
+                ((x, Δx), i) = state
+                s += x^2
+                ∂s += 2 * x * Δx
+            end
+            return s, ∂s
+        end
+
         function ChainRulesCore.rrule(::typeof(iterfun), iter::TestIterator)
             function iterfun_pullback(Δs)
                 data = iter.data
@@ -257,13 +325,49 @@ quatfun(q::Quaternion) = Quaternion(q.v3, 2 * q.v1, 3 * q.s, 4 * q.v2)
             return iterfun(iter), iterfun_pullback
         end
 
-        # define iterator with the minimal iterator interface
-        x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-        ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-        x̄ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+        # This needs to be in a seperate testet to stop the `x` being shared with `iterfun`
+        @testset "Testing iterator function" begin
+            x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+            ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+            x̄ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
 
-        frule_test(iterfun, (x, ẋ))
-        rrule_test(iterfun, randn(), (x, x̄))
+            frule_test(iterfun, (x, ẋ))
+            rrule_test(iterfun, randn(), (x, x̄))
+        end
+    end
+
+    @testset "unhappy path" begin
+        @testset "primal wrong" begin
+            my_identity1(x) = x
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity1), x)
+                return 2.5 * x, ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(my_identity1), x)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, ȳ)
+                end
+                return 2.5 * x, identity_pullback
+            end
+
+            @test fails(()->frule_test(my_identity1, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
+        end
+
+        @testset "deriviative wrong" begin
+            my_identity2(x) = x
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity2), x)
+                return x, 2.7 * ẏ
+            end
+            function ChainRulesCore.rrule(::typeof(my_identity2), x)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, 31.8 * ȳ)
+                end
+                return x, identity_pullback
+            end
+
+            @test fails(()->frule_test(my_identity2, (2.2, 3.3)))
+            @test fails(()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
+        end
     end
 
     @testset "test quaternion non-standard scalar" begin
