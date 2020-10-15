@@ -53,7 +53,7 @@ primalapprox(x) = x
                     x̄_ret = InplaceableThunk(@thunk(x̄), ā -> ā .+= ȳ)
                     return (NO_FIELDS, x̄_ret)
                 end
-                return identity(x), first_pullback
+                return identity(x), identity_pullback
             end
 
             frule_test(identity, (randn(4), randn(4)))
