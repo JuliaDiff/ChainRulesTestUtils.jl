@@ -50,7 +50,7 @@ primalapprox(x) = x
             end
             function ChainRulesCore.rrule(::typeof(identity), x::Array)
                 function identity_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(@thunk(x̄), ā -> ā .+= ȳ)
+                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= ȳ)
                     return (NO_FIELDS, x̄_ret)
                 end
                 return identity(x), identity_pullback
@@ -71,13 +71,13 @@ primalapprox(x) = x
                 x_dims = size(x)
                 function my_identity_pullback(ȳ)
                     # only the in-place part is incorrect
-                    x̄_ret = InplaceableThunk(@thunk(x̄), ā -> ā .+= 200 .* ȳ)
+                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= 200 .* ȳ)
                     return (NO_FIELDS, x̄_ret)
                 end
                 return my_identity(x), my_identity_pullback
             end
             @test fails(()->frule_test(my_identity, (randn(4), randn(4))))
-            @test fails(()->rrule_test(my_identity, randn(), (randn(4), randn(4))))
+            @test fails(()->rrule_test(my_identity, randn(4), (randn(4), randn(4))))
         end
     end
 
