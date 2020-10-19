@@ -44,20 +44,26 @@ primalapprox(x) = x
 
     @testset "Inplace accumulation: identity on Array" begin
         @testset "Correct definitions" begin
+            local inplace_used
             function ChainRulesCore.frule((_, ẋ), ::typeof(identity), x::Array)
-                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> ȧ .+= ẋ)
+                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> (inplace_used=true; ȧ .+= ẋ))
                 return identity(x), ẏ
             end
             function ChainRulesCore.rrule(::typeof(identity), x::Array)
                 function identity_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= ȳ)
+                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> (inplace_used=true; ā .+= ȳ))
                     return (NO_FIELDS, x̄_ret)
                 end
                 return identity(x), identity_pullback
             end
 
+            inplace_used = false
             frule_test(identity, (randn(4), randn(4)))
+            @test inplace_used  # make sure we are using, and thus testing the add!
+
+            inplace_used = false
             rrule_test(identity, randn(4), (randn(4), randn(4)))
+            @test inplace_used  # make sure we are using, and thus testing the add!
         end
 
         @testset "Incorrect in-place definitions" begin
