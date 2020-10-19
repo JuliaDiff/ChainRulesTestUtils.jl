@@ -6,10 +6,7 @@
         check(11.0, Zero())
         check([10.0, 20.0],  @thunk([2.0, 0.0]))
 
-        # These `InplaceableThunk`s aren't actually inplace, but that's ok.
-        check(12.0, InplaceableThunk(@thunk(2.0), X̄ -> X̄ + 2.0))
-
-        @test fails(()->check(12.0, InplaceableThunk(@thunk(2.0), X̄ -> X̄ + 3.0)))
+        check(12.0, InplaceableThunk(@thunk(2.0), X̄ -> error("Should not have in-placed")))
 
         check([10.0, 20.0], InplaceableThunk(
             @thunk([2.0, 0.0]),

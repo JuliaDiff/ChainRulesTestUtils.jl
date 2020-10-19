@@ -23,12 +23,12 @@ primalapprox(x) = x
     end
 
     @testset "unary: identity(x)" begin
-        function ChainRulesCore.frule((_, ẏ), ::typeof(identity), x)
-            return x, ẏ
+        function ChainRulesCore.frule((_, ẏ), ::typeof(identity), x)
+            return x, ẏ
         end
         function ChainRulesCore.rrule(::typeof(identity), x)
-            function identity_pullback(ȳ)
-                return (NO_FIELDS, ȳ)
+            function identity_pullback(ȳ)
+                return (NO_FIELDS, ȳ)
             end
             return x, identity_pullback
         end
@@ -42,62 +42,48 @@ primalapprox(x) = x
         end
     end
 
-    @testset "Inplace accumumulation: first on Array" begin
+    @testset "Inplace accumulation: identity on Array" begin
         @testset "Correct definitions" begin
-            function ChainRulesCore.frule((_, ẋ), ::typeof(first), x::Array)
-                ẏ = InplaceableThunk(
-                    @thunk(first(ẋ)),
-                    ȧ -> ȧ + first(ẋ),  # This won't actually happen inplace
-                )
-                return first(x), ẏ
+            local inplace_used
+            function ChainRulesCore.frule((_, ẋ), ::typeof(identity), x::Array)
+                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> (inplace_used=true; ȧ .+= ẋ))
+                return identity(x), ẏ
             end
-            function ChainRulesCore.rrule(::typeof(first), x::Array{T}) where T
-                x_dims = size(x)
-                function first_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(
-                        Thunk() do
-                            x̄ = zeros(T, x_dims)
-                            x̄[1]=ȳ
-                            x̄
-                        end,
-                        ā -> (ā[1] += ȳ; ā)
-                    )
+            function ChainRulesCore.rrule(::typeof(identity), x::Array)
+                function identity_pullback(ȳ)
+                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> (inplace_used=true; ā .+= ȳ))
                     return (NO_FIELDS, x̄_ret)
                 end
-                return first(x), first_pullback
+                return identity(x), identity_pullback
             end
 
-            frule_test(first, (randn(4), randn(4)))
-            rrule_test(first, randn(), (randn(4), randn(4)))
+            inplace_used = false
+            frule_test(identity, (randn(4), randn(4)))
+            @test inplace_used  # make sure we are using, and thus testing the add!
+
+            inplace_used = false
+            rrule_test(identity, randn(4), (randn(4), randn(4)))
+            @test inplace_used  # make sure we are using, and thus testing the add!
         end
 
-        @testset "Incorrect inplace definitions" begin
-            my_first(value) = first(value)  # we are going to define bad rules on this
-            function ChainRulesCore.frule((_, ẋ), ::typeof(my_first), x::Array)
-                ẏ = InplaceableThunk(
-                    @thunk(first(ẋ)),  # correct
-                    ȧ -> ȧ + 1000*first(ẋ),  # incorrect (also not actually inplace)
-                )
-                return first(x), ẏ
+        @testset "Incorrect in-place definitions" begin
+            my_identity(value) = value  # we will define bad rules on this
+            function ChainRulesCore.frule((_, ẋ), ::typeof(my_identity), x::Array)
+                # only the in-place part is incorrect
+                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> ȧ .+= 200 .* ẋ)
+                return my_identity(x), ẏ
             end
-            function ChainRulesCore.rrule(::typeof(my_first), x::Array{T}) where T
+            function ChainRulesCore.rrule(::typeof(my_identity), x::Array)
                 x_dims = size(x)
-                function my_first_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(
-                        Thunk() do  # correct
-                            x̄ = zeros(T, x_dims)
-                            x̄[1]=ȳ
-                            x̄
-                        end,
-                        ā -> (ā[1] += 1000*ȳ; ā)  # incorrect
-                    )
+                function my_identity_pullback(ȳ)
+                    # only the in-place part is incorrect
+                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= 200 .* ȳ)
                     return (NO_FIELDS, x̄_ret)
                 end
-                return first(x), my_first_pullback
+                return my_identity(x), my_identity_pullback
             end
-
-            @test fails(()->frule_test(my_first, (randn(4), randn(4))))
-            @test fails(()->rrule_test(my_first, randn(), (randn(4), randn(4))))
+            @test fails(()->frule_test(my_identity, (randn(4), randn(4))))
+            @test fails(()->rrule_test(my_identity, randn(4), (randn(4), randn(4))))
         end
     end
 
@@ -141,9 +127,9 @@ primalapprox(x) = x
             simo_pullback((a, b)) = (NO_FIELDS, a .+ 2 .* b)
             return simo(x), simo_pullback
         end
-        function ChainRulesCore.frule((_, ẋ), simo, x)
+        function ChainRulesCore.frule((_, ẋ), simo, x)
             y = simo(x)
-            return y, Composite{typeof(y)}(ẋ, 2ẋ)
+            return y, Composite{typeof(y)}(ẋ, 2ẋ)
         end
 
         @testset "frule_test" begin
@@ -198,8 +184,8 @@ primalapprox(x) = x
     end
 
     @testset "unary with kwargs: futestkws(x; err)" begin
-        function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err = true)
-            return futestkws(x; err = err), ẋ
+        function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err = true)
+            return futestkws(x; err = err), ẋ
         end
         function ChainRulesCore.rrule(::typeof(futestkws), x; err = true)
             function futestkws_pullback(Δx)
@@ -232,8 +218,8 @@ primalapprox(x) = x
     end
 
     @testset "binary with kwargs: fbtestkws(x, y; err)" begin
-        function ChainRulesCore.frule((_, ẋ, _), ::typeof(fbtestkws), x, y; err = true)
-            return fbtestkws(x, y; err = err), ẋ
+        function ChainRulesCore.frule((_, ẋ, _), ::typeof(fbtestkws), x, y; err = true)
+            return fbtestkws(x, y; err = err), ẋ
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
             function fbtestkws_pullback(Δx)
@@ -323,13 +309,13 @@ primalapprox(x) = x
             return iterfun(iter), iterfun_pullback
         end
 
-        # This needs to be in a seperate testet to stop the `x` being shared with `iterfun`
+        # This needs to be in a separate testet to stop the `x` being shared with `iterfun`
         @testset "Testing iterator function" begin
             x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-            ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
+            ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
             x̄ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
 
-            frule_test(iterfun, (x, ẋ))
+            frule_test(iterfun, (x, ẋ))
             rrule_test(iterfun, randn(), (x, x̄))
         end
     end
@@ -337,12 +323,12 @@ primalapprox(x) = x
     @testset "unhappy path" begin
         @testset "primal wrong" begin
             my_identity1(x) = x
-            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity1), x)
-                return 2.5 * x, ẏ
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity1), x)
+                return 2.5 * x, ẏ
             end
             function ChainRulesCore.rrule(::typeof(my_identity1), x)
-                function identity_pullback(ȳ)
-                    return (NO_FIELDS, ȳ)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, ȳ)
                 end
                 return 2.5 * x, identity_pullback
             end
@@ -351,14 +337,14 @@ primalapprox(x) = x
             @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
         end
 
-        @testset "deriviative wrong" begin
+        @testset "derivative wrong" begin
             my_identity2(x) = x
-            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity2), x)
-                return x, 2.7 * ẏ
+            function ChainRulesCore.frule((_, ẏ), ::typeof(my_identity2), x)
+                return x, 2.7 * ẏ
             end
             function ChainRulesCore.rrule(::typeof(my_identity2), x)
-                function identity_pullback(ȳ)
-                    return (NO_FIELDS, 31.8 * ȳ)
+                function identity_pullback(ȳ)
+                    return (NO_FIELDS, 31.8 * ȳ)
                 end
                 return x, identity_pullback
             end
