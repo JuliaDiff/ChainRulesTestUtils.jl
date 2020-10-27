@@ -1,6 +1,6 @@
 name = "ChainRulesTestUtils"
 uuid = "cdddcdb0-9152-4a09-a978-84456f9df70a"
-version = "0.5.3"
+version = "0.5.4"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -14,4 +14,11 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ChainRulesCore = "0.9.1"
 Compat = "3"
 FiniteDifferences = "0.11.2"
+Quaternions = "0.4"
 julia = "1"
+
+[extras]
+Quaternions = "94ee1d12-ae83-5a48-8b1c-48b8ff168ae0"
+
+[targets]
+test = ["Quaternions"]

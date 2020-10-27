@@ -101,6 +101,21 @@ function _make_jvp_call(fdm, f, xs, ẋs, ignores)
 end
 
 """
+    _basis_vectors(x::T) -> Vector{T}
+
+Get a set of basis (co)tangent vectors for `x`.
+
+This function assumes that the (co)tangent vectors are of the same type as `x` and requires
+that `FiniteDifferences.to_vec` be implemented for inputs of the same type as `x`.
+"""
+function _basis_vectors(x)
+    v, from_vec = FiniteDifferences.to_vec(x)
+    basis_coords = Diagonal(ones(eltype(v), length(v)))
+    basis_vecs = [from_vec(@view basis_coords[:, i]) for i in axes(basis_coords, 2)]
+    return basis_vecs
+end
+
+"""
     test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
@@ -112,59 +127,46 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 
 `fkwargs` are passed to `f` as keyword arguments.
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+
+To use this tester for a scalar type `MyNumber <: Number`,
+`FiniteDifferences.to_vec(::MyNumber)` must be implemented.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
-    # z = x + im * y
-    # Ω = u(x, y) + im * v(x, y)
     Ω = f(z; fkwargs...)
 
+    Δzs = _basis_vectors(z)
+    Δx = first(Δzs)
+    ΔΩs = _basis_vectors(Ω)
+
     # test jacobian using forward mode
-    Δx = one(z)
-    @testset "$f at $z, with tangent $Δx" begin
-        # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
-        if z isa Complex
-            # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
+    @testset "$f at $z, with tangent $Δz" for (i, Δz) in enumerate(Δzs)
+        frule_test(f, (z, Δz); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if !isa(Δz, Real) && i == 1
+            # check that same tangent is produced for tangent real(one(z)) and one(z)
             @test isapprox(
-                frule((Zero(), real(Δx)), f, z; fkwargs...)[2],
-                frule((Zero(), Δx), f, z; fkwargs...)[2],
+                frule((Zero(), real(Δz)), f, z; fkwargs...)[2],
+                frule((Zero(), Δz), f, z; fkwargs...)[2],
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
             )
-        end
-    end
-    if z isa Complex
-        Δy = one(z) * im
-        @testset "$f at $z, with tangent $Δy" begin
-            # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         end
     end
 
     # test jacobian transpose using reverse mode
-    Δu = one(Ω)
-    @testset "$f at $z, with cotangent $Δu" begin
-        # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
-        if Ω isa Complex
-            # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
+    @testset "$f at $z, with cotangent $ΔΩ" for (i, ΔΩ) in enumerate(ΔΩs)
+        rrule_test(f, ΔΩ, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        if !isa(ΔΩ, Real) && i == 1
+            # check that same cotangent is produced for cotangent real(one(Ω)) and one(Ω)
             back = rrule(f, z)[2]
             @test isapprox(
-                extern(back(real(Δu))[2]),
-                extern(back(Δu)[2]),
+                extern(back(real(ΔΩ))[2]),
+                extern(back(ΔΩ)[2]),
                 rtol=rtol,
                 atol=atol,
                 kwargs...,
             )
-        end
-    end
-    if Ω isa Complex
-        Δv = one(Ω) * im
-        @testset "$f at $z, with cotangent $Δv" begin
-            # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
         end
     end
 end
