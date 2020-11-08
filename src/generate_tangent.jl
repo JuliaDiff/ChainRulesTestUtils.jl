@@ -13,6 +13,10 @@ rand_tangent(rng::AbstractRNG, x::Integer) = DoesNotExist()
 
 rand_tangent(rng::AbstractRNG, x::T) where {T<:Number} = randn(rng, T)
 
+function rand_tangent(rng::AbstractRNG, x::StridedArray{T,0}) where {T}
+    return fill(rand_tangent(rng, x[]))
+end
+
 rand_tangent(rng::AbstractRNG, x::StridedArray) = rand_tangent.(Ref(rng), x)
 
 function rand_tangent(rng::AbstractRNG, x::T) where {T<:Tuple}
