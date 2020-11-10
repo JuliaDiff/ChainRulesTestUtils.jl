@@ -18,7 +18,7 @@ end
         (4, DoesNotExist),
         (5.0, Float64),
         (5.0 + 0.4im, Complex{Float64}),
-        (fill(6.0), Array{Float64,0}),
+        (fill(6.0), Array{Float64, 0}),
         (randn(Float32, 3), Vector{Float32}),
         (randn(Complex{Float64}, 2), Vector{Complex{Float64}}),
         (randn(5, 4), Matrix{Float64}),
