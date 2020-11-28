@@ -15,6 +15,13 @@ function Base.isapprox(
 ) where {P <: Tuple}
     return isapprox_vec(d_ad, d_fd; kwargs...)
 end
+
+function Base.isapprox(
+    d_ad::Composite{P, <:NamedTuple{T}}, d_fd::Composite{P, <:NamedTuple{T}}; kwargs...,
+) where {P, T}
+    return isapprox_vec(d_ad, d_fd; kwargs...)
+end
+
+
 # Must be for same primal
 Base.isapprox(d_ad::Composite{P}, d_fd::Composite{Q}; kwargs...) where {P, Q} = false
-
