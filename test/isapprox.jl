@@ -14,6 +14,9 @@
             # both of these are reasonable diffentials for the `Tuple{Int, Int}` primal
             @test Composite{Tuple{Int, Int}}(1f0, 2f0) ≈ Composite{Tuple{Int, Int}}(1.0, 2.0)
 
+            D = Diagonal(randn(5))
+            @test Composite{typeof(D)}(diag=D.diag) ≈ Composite{typeof(D)}(diag=D.diag)
+
             # But these have different primals so should not be equal
             @test !(Composite{Tuple{Int, Int}}(1.0, 2.0) ≈ Composite{Tuple{Float64, Float64}}(1.0, 2.0))
         end
