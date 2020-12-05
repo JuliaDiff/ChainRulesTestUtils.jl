@@ -101,7 +101,7 @@ function _make_jvp_call(fdm, f, xs, ẋs, ignores)
 end
 
 """
-    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
 at input point `z` to confirm that there are correct `frule` and `rrule`s provided.
@@ -111,9 +111,10 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - `z`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `frule` and `rrule` are checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     _ensure_not_running_on_functor(f, "test_scalar")
     # z = x + im * y
     # Ω = u(x, y) + im * v(x, y)
@@ -123,7 +124,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δx = one(z)
     @testset "$f at $z, with tangent $Δx" begin
         # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
         if z isa Complex
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
             @test isapprox(
@@ -139,7 +140,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δy = one(z) * im
         @testset "$f at $z, with tangent $Δy" begin
             # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
         end
     end
 
@@ -147,7 +148,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δu = one(Ω)
     @testset "$f at $z, with cotangent $Δu" begin
         # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
         if Ω isa Complex
             # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
             back = rrule(f, z)[2]
@@ -164,13 +165,27 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δv = one(Ω) * im
         @testset "$f at $z, with cotangent $Δv" begin
             # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
         end
     end
 end
 
 """
-    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    _test_inferred(f, args...; kwargs...)
+
+Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
+knowing how many `kwargs` there are.
+"""
+function _test_inferred(f, args...; kwargs...)
+    if isempty(kwargs)
+        @inferred f(args...)
+    else
+        @inferred f(args...; kwargs...)
+    end
+end
+
+"""
+    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
@@ -178,11 +193,13 @@ end
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `frule` is checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     _ensure_not_running_on_functor(f, "frule_test")
     xs, ẋs = first.(xẋs), last.(xẋs)
+    check_inferred && _test_inferred(frule, (NO_FIELDS, ẋs...), f, xs...; fkwargs...)
     Ω_ad, dΩ_ad = frule((NO_FIELDS, ẋs...), f, xs...; fkwargs...)
     Ω = f(xs...; fkwargs...)
     # if equality check fails, check approximate equality
@@ -209,7 +226,7 @@ end
 
 
 """
-    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
@@ -219,14 +236,17 @@ end
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `rrule` and the pullback it
+returns are checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, check_inferred=true, fkwargs=NamedTuple(), kwargs...)
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
     xs = first.(xx̄s)
     x̄s_acc = last.(xx̄s)
+    check_inferred && _test_inferred(rrule, f, xs...; fkwargs...)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
     # if equality check fails, check approximate equality
@@ -235,6 +255,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     @test y_ad == y || isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
     @assert !(isa(ȳ, Thunk))
 
+    check_inferred && _test_inferred(pullback, ȳ)
     ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
@@ -248,6 +269,8 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
+            x̄_ad isa Thunk && check_inferred && _test_inferred(unthunk, x̄_ad)
+
             # The main test of the actual deriviative being correct:
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
 
