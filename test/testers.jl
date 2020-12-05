@@ -236,8 +236,8 @@ f_noninferrable_thunk(x, y) = x + y
             frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
         end
         @testset "rrule_test" begin
-            rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
-            rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)))
+            rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)); check_inferred = false)
+            rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)); check_inferred = false)
         end
     end
 
