@@ -192,7 +192,7 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
 
     ẋs_is_ignored = ẋs .== nothing
     # Correctness testing via finite differencing.
-    dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), xs, ẋs, ẋs_is_ignored)
+    dΩ_fd = _make_jvp_call(fdm, (xs...) -> deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...), xs, ẋs, ẋs_is_ignored)
     @test isapprox(
         collect(extern.(dΩ_ad)),  # Use collect so can use vector equality
         collect(dΩ_fd);
