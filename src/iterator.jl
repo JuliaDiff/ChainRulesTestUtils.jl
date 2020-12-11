@@ -60,7 +60,7 @@ function Base.isapprox(
     return isapprox(iter1.data, iter2.data; kwargs...)
 end
 
-function check_equal(expected::TestIterator, actual::TestIterator; kwargs...)
+function _check_equal(expected::TestIterator, actual::TestIterator; kwargs...)
     return isapprox(expected, actual; kwargs...)
 end
 
