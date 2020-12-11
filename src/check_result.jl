@@ -24,7 +24,8 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
     end
 end
 
-function _check_equal(actual::Union{Composite, AbstractArray}, expected; kwargs...)
+
+function _elementwise_check_equal(actual, expected; kwargs...)
     if actual == expected  # if equal then we don't need to be smarter
         @test true
     else
@@ -34,6 +35,27 @@ function _check_equal(actual::Union{Composite, AbstractArray}, expected; kwargs.
         end
     end
 end
+
+function _check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) where P
+    return _elementwise_check_equal(actual, expected; kwargs...)
+end
+function _check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
+    return _elementwise_check_equal(actual, expected; kwargs...)
+end
+
+function _check_equal(
+    ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}
+    ) where {ActualPrimal, ExpectedPrimal}
+    # this will certainly fail as we have another dispatch for that, but this will give as
+    # good error message
+    @test ActualPrimal === ExpectedPrimal
+end
+
+# This catches comparisons of Composites and Tuples/NamedTuple
+# and gives a error messaage complaining about that
+_check_equal(::C, expected::T) where {C<:Composite, T} = @test C === T
+_check_equal(::T, expected::C) where {C<:Composite, T} = @test C === T
+
 
 _check_equal(::AbstractZero, x; kwargs...) = _check_equal(zero(x), x; kwargs...)
 _check_equal(x, ::AbstractZero; kwargs...) = _check_equal(x, zero(x); kwargs...)
