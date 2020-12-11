@@ -25,8 +25,8 @@
         @testset "possive cases" begin
             check(1.0, 1.0)
             check(1.0 + im, 1.0 + im)
-            check(1.0, 1.0+1e-100)  # isapprox _behavour
-            check((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-100))
+            check(1.0, 1.0+1e-10)  # isapprox _behavour
+            check((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-10))
 
             check(Zero(), 0.0)
 
@@ -44,6 +44,16 @@
             check(
                 Composite{typeof(D)}(diag=D.diag),
                 Composite{typeof(D)}(diag=D.diag)
+            )
+
+            T = (a=1.0, b=2.0)
+            check(
+                Composite{typeof(T)}(a=1.0),
+                Composite{typeof(T)}(a=1.0, b=Zero())
+            )
+            check(
+                Composite{typeof(T)}(a=1.0),
+                Composite{typeof(T)}(a=1.0+1e-10, b=Zero())
             )
         end
         @testset "negative case" begin

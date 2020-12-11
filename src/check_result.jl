@@ -25,22 +25,26 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
 end
 
 
-function _elementwise_check_equal(actual, expected; kwargs...)
+function _check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
     if actual == expected  # if equal then we don't need to be smarter
         @test true
     else
-        @test length(actual) == length(expected)
-        @testset "$ii" for ii in keys(actual)  # keys works on all Composites
+        @test eachindex(actual) == eachindex(expected)
+        @testset "$(typeof(actual))[$ii]" for ii in eachindex(actual)
             _check_equal(actual[ii], expected[ii]; kwargs...)
         end
     end
 end
 
 function _check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) where P
-    return _elementwise_check_equal(actual, expected; kwargs...)
-end
-function _check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
-    return _elementwise_check_equal(actual, expected; kwargs...)
+    if actual == expected  # if equal then we don't need to be smarter
+        @test true
+    else
+        all_keys = union(keys(actual), keys(expected))
+        @testset "$P.$ii" for ii in all_keys
+            _check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
+        end
+    end
 end
 
 function _check_equal(
