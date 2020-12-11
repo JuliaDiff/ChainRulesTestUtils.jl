@@ -79,5 +79,18 @@
             end
             @test fails(()->check((1.0, 2.0), Composite{Tuple{Float64, Float64}}(1.0, 2.0)))
         end
+
+        @testset "TestIterator" begin
+            data = randn(3)
+            iter1 = TestIterator(data, Base.HasLength(), Base.HasEltype())
+            iter2 = TestIterator(data, Base.HasLength(), Base.EltypeUnknown())
+            check(iter2, iter1)
+
+            iter3 = TestIterator(data .+ 1e-10, Base.HasLength(), Base.HasEltype())
+            check(iter3, iter1)
+
+            iter_bad = TestIterator(data .+ 010, Base.HasLength(), Base.HasEltype())
+            @test fails(()->check(iter_bad, iter1))
+        end
     end
 end
