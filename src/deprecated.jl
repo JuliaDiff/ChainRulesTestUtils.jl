@@ -1,4 +1,6 @@
-# TODO: reconsider these https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/7
+# TODO remove these in version 0.6
+# We are silently deprecating them as there is no alternative we are providing
+
 Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
 Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
