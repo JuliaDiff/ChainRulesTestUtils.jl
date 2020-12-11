@@ -49,7 +49,7 @@ end
 
 function _check_equal(
     ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}
-    ) where {ActualPrimal, ExpectedPrimal}
+) where {ActualPrimal, ExpectedPrimal}
     # this will certainly fail as we have another dispatch for that, but this will give as
     # good error message
     @test ActualPrimal === ExpectedPrimal
