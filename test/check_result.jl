@@ -25,7 +25,7 @@
         @testset "possive cases" begin
             check(1.0, 1.0)
             check(1.0 + im, 1.0 + im)
-            check(1.0, 1.0+1e-10)  # isapprox _behavour
+            check(1.0, 1.0+1e-10)  # isapprox _behaviour
             check((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-10))
 
             check(Zero(), 0.0)
