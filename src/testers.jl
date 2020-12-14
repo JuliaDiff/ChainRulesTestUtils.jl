@@ -114,6 +114,10 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+    # To simplify some of the calls we make later lets group the kwargs for reuse
+    rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+    isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
+
     _ensure_not_running_on_functor(f, "test_scalar")
     # z = x + im * y
     # Ω = u(x, y) + im * v(x, y)
@@ -123,23 +127,19 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δx = one(z)
     @testset "$f at $z, with tangent $Δx" begin
         # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        frule_test(f, (z, Δx); rule_test_kwargs...)
         if z isa Complex
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
-            @test isapprox(
-                frule((Zero(), real(Δx)), f, z; fkwargs...)[2],
-                frule((Zero(), Δx), f, z; fkwargs...)[2],
-                rtol=rtol,
-                atol=atol,
-                kwargs...,
-            )
+            _, real_tangent = frule((Zero(), real(Δx)), f, z; fkwargs...)
+            _, embedded_tangent = frule((Zero(), Δx), f, z; fkwargs...)
+            check_equal(real_tangent, embedded_tangent; isapprox_kwargs...)
         end
     end
     if z isa Complex
         Δy = one(z) * im
         @testset "$f at $z, with tangent $Δy" begin
             # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, (z, Δy); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+            frule_test(f, (z, Δy); rule_test_kwargs...)
         end
     end
 
@@ -147,24 +147,20 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δu = one(Ω)
     @testset "$f at $z, with cotangent $Δu" begin
         # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+        rrule_test(f, Δu, (z, Δx); rule_test_kwargs...)
         if Ω isa Complex
             # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
-            back = rrule(f, z)[2]
-            @test isapprox(
-                extern(back(real(Δu))[2]),
-                extern(back(Δu)[2]),
-                rtol=rtol,
-                atol=atol,
-                kwargs...,
-            )
+            _, back = rrule(f, z)
+            _, real_cotangent = back(real(Δu))
+            _, embedded_cotangent = back(Δu)
+            check_equal(real_cotangent, embedded_cotangent; isapprox_kwargs...)
         end
     end
     if Ω isa Complex
         Δv = one(Ω) * im
         @testset "$f at $z, with cotangent $Δv" begin
             # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, (z, Δx); rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+            rrule_test(f, Δv, (z, Δx); rule_test_kwargs...)
         end
     end
 end
@@ -181,25 +177,22 @@ end
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
 function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+    # To simplify some of the calls we make later lets group the kwargs for reuse
+    isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
+
     _ensure_not_running_on_functor(f, "frule_test")
-    xs, ẋs = first.(xẋs), last.(xẋs)
+
+    xs = first.(xẋs)
+    ẋs = last.(xẋs)
     Ω_ad, dΩ_ad = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
-    # if equality check fails, check approximate equality
-    # use collect so can do vector equality
-    # TODO: add isapprox replacement that works for more types
-    @test Ω_ad == Ω || isapprox(collect(Ω_ad), collect(Ω); rtol=rtol, atol=atol)
+    check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
     ẋs_is_ignored = ẋs .== nothing
     # Correctness testing via finite differencing.
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), xs, ẋs, ẋs_is_ignored)
-    @test isapprox(
-        collect(extern.(dΩ_ad)),  # Use collect so can use vector equality
-        collect(dΩ_fd);
-        rtol=rtol,
-        atol=atol,
-        kwargs...
-    )
+    check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
+
 
     # No tangent is passed in to test accumlation, so generate one
     # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
@@ -222,43 +215,46 @@ end
 All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
 """
 function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+    # To simplify some of the calls we make later lets group the kwargs for reuse
+    isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
+
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
     xs = first.(xx̄s)
-    x̄s_acc = last.(xx̄s)
+    accumulated_x̄ = last.(xx̄s)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
-    # if equality check fails, check approximate equality
-    # use collect so can do vector equality
-    # TODO: add isapprox replacement that works for more types
-    @test y_ad == y || isapprox(collect(y_ad), collect(y); rtol=rtol, atol=atol)
-    @assert !(isa(ȳ, Thunk))
+    check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
     ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields
 
-    x̄s_is_dne = x̄s_acc .== nothing
     # Correctness testing via finite differencing.
+    x̄s_is_dne = accumulated_x̄ .== nothing
     x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
-    for (x̄_acc, x̄_ad, x̄_fd) in zip(x̄s_acc, x̄s_ad, x̄s_fd)
-        if  x̄_acc === nothing
+    for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
+        if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
             @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
             # The main test of the actual deriviative being correct:
-            @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
-
-            _check_add!!_behavour(x̄_acc, x̄_ad; rtol=rtol, atol=atol, kwargs...)
+            check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
+            _check_add!!_behavour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
         end
     end
 
-    if count(!, x̄s_is_dne) == 1
-        # for functions with pullbacks that only produce a single non-DNE adjoint, that
-        # single adjoint should not be `Thunk`ed. InplaceableThunk is fine.
-        i = findfirst(!, x̄s_is_dne)
-        @test !(isa(x̄s_ad[i], Thunk))
+    check_thunking_is_appropriate(x̄s_ad)
+end
+
+function check_thunking_is_appropriate(x̄s)
+    @testset "Don't thunk only non_zero argument" begin
+        num_zeros = count(x->x isa AbstractZero, x̄s)
+        num_thunks = count(x->x isa Thunk, x̄s)
+        if num_zeros + num_thunks == length(x̄s)
+            @test num_thunks !== 1
+        end
     end
 end

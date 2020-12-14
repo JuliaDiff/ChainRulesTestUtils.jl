@@ -79,16 +79,6 @@
         @test hash(iter3) == hash(iter1)
     end
 
-    @testset "isapprox" begin
-        data = randn(3)
-        iter1 = TestIterator(data, Base.HasLength(), Base.HasEltype())
-        iter2 = TestIterator(data, Base.HasLength(), Base.EltypeUnknown())
-        @test !isapprox(iter2, iter1)
-
-        iter3 = TestIterator(data .+ eps() .* rand.(), Base.HasLength(), Base.HasEltype())
-        @test isapprox(iter3, iter1)
-    end
-
     @testset "to_vec" begin
         data = randn(2, 3, 4)
         iter = TestIterator(data, Base.SizeUnknown(), Base.EltypeUnknown())

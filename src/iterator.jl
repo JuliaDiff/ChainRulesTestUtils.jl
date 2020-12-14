@@ -51,15 +51,6 @@ end
 
 # For testing purposes:
 
-Base.isapprox(iter1::TestIterator, iter2::TestIterator) = false
-function Base.isapprox(
-    iter1::TestIterator{T1,IS,IE},
-    iter2::TestIterator{T2,IS,IE};
-    kwargs...,
-) where {T1,T2,IS,IE}
-    return isapprox(iter1.data, iter2.data; kwargs...)
-end
-
 function rand_tangent(rng::AbstractRNG, x::TestIterator{<:Any,IS,IE}) where {IS,IE}
     ∂data = rand_tangent(rng, x.data)
     return TestIterator{typeof(∂data),IS,IE}(∂data)

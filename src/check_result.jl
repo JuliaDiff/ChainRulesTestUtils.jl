@@ -1,3 +1,84 @@
+# For once you have the sensitivity by two methods (e.g  both finite-differencing and  AD)
+# the code here checks it is correct.
+# Goal is to only call `@isapprox` on things that render well
+# Note that this must work well both on Differential types and Primal types
+
+"""
+    check_equal(actual, expected; kwargs...)
+
+`@test`'s  that `actual ≈ expected`, but breaks up data such that human readable results
+are shown on failures.
+Understands things like `unthunk`ing `ChainRuleCore.Thunk`s, etc.
+All keyword arguments are passed to `isapprox`.
+"""
+function check_equal(
+    actual::Union{AbstractArray{<:Number}, Number},
+    expected::Union{AbstractArray{<:Number}, Number};
+    kwargs...
+)
+    @test isapprox(actual, expected; kwargs...)
+end
+
+for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
+    @eval function check_equal(actual::$T1, expected::$T2; kwargs...)
+        check_equal(unthunk(actual), unthunk(expected); kwargs...)
+    end
+end
+
+
+function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
+    if actual == expected  # if equal then we don't need to be smarter
+        @test true
+    else
+        @test eachindex(actual) == eachindex(expected)
+        @testset "$(typeof(actual))[$ii]" for ii in eachindex(actual)
+            check_equal(actual[ii], expected[ii]; kwargs...)
+        end
+    end
+end
+
+function check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) where P
+    if actual == expected  # if equal then we don't need to be smarter
+        @test true
+    else
+        all_keys = union(keys(actual), keys(expected))
+        @testset "$P.$ii" for ii in all_keys
+            check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
+        end
+    end
+end
+
+function check_equal(
+    ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}
+) where {ActualPrimal, ExpectedPrimal}
+    # this will certainly fail as we have another dispatch for that, but this will give as
+    # good error message
+    @test ActualPrimal === ExpectedPrimal
+end
+
+# This catches comparisons of Composites and Tuples/NamedTuple
+# and gives a error messaage complaining about that
+check_equal(::C, expected::T) where {C<:Composite, T} = @test C === T
+check_equal(::T, expected::C) where {C<:Composite, T} = @test C === T
+
+
+check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
+check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
+check_equal(x::Zero, y::Zero; kwargs...) = @test true
+
+# Generic fallback, probably a tuple or something
+function check_equal(actual::A, expected::E; kwargs...) where {A, E}
+    if actual == expected  # if equal then we don't need to be smarter
+        @test true
+    else
+        c_actual = collect(actual)
+        c_expected = collect(expected)
+        if (c_actual isa A) && (c_expected isa E)  # prevent stack-overflow
+            throw(MethodError, check_equal, (actual, expected))
+        end
+        check_equal(c_actual, c_expected; kwargs...)
+    end
+end
 
 """
 _check_add!!_behavour(acc, val)
@@ -15,5 +96,5 @@ function _check_add!!_behavour(acc, val; kwargs...)
     # e.g. if it is immutable. We do test the `add!!` return value.
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
-    @test isapprox(add!!(acc_mutated, val), acc + val; kwargs...)
+    check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
 end
