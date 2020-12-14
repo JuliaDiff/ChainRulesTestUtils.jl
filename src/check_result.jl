@@ -1,7 +1,7 @@
 # For once you have the sensitivity by two methods (e.g  both finite-differencing and  AD)
 # the code here checks it is correct.
 # Goal is to only call `@isapprox` on things that render well
-# Note that this must work well both on Differnetial types and Primal types
+# Note that this must work well both on Differential types and Primal types
 
 """
     _check_equal(actual, expected; kwargs...)
