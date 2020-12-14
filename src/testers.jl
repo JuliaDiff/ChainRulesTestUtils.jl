@@ -269,7 +269,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
-            x̄_ad isa Thunk && check_inferred && _test_inferred(unthunk, x̄_ad)
+            x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
 
             # The main test of the actual deriviative being correct:
             @test isapprox(x̄_ad, x̄_fd; rtol=rtol, atol=atol, kwargs...)
