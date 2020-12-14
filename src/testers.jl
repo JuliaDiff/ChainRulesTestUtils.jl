@@ -132,7 +132,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
             _, real_tangent = frule((Zero(), real(Δx)), f, z; fkwargs...)
             _, embedded_tangent = frule((Zero(), Δx), f, z; fkwargs...)
-            _check_equal(real_tangent, embedded_tangent; isapprox_kwargs...)
+            check_equal(real_tangent, embedded_tangent; isapprox_kwargs...)
         end
     end
     if z isa Complex
@@ -153,7 +153,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
             _, back = rrule(f, z)
             _, real_cotangent = back(real(Δu))
             _, embedded_cotangent = back(Δu)
-            _check_equal(real_cotangent, embedded_cotangent; isapprox_kwargs...)
+            check_equal(real_cotangent, embedded_cotangent; isapprox_kwargs...)
         end
     end
     if Ω isa Complex
@@ -186,12 +186,12 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
     ẋs = last.(xẋs)
     Ω_ad, dΩ_ad = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
-    _check_equal(Ω_ad, Ω; isapprox_kwargs...)
+    check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
     ẋs_is_ignored = ẋs .== nothing
     # Correctness testing via finite differencing.
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), xs, ẋs, ẋs_is_ignored)
-    _check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
+    check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
 
     # No tangent is passed in to test accumlation, so generate one
@@ -225,7 +225,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     accumulated_x̄ = last.(xx̄s)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
-    _check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+    check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
     ∂s = pullback(ȳ)
     ∂self = ∂s[1]
@@ -241,7 +241,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
             # The main test of the actual deriviative being correct:
-            _check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
+            check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
             _check_add!!_behavour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
         end
     end
