@@ -61,9 +61,9 @@ _check_equal(::C, expected::T) where {C<:Composite, T} = @test C === T
 _check_equal(::T, expected::C) where {C<:Composite, T} = @test C === T
 
 
-_check_equal(::AbstractZero, x; kwargs...) = _check_equal(zero(x), x; kwargs...)
-_check_equal(x, ::AbstractZero; kwargs...) = _check_equal(x, zero(x); kwargs...)
-_check_equal(x::AbstractZero, y::AbstractZero; kwargs...) = @test x === y
+_check_equal(::Zero, x; kwargs...) = _check_equal(zero(x), x; kwargs...)
+_check_equal(x, ::Zero; kwargs...) = _check_equal(x, zero(x); kwargs...)
+_check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
 # Generic fallback, probably a tuple or something
 function _check_equal(actual::A, expected::E; kwargs...) where {A, E}
