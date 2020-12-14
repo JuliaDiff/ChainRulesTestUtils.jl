@@ -63,7 +63,6 @@
 
             @test fails(()->check(Zero(), 20.0))
             @test fails(()->check(10.0, Zero()))
-            @test fails(()->check(DoesNotExist(), Zero()))
 
             @test fails(()->check([1.0, 2.0], [1.0, 3.9]))
             @test fails(()->check([[1.0], [2.0]], [[1.1], [2.0]]))
