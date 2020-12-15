@@ -25,9 +25,27 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
     end
 end
 
+"""
+    _can_pass_early(actual, expected; kwargs...)
+Used to check if we actual is basically equal to expected, so we don't need to check deeper
+
+If either `==` then `isapprox` (if defined) return true then so does this.
+The `kwargs` are passed on to `isapprox`
+"""
+function _can_pass_early(actual, expected; kwargs...)
+    actual == expected && return true
+    # use isapprox if such a method is defined (don't if it would error)
+    if applicable(isapprox, actual, expected)
+        return isapprox(actual, expected; kwargs...)
+    end
+    return false
+end
+
+
+
 
 function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
-    if actual == expected  # if equal then we don't need to be smarter
+    if _can_pass_early(actual, expected)
         @test true
     else
         @test eachindex(actual) == eachindex(expected)
@@ -38,7 +56,7 @@ function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
 end
 
 function check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) where P
-    if actual == expected  # if equal then we don't need to be smarter
+    if _can_pass_early(actual, expected)
         @test true
     else
         all_keys = union(keys(actual), keys(expected))
@@ -58,9 +76,9 @@ end
 
 # This catches comparisons of Composites and Tuples/NamedTuple
 # and gives a error messaage complaining about that
-check_equal(::C, expected::T) where {C<:Composite, T} = @test C === T
-check_equal(::T, expected::C) where {C<:Composite, T} = @test C === T
-
+const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
+check_equal(::C, expected::T) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test C === T
+check_equal(::T, expected::C) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test T === C
 
 check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
 check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
@@ -68,7 +86,7 @@ check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
 # Generic fallback, probably a tuple or something
 function check_equal(actual::A, expected::E; kwargs...) where {A, E}
-    if actual == expected  # if equal then we don't need to be smarter
+    if _can_pass_early(actual, expected)
         @test true
     else
         c_actual = collect(actual)
