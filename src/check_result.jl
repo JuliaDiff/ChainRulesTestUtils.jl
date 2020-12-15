@@ -27,16 +27,18 @@ end
 
 """
     _can_pass_early(actual, expected; kwargs...)
-Used to check if we actual is basically equal to expected, so we don't need to check deeper
+Used to check if we actual is basically equal to expected, so we don't need to check deeper.
 
-If either `==` then `isapprox` (if defined) return true then so does this.
+If either `==` or `≈` return true then so does this.
 The `kwargs` are passed on to `isapprox`
 """
 function _can_pass_early(actual, expected; kwargs...)
     actual == expected && return true
-    # use isapprox if such a method is defined (don't if it would error)
-    if applicable(isapprox, actual, expected)
+    try
         return isapprox(actual, expected; kwargs...)
+    catch err
+        # Might MethodError, might DimensionMismatch, might fail for some other reason
+        # we don't care, whatever errored it means we can't quit early
     end
     return false
 end
