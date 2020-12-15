@@ -27,7 +27,8 @@ end
 
 """
     _can_pass_early(actual, expected; kwargs...)
-Used to check if we actual is basically equal to expected, so we don't need to check deeper.
+Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;
+and can just report `check_equal` as passing.
 
 If either `==` or `≈` return true then so does this.
 The `kwargs` are passed on to `isapprox`
