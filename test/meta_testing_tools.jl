@@ -96,7 +96,9 @@ end
         @testset "Single Test" begin
             fails = nonpassing_results(()->@test false)
             @test length(fails) === 1
-            @test fails[1].orig_expr == false
+            # Julia 1.6 stores `orig_expr` as a string. For simplity we can just always
+            # test that the string matched, since `string` is a idempotent function
+            @test string(fails[1].orig_expr) == string(false)
         end
 
         @testset "Single Testset" begin
@@ -107,8 +109,10 @@ end
                 end
             end
             @test length(fails) === 2
-            @test fails[1].orig_expr == :(false==true)
-            @test fails[2].orig_expr == :(true==false)
+            # Julia 1.6 stores `orig_expr` as a string. For simplity we can just always
+            # test that the string matched, since `string` is a idempotent function
+            @test string(fails[1].orig_expr) == string(:(false==true))
+            @test string(fails[2].orig_expr) == string(:(true==false))
         end
     end
 
