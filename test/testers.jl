@@ -13,6 +13,12 @@ f_noninferrable_rrule(x) = x
 f_noninferrable_pullback(x) = x
 f_noninferrable_thunk(x, y) = x + y
 
+function finplace!(x; y = [1])
+    y[1] = 2
+    x .*= y[1]
+    return x
+end
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -336,6 +342,24 @@ f_noninferrable_thunk(x, y) = x + y
 
         frule_test(primalapprox, (randn(), randn()); atol = 1e-6)
         rrule_test(primalapprox, randn(), (randn(), randn()); atol = 1e-6)
+    end
+
+    @testset "frule with mutation" begin
+        function ChainRulesCore.frule((_, ẋ), ::typeof(finplace!), x; y = [1])
+            y[1] *= 2
+            x .*= y[1]
+            ẋ .*= 2 # hardcoded to match y defined below
+            return x, ẋ
+        end
+
+        x = randn(3)
+        ẋ = [4.0, 5.0, 6.0]
+        xcopy, ẋcopy = copy(x), copy(ẋ)
+        y = [1, 2]
+        frule_test(finplace!, (x, ẋ); fkwargs=(y = y,))
+        @test x == xcopy
+        @test ẋ == ẋcopy
+        @test y == [1, 2]
     end
 
     @testset "TestIterator input" begin
