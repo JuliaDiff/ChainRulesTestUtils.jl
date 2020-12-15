@@ -51,10 +51,14 @@ end
                 Composite{Tuple{Float64, Float64}}(1.0, 2.0)
             )
 
-            D = Diagonal(randn(5))
-            check_equal(
-                Composite{typeof(D)}(diag=D.diag),
-                Composite{typeof(D)}(diag=D.diag)
+            diag_eg = Diagonal(randn(5))
+            check_equal( # Structual == Structural
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag)
+            )
+            check_equal( # Structural == Natural
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
+                diag_eg
             )
 
             T = (a=1.0, b=2.0)
