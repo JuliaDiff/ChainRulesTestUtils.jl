@@ -116,7 +116,7 @@ All remaining keyword arguments are passed to `isapprox`.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
-    rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=true, kwargs...)
+    rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     _ensure_not_running_on_functor(f, "test_scalar")
