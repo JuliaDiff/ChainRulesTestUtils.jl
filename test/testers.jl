@@ -129,7 +129,9 @@ end
             frule_test(f_noninferrable_frule, (x, ẋ); check_inferred = false)
             @test_throws ErrorException frule_test(f_noninferrable_frule, (x, ẋ))
             test_scalar(f_noninferrable_frule, x; check_inferred = false)
-            @test_throws TestSetException test_scalar(f_noninferrable_frule, x)
+            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
+            # `mute` silences the printed error
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_frule, x)))
         end
 
         @testset "check not inferred in rrule" begin
@@ -146,7 +148,9 @@ end
             rrule_test(f_noninferrable_rrule, z̄, (x, x̄); check_inferred = false)
             @test_throws ErrorException rrule_test(f_noninferrable_rrule, z̄, (x, x̄))
             test_scalar(f_noninferrable_rrule, x; check_inferred = false)
-            @test_throws TestSetException test_scalar(f_noninferrable_rrule, x)
+            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
+            # `mute` silences the printed error
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_rrule, x)))
         end
 
         @testset "check not inferred in pullback" begin
