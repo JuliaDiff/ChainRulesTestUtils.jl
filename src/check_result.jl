@@ -25,6 +25,10 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
     end
 end
 
+check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
+check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
+check_equal(x::Zero, y::Zero; kwargs...) = @test true
+
 """
     _can_pass_early(actual, expected; kwargs...)
 Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;
@@ -77,15 +81,28 @@ function check_equal(
     @test ActualPrimal === ExpectedPrimal
 end
 
+
+# Some structual differential and a natural differential
+function check_equal(actual::Composite{P, T}, expected; kwargs...) where {T, P}
+    if _can_pass_early(actual, expected)
+        @test true
+    else
+        @assert (T <: NamedTuple)  # it should be a structual differential if we hit this
+
+        # We are only checking the properties that are in the Composite
+        # the natural differential is allowed to have other properties that we ignore
+        @testset "$P.$ii" for ii in propertynames(actual)
+            check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
+        end
+    end
+end
+check_equal(x, y::Composite; kwargs...) = check_equal(y, x; kwargs...)
+
 # This catches comparisons of Composites and Tuples/NamedTuple
 # and gives a error messaage complaining about that
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
 check_equal(::C, expected::T) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test C === T
 check_equal(::T, expected::C) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test T === C
-
-check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
-check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
-check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
 # Generic fallback, probably a tuple or something
 function check_equal(actual::A, expected::E; kwargs...) where {A, E}
@@ -100,6 +117,7 @@ function check_equal(actual::A, expected::E; kwargs...) where {A, E}
         check_equal(c_actual, c_expected; kwargs...)
     end
 end
+
 
 """
 _check_add!!_behavour(acc, val)
