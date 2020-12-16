@@ -96,7 +96,7 @@ function check_equal(actual::Composite{P, T}, expected; kwargs...) where {T, P}
         end
     end
 end
-check_equal(x, y::Composite; kwargs...) = check_equal(y, x; args...)
+check_equal(x, y::Composite; kwargs...) = check_equal(y, x; kwargs...)
 
 # This catches comparisons of Composites and Tuples/NamedTuple
 # and gives a error messaage complaining about that
