@@ -251,6 +251,17 @@ end
         end
     end
 
+    @testset "function with tuple output" begin
+        # key is that backing type of Composite =/= natural differential
+        tuple_out(x) = return (x, 1.0) # i.e. (x, 1.0) and not (x, x)
+        function ChainRulesCore.frule((_, dx), ::typeof(tuple_out), x)
+            Ω = tuple_out(x)
+            ∂Ω = Composite{typeof(Ω)}(dx, Zero())
+            return Ω, ∂Ω
+        end
+        frule_test(tuple_out, (2.0, 1))
+    end
+
     @testset "ignoring arguments" begin
         fsymtest(x, s::Symbol) = x
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
