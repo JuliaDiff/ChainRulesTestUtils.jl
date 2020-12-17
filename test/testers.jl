@@ -251,8 +251,7 @@ end
         end
     end
 
-    @testset "function with tuple output" begin
-        # key is that backing type of Composite =/= natural differential
+    @testset "tuple output (backing type of Composite =/= natural differential)" begin
         tuple_out(x) = return (x, 1.0) # i.e. (x, 1.0) and not (x, x)
         function ChainRulesCore.frule((_, dx), ::typeof(tuple_out), x)
             Ω = tuple_out(x)
