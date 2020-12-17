@@ -97,8 +97,13 @@ function _make_jvp_call(fdm, f, xs, ẋs, ignores)
     ignores = collect(ignores)
     all(ignores) && return ntuple(_->nothing, length(xs))
     sigargs = zip(xs[.!ignores], ẋs[.!ignores])
-    return jvp(fdm, f2, sigargs...)
+    return to_composite(jvp(fdm, f2, sigargs...))
 end
+
+# remove after https://github.com/JuliaDiff/FiniteDifferences.jl/issues/97
+to_composite(x::Tuple) = Composite{typeof(x)}(x...)
+to_composite(x::NamedTuple) = Composite{typeof(x)}(;x...)
+to_composite(x) = x
 
 """
     test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
