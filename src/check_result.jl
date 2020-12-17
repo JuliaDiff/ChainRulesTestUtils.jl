@@ -87,7 +87,8 @@ function check_equal(actual::Composite{P, T}, expected; kwargs...) where {T, P}
     if _can_pass_early(actual, expected)
         @test true
     else
-        @assert (T <: NamedTuple)  # it should be a structual differential if we hit this
+        # it should be a structual differential if we hit this
+        @assert (T <: Union{Tuple, NamedTuple})
 
         # We are only checking the properties that are in the Composite
         # the natural differential is allowed to have other properties that we ignore
