@@ -101,7 +101,7 @@ function _make_jvp_call(fdm, f, xs, ẋs, ignores)
 end
 
 """
-    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
 at input point `z` to confirm that there are correct `frule` and `rrule`s provided.
@@ -111,11 +111,12 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - `z`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `frule` and `rrule` are checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
-    rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, kwargs...)
+    rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     _ensure_not_running_on_functor(f, "test_scalar")
@@ -166,7 +167,21 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    _test_inferred(f, args...; kwargs...)
+
+Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
+knowing how many `kwargs` there are.
+"""
+function _test_inferred(f, args...; kwargs...)
+    if isempty(kwargs)
+        @inferred f(args...)
+    else
+        @inferred f(args...; kwargs...)
+    end
+end
+
+"""
+    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
@@ -174,9 +189,10 @@ end
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `frule` is checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
@@ -184,6 +200,7 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
 
     xs = first.(xẋs)
     ẋs = last.(xẋs)
+    check_inferred && _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     Ω_ad, dΩ_ad = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
     check_equal(Ω_ad, Ω; isapprox_kwargs...)
@@ -202,7 +219,7 @@ end
 
 
 """
-    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), kwargs...)
+    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
@@ -212,9 +229,11 @@ end
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-All keyword arguments except for `fdm` and `fkwargs` are passed to `isapprox`.
+If `check_inferred=true`, then the type-stability of the `rrule` and the pullback it
+returns are checked.
+All remaining keyword arguments are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), kwargs...)
+function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm, check_inferred=true, fkwargs=NamedTuple(), kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
@@ -223,10 +242,12 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
     # Check correctness of evaluation.
     xs = first.(xx̄s)
     accumulated_x̄ = last.(xx̄s)
+    check_inferred && _test_inferred(rrule, f, xs...; fkwargs...)
     y_ad, pullback = rrule(f, xs...; fkwargs...)
     y = f(xs...; fkwargs...)
     check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
+    check_inferred && _test_inferred(pullback, ȳ)
     ∂s = pullback(ȳ)
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
@@ -240,6 +261,8 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
             @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
+            x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
+
             # The main test of the actual deriviative being correct:
             check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
             _check_add!!_behavour(accumulated_x̄, x̄_ad; isapprox_kwargs...)

@@ -7,6 +7,12 @@ sinconj(x) = sin(x)
 
 primalapprox(x) = x
 
+f_inferrable(x) = x
+f_noninferrable_frule(x) = x
+f_noninferrable_rrule(x) = x
+f_noninferrable_pullback(x) = x
+f_noninferrable_thunk(x, y) = x + y
+
 function finplace!(x; y = [1])
     y[1] = 2
     x .*= y[1]
@@ -92,6 +98,82 @@ end
         end
     end
 
+    @testset "check rules are inferrable" begin
+        x = 2.0
+        ẋ, x̄, y, ẏ, ȳ, z̄ = randn(6)
+
+        @testset "check inferred" begin
+            ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable), x) = (x, Δx)
+            function ChainRulesCore.rrule(::typeof(f_inferrable), x)
+                f_inferrable_pullback(Δy) = (NO_FIELDS, Δy)
+                return x, f_inferrable_pullback
+            end
+
+            frule_test(f_inferrable, (x, ẋ); check_inferred = false)
+            frule_test(f_inferrable, (x, ẋ))
+            rrule_test(f_inferrable, z̄, (x, x̄); check_inferred = false)
+            rrule_test(f_inferrable, z̄, (x, x̄))
+            test_scalar(f_inferrable, x)
+            test_scalar(f_inferrable, x; check_inferred = false)
+        end
+
+        @testset "check not inferred in frule" begin
+            function ChainRulesCore.frule((_, Δx), ::typeof(f_noninferrable_frule), x)
+                return (x, x > 0 ? Float64(Δx) : Float32(Δx))
+            end
+            function ChainRulesCore.rrule(::typeof(f_noninferrable_frule), x)
+                f_noninferrable_frule_pullback(Δy) = (NO_FIELDS, Δy)
+                return x, f_noninferrable_frule_pullback
+            end
+
+            frule_test(f_noninferrable_frule, (x, ẋ); check_inferred = false)
+            @test_throws ErrorException frule_test(f_noninferrable_frule, (x, ẋ))
+            test_scalar(f_noninferrable_frule, x; check_inferred = false)
+            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
+            # `mute` silences the printed error
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_frule, x)))
+        end
+
+        @testset "check not inferred in rrule" begin
+            ChainRulesCore.frule((_, Δx), ::typeof(f_noninferrable_rrule), x) = (x, Δx)
+            function ChainRulesCore.rrule(::typeof(f_noninferrable_rrule), x)
+                if x > 0
+                    f_noninferrable_rrule_pullback(Δy) = (NO_FIELDS, Δy)
+                    return x, f_noninferrable_rrule_pullback
+                else
+                    return x, _ -> (NO_FIELDS, Δy) # this is not hit by the used point
+                end
+            end
+
+            rrule_test(f_noninferrable_rrule, z̄, (x, x̄); check_inferred = false)
+            @test_throws ErrorException rrule_test(f_noninferrable_rrule, z̄, (x, x̄))
+            test_scalar(f_noninferrable_rrule, x; check_inferred = false)
+            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
+            # `mute` silences the printed error
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_rrule, x)))
+        end
+
+        @testset "check not inferred in pullback" begin
+            function ChainRulesCore.rrule(::typeof(f_noninferrable_pullback), x)
+                f_noninferrable_pullback_pullback(Δy) = (NO_FIELDS, x > 0 ? Float64(Δy) : Float32(Δy))
+                return x, f_noninferrable_pullback_pullback
+            end
+            rrule_test(f_noninferrable_pullback, z̄, (x, x̄); check_inferred = false)
+            @test_throws ErrorException rrule_test(f_noninferrable_pullback, z̄, (x, x̄))
+        end
+
+        @testset "check not inferred in thunk" begin
+            function ChainRulesCore.rrule(::typeof(f_noninferrable_thunk), x, y)
+                function f_noninferrable_thunk_pullback(Δz)
+                    ∂x = @thunk(x > 0 ? Float64(Δz) : Float32(Δz))
+                    return (NO_FIELDS, ∂x, Δz)
+                end
+                return x + y, f_noninferrable_thunk_pullback
+            end
+            rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ); check_inferred = false)
+            @test_throws ErrorException rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ))
+        end
+    end
 
     @testset "test derivative conjugated in pullback" begin
         ChainRulesCore.frule((_, Δx), ::typeof(sinconj), x) = (sin(x), cos(x) * Δx)
@@ -164,8 +246,8 @@ end
             frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
         end
         @testset "rrule_test" begin
-            rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
-            rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)))
+            rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)); check_inferred = false)
+            rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)); check_inferred = false)
         end
     end
 
