@@ -74,7 +74,7 @@ function check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) wh
 end
 
 function check_equal(
-    ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}
+    ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}; kwargs...
 ) where {ActualPrimal, ExpectedPrimal}
     # this will certainly fail as we have another dispatch for that, but this will give as
     # good error message
@@ -99,10 +99,10 @@ end
 check_equal(x, y::Composite; kwargs...) = check_equal(y, x; kwargs...)
 
 # This catches comparisons of Composites and Tuples/NamedTuple
-# and gives a error messaage complaining about that
+# and gives an error message complaining about that
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
-check_equal(::C, expected::T) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test C === T
-check_equal(::T, expected::C) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test T === C
+check_equal(::C, ::T; kwargs...) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test C === T
+check_equal(::T, ::C; kwargs...) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test T === C
 
 # Generic fallback, probably a tuple or something
 function check_equal(actual::A, expected::E; kwargs...) where {A, E}
