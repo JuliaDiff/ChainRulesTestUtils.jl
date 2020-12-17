@@ -1,3 +1,15 @@
+
+struct FakeNaturalDiffWithIsApprox  # For testing overloading isapprox(::Composite) works:
+    x
+end
+function Base.isapprox(c::Composite, d::FakeNaturalDiffWithIsApprox; kwargs...)
+    return isapprox(c.x, d.x, kwargs...)
+end
+function Base.isapprox(d::FakeNaturalDiffWithIsApprox, c::Composite; kwargs...)
+    return isapprox(c.x, d.x, kwargs...)
+end
+
+
 @testset "check_result.jl" begin
     @testset "_check_add!!_behavour" begin
         check = ChainRulesTestUtils._check_add!!_behavour
@@ -39,10 +51,14 @@
                 Composite{Tuple{Float64, Float64}}(1.0, 2.0)
             )
 
-            D = Diagonal(randn(5))
-            check_equal(
-                Composite{typeof(D)}(diag=D.diag),
-                Composite{typeof(D)}(diag=D.diag)
+            diag_eg = Diagonal(randn(5))
+            check_equal( # Structual == Structural
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag)
+            )
+            check_equal( # Structural == Natural
+                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
+                diag_eg
             )
 
             T = (a=1.0, b=2.0)
@@ -53,6 +69,15 @@
             check_equal(
                 Composite{typeof(T)}(a=1.0),
                 Composite{typeof(T)}(a=1.0+1e-10, b=Zero())
+            )
+
+            check_equal(
+                Composite{FakeNaturalDiffWithIsApprox}(; x=1.4),
+                FakeNaturalDiffWithIsApprox(1.4)
+            )
+            check_equal(
+                FakeNaturalDiffWithIsApprox(1.4),
+                Composite{FakeNaturalDiffWithIsApprox}(; x=1.4)
             )
         end
         @testset "negative case" begin
