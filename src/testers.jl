@@ -70,7 +70,7 @@ function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
     @assert length(fd) == length(arginds)
 
     for (dx, ind) in zip(fd, arginds)
-        args[ind] = dx
+        args[ind] = _maybe_fix_to_composite(dx)
     end
     return (args...,)
 end
