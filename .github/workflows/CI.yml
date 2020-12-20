@@ -5,7 +5,7 @@ on:
     tags: [v*]
   pull_request:
   schedule:
-    - cron: "0 0 * * *" # run on default branch every night at midnight UTC
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC (8 PM CST)
 
 jobs:
   test:
@@ -46,3 +46,19 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+
+  slack:
+    name: Notify Slack Failure
+    needs: test
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'schedule'
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v2
+      - uses: voxmedia/github-action-slack-notify-build@v1
+        if: env.WORKFLOW_CONCLUSION == 'failure'
+        with:
+          channel: nightly-rse
+          status: FAILED
+          color: danger
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.INVENIA_SLACK_BOT_TOKEN }}
