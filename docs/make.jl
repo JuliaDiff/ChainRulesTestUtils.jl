@@ -14,5 +14,5 @@ makedocs(
 const repo = "github.com/JuliaDiff/ChainRulesTestUtils.jl.git"
 deploydocs(
     repo=repo,
-    pushpreview=true,
+    push_preview=true,
 )
