@@ -137,5 +137,3 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     acc_mutated = deepcopy(acc)  # prevent this test changing others
     check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
 end
-
-@deprecate _check_add!!_behavour(acc, val; kwargs...) _check_add!!_behaviour(acc, val; kwargs...)

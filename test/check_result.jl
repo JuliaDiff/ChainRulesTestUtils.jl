@@ -28,7 +28,6 @@ end
             @thunk([2.0, 0.0]),
             X̄ -> (X̄[1] += 3.0; X̄),
         )))
-        @test_deprecated ChainRulesTestUtils._check_add!!_behavour(10.0, 2.0)
     end
 
 
