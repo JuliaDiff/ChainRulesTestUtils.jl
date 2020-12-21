@@ -241,6 +241,7 @@ end
         end
 
         CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
+        CIntTuple{N} = Composite{NTuple{N, Int}}  # Primal is Int
         @testset "frule_test" begin
             frule_test(first, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
             frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
@@ -467,5 +468,26 @@ end
             @test fails(()->frule_test(my_identity2, (2.2, 3.3)))
             @test fails(()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
         end
+    end
+
+
+    @testset "Tuple primal that is not equal to differential backing" begin
+        # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
+        forwards_trouble(x) = (1, 2.0*x)
+        @scalar_rule(forwards_trouble(v), Zero(), 2.0)
+        frule_test(forwards_trouble, (2.5, 2.1))
+
+        rev_trouble((x,y)) = y
+        function ChainRulesCore.rrule(::typeof(rev_trouble), (x,y)::P) where P
+            rev_trouble_pullback(ȳ) = (NO_FIELDS, Composite{P}(Zero(), ȳ))
+            return y, rev_trouble_pullback
+        end
+        rrule_test(
+            rev_trouble, 2.5,
+            (
+                (3, 3.0),
+                Composite{Tuple{Int, Float64}}(Zero(), 1.0)
+            )
+        )
     end
 end
