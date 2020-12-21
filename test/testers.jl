@@ -241,7 +241,6 @@ end
         end
 
         CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
-        CIntTuple{N} = Composite{NTuple{N, Int}}  # Primal is Int
         @testset "frule_test" begin
             frule_test(first, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
             frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
