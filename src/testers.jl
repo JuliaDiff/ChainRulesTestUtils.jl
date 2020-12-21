@@ -221,7 +221,7 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm=_fdm
     # No tangent is passed in to test accumlation, so generate one
     # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
     acc = rand_tangent(Ω)
-    _check_add!!_behavour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
+    _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
 end
 
 
@@ -272,7 +272,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol=1e-9, atol=1e-9, fdm
 
             # The main test of the actual deriviative being correct:
             check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
-            _check_add!!_behavour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
+            _check_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
         end
     end
 

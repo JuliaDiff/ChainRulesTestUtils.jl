@@ -120,7 +120,7 @@ end
 
 
 """
-_check_add!!_behavour(acc, val)
+_check_add!!_behaviour(acc, val)
 
 This checks that `acc + val` is the same as `add!!(acc, val)`.
 It matters primarily for types that overload `add!!` such as `InplaceableThunk`s.
@@ -130,10 +130,12 @@ It matters primarily for types that overload `add!!` such as `InplaceableThunk`s
 
 `kwargs` are all passed on to isapprox
 """
-function _check_add!!_behavour(acc, val; kwargs...)
+function _check_add!!_behaviour(acc, val; kwargs...)
     # Note, we don't test that `acc` is actually mutated because it doesn't have to be
     # e.g. if it is immutable. We do test the `add!!` return value.
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
     check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
 end
+
+@deprecate _check_add!!_behavour(acc, val; kwargs...) _check_add!!_behaviour(acc, val; kwargs...)

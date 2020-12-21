@@ -11,8 +11,8 @@ end
 
 
 @testset "check_result.jl" begin
-    @testset "_check_add!!_behavour" begin
-        check = ChainRulesTestUtils._check_add!!_behavour
+    @testset "_check_add!!_behaviour" begin
+        check = ChainRulesTestUtils._check_add!!_behaviour
 
         check(10.0, 2.0)
         check(11.0, Zero())
@@ -28,6 +28,7 @@ end
             @thunk([2.0, 0.0]),
             X̄ -> (X̄[1] += 3.0; X̄),
         )))
+        @test_deprecated ChainRulesTestUtils._check_add!!_behavour(10.0, 2.0)
     end
 
 
