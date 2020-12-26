@@ -251,7 +251,9 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Re
     xs = first.(xx̄s)
     accumulated_x̄ = last.(xx̄s)
     check_inferred && _test_inferred(rrule, f, xs...; fkwargs...)
-    y_ad, pullback = rrule(f, xs...; fkwargs...)
+    res = rrule(f, xs...; fkwargs...)
+    isnothing(res) && throw("no rrule defined for $f, with arguments $(typeof(xs))")
+    y_ad, pullback = res
     y = f(xs...; fkwargs...)
     check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
