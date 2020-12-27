@@ -209,7 +209,9 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e
     xs = first.(xẋs)
     ẋs = last.(xẋs)
     check_inferred && _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
-    Ω_ad, dΩ_ad = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+    res = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+    res === nothing && throw(MethodError(frule, typeof((f, xs...))))
+    Ω_ad, dΩ_ad = res
     Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
     check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
@@ -246,12 +248,13 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Re
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     _ensure_not_running_on_functor(f, "rrule_test")
+
     # Check correctness of evaluation.
     xs = first.(xx̄s)
     accumulated_x̄ = last.(xx̄s)
     check_inferred && _test_inferred(rrule, f, xs...; fkwargs...)
     res = rrule(f, xs...; fkwargs...)
-    res === nothing && throw(MethodError(f, typeof(xs)))
+    res === nothing && throw(MethodError(rrule, typeof((f, xs...))))
     y_ad, pullback = res
     y = f(xs...; fkwargs...)
     check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
