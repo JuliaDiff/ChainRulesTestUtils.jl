@@ -189,6 +189,20 @@ function _test_inferred(f, args...; kwargs...)
 end
 
 """
+    _is_typestable(f, args...; kwargs...) -> Bool
+
+Return whether `f(args...; kwargs...)` is type-stable.
+"""
+function _is_typestable(f, args...; kwargs...)
+    try
+        _test_inferred(f, args...; kwargs...)
+        return true
+    catch ErrorException
+        return false
+    end
+end
+
+"""
     frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
