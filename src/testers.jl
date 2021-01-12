@@ -189,6 +189,20 @@ function _test_inferred(f, args...; kwargs...)
 end
 
 """
+    _is_inferrable(f, args...; kwargs...) -> Bool
+
+Return whether the return type of `f(args...; kwargs...)` is inferrable.
+"""
+function _is_inferrable(f, args...; kwargs...)
+    try
+        _test_inferred(f, args...; kwargs...)
+        return true
+    catch ErrorException
+        return false
+    end
+end
+
+"""
     frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
@@ -197,7 +211,8 @@ end
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-If `check_inferred=true`, then the type-stability of the `frule` is checked.
+If `check_inferred=true`, then the inferrability of the `frule` is checked, as long as `f`
+is itself inferrable.
 All remaining keyword arguments are passed to `isapprox`.
 """
 function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, fkwargs::NamedTuple=NamedTuple(), check_inferred::Bool=true, kwargs...)
@@ -208,7 +223,9 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e
 
     xs = first.(xẋs)
     ẋs = last.(xẋs)
-    check_inferred && _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+    if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
+        _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+    end
     res = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     res === nothing && throw(MethodError(frule, typeof((f, xs...))))
     Ω_ad, dΩ_ad = res
@@ -239,8 +256,8 @@ end
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
 `fkwargs` are passed to `f` as keyword arguments.
-If `check_inferred=true`, then the type-stability of the `rrule` and the pullback it
-returns are checked.
+If `check_inferred=true`, then the inferrability of the `rrule` is checked — if `f` is
+itself inferrable — along with the inferrability of the pullback it returns.
 All remaining keyword arguments are passed to `isapprox`.
 """
 function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, check_inferred::Bool=true, fkwargs::NamedTuple=NamedTuple(), kwargs...)
@@ -252,7 +269,9 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Re
     # Check correctness of evaluation.
     xs = first.(xx̄s)
     accumulated_x̄ = last.(xx̄s)
-    check_inferred && _test_inferred(rrule, f, xs...; fkwargs...)
+    if check_inferred && _is_inferrable(f, xs...; fkwargs...)
+        _test_inferred(rrule, f, xs...; fkwargs...)
+    end
     res = rrule(f, xs...; fkwargs...)
     res === nothing && throw(MethodError(rrule, typeof((f, xs...))))
     y_ad, pullback = res

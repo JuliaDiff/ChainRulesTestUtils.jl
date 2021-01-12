@@ -12,6 +12,8 @@ f_noninferrable_frule(x) = x
 f_noninferrable_rrule(x) = x
 f_noninferrable_pullback(x) = x
 f_noninferrable_thunk(x, y) = x + y
+f_inferrable_pullback_only(x) = x > 0 ? Float64(x) : Float32(x)
+
 
 function finplace!(x; y = [1])
     y[1] = 2
@@ -172,6 +174,18 @@ end
             end
             rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ); check_inferred = false)
             @test_throws ErrorException rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ))
+        end
+
+        @testset "check non-inferrable primal still passes if pullback inferrable" begin
+            function ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable_pullback_only), x)
+                return (x > 0 ? Float64(x) : Float32(x), x > 0 ? Float64(Δx) : Float32(Δx))
+            end
+            function ChainRulesCore.rrule(::typeof(f_inferrable_pullback_only), x)
+                f_inferrable_pullback_only_pullback(Δy) = (NO_FIELDS, oftype(x, Δy))
+                return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
+            end
+            frule_test(f_inferrable_pullback_only, (x, ẋ); check_inferred = true)
+            rrule_test(f_inferrable_pullback_only, z̄, (x, x̄); check_inferred = true)
         end
     end
 
