@@ -176,7 +176,7 @@ end
             @test_throws ErrorException rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ))
         end
 
-        @testset "check type-unstable primal still passes if pullback stable" begin
+        @testset "check non-inferrable primal still passes if pullback inferrable" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable_pullback_only), x)
                 return (x > 0 ? Float64(x) : Float32(x), x > 0 ? Float64(Δx) : Float32(Δx))
             end
