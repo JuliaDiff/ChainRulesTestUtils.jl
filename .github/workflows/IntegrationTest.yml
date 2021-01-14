@@ -32,5 +32,5 @@ jobs:
           repository: ${{ matrix.package.user }}/${{ matrix.package.repo }}
           path: ${{ matrix.package.repo }}
       - name: Run the tests
-        run: julia --project="ChainRules.jl" -e "using Pkg; Pkg.develop(PackageSpec(path=\"./\")); Pkg.update(); Pkg.test()"
+        run: julia --project=${{ matrix.package.repo }} -e "using Pkg; Pkg.develop(PackageSpec(path=\"./\")); Pkg.update(); Pkg.test()"
         shell: bash
