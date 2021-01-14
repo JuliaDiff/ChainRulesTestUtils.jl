@@ -1,4 +1,4 @@
-name: IntegrationTestChainRules 
+name: IntegrationTest
 on:
   push:
     branches: [master]
@@ -7,12 +7,17 @@ on:
 
 jobs:
   test:
-    name: Julia v${{ matrix.julia-version }} - ${{ matrix.os }}
+    name: ${{ matrix.package.repo }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         julia-version: [1]
         os: [ubuntu-latest]
+        package:
+          - {user: JuliaDiff, repo: ChainRules.jl}
+          - {user: JuliaMath, repo: SpecialFunctions.jl}
+          - {user:  invenia, repo: BlockDiagonals.jl}
+          - {user:  invenia, repo: PDMatsExtras.jl}
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -20,11 +25,11 @@ jobs:
           version: ${{ matrix.julia-version }}
           arch: x64
       - uses: julia-actions/julia-buildpkg@latest
-      - name: Clone ChainRules
+      - name: Clone
         uses: actions/checkout@v2
         with:
-          repository: JuliaDiff/ChainRules.jl
-          path: "ChainRules.jl"
+          repository: ${{ matrix.package.user }}/${{ matrix.package.repo }}
+          path: ${{ matrix.package.repo }}
       - name: Run the tests
         run: julia --project="ChainRules.jl" -e "using Pkg; Pkg.develop(PackageSpec(path=\"./\")); Pkg.update(); Pkg.test()"
         shell: bash
