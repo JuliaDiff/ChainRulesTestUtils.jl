@@ -30,9 +30,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: ${{ matrix.package.user }}/${{ matrix.package.repo }}
-          path: ${{ matrix.package.repo }}
+          path: downstream
       - name: Run the tests
-        shell: julia --project=${{ matrix.package.repo }} {0}
+        shell: julia --project=downstream {0}
         run: |
           using Pkg
           try
