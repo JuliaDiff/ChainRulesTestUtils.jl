@@ -32,5 +32,18 @@ jobs:
           repository: ${{ matrix.package.user }}/${{ matrix.package.repo }}
           path: ${{ matrix.package.repo }}
       - name: Run the tests
-        run: julia --project=${{ matrix.package.repo }} -e "using Pkg; Pkg.develop(PackageSpec(path=\"./\")); Pkg.update(); Pkg.test()"
-        shell: bash
+        shell: julia --project=${{ matrix.package.repo }} {0}
+        run: |
+          using Pkg
+          try
+            # force it to use this PR's version of the package
+            Pkg.develop(PackageSpec(path="."))
+            Pkg.update()
+          catch err
+            err isa Pkg.Resolve.ResolverError || rethrow()
+            # If we can't resolve that means this is incompatible by SemVer and this is fine
+            # It means we marked this as a breaking change, so we don't need to worry about
+            # Mistakenly introducing a breaking change, as we have intentionally made one
+            exit(0)  #  Exit immediately, as a success
+          end
+          Pkg.test()
