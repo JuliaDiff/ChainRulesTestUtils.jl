@@ -49,7 +49,7 @@ jobs:
             # incompatible. And this check only catches resolution failures with main dependencies
             # (plus this package itself) with this package
 
-            @info "Not compatible with this release. No problem." exception=(err, catch_backtrace())
+            @info "Not compatible with this release. No problem." exception=err
             exit(0)  #  Exit immediately, as a success
           end
           Pkg.test()
