@@ -101,7 +101,7 @@ end
 ```
 
 `test_scalar` function is provided to test both the `frule` and the `rrule` with a single
-call. As discussed, it should be tested at two different points in the domain.
+call.
 ```
 test_scalar(relu, 0.5)
 test_scalar(relu, -0.5)
