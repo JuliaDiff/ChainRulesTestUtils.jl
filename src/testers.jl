@@ -228,6 +228,7 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e
     end
     res = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     res === nothing && throw(MethodError(frule, typeof((f, xs...))))
+    res isa Tuple || error("The frule should return (y, ∂y), not $res.")
     Ω_ad, dΩ_ad = res
     Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
     check_equal(Ω_ad, Ω; isapprox_kwargs...)
@@ -280,6 +281,7 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Re
 
     check_inferred && _test_inferred(pullback, ȳ)
     ∂s = pullback(ȳ)
+    ∂s isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
     ∂self = ∂s[1]
     x̄s_ad = ∂s[2:end]
     @test ∂self === NO_FIELDS  # No internal fields

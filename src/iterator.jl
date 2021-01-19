@@ -10,7 +10,7 @@ The iterator wraps another iterator `data`, such as an array, that must have at 
 many features implemented as the test iterator and have a `FiniteDifferences.to_vec`
 overload. By default, the iterator it has the same features as `data`.
 
-The optional methods `eltype`, length`, and `size` are automatically defined and forwarded
+The optional methods `eltype`, `length`, and `size` are automatically defined and forwarded
 to `data` if the type arguments indicate that they should be defined.
 """
 struct TestIterator{T,IS,IE}
