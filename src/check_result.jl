@@ -48,9 +48,6 @@ function _can_pass_early(actual, expected; kwargs...)
     return false
 end
 
-
-
-
 function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
     if _can_pass_early(actual, expected)
         @test true
@@ -117,7 +114,6 @@ function check_equal(actual::A, expected::E; kwargs...) where {A, E}
         check_equal(c_actual, c_expected; kwargs...)
     end
 end
-
 
 """
 _check_add!!_behaviour(acc, val)

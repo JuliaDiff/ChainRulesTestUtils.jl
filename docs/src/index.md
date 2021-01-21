@@ -143,6 +143,8 @@ of differentials.
 
 It is effectively `isapprox` but with better error messages because it knows about `thunk`s
 and `ChainRules` differential types `Zero()`, `DoesNotExist()`, and `Composite`.
+It is not simply overloading `isapprox` because then comparing `Tuple`s/`NamedTuple`s
+would require piracy.
 
 For example, 
 ```
