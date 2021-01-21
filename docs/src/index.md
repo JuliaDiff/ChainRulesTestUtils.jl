@@ -134,6 +134,27 @@ Test Summary:                    | Pass  Total
 relu at -0.5, with cotangent 1.0 |    4      4
 ```
 
+## Custom finite differencing
+
+If a package is using a custom finite differencing method of testing the `frule`s and
+`rrule`s, `check_equal` function provides a convenient way of comparing [various types]
+(https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.)
+of differentials.
+
+It is effectively `isapprox` but with better error messages because it knows about `thunk`s
+and `ChainRules` differential types `Zero()`, `DoesNotExist()`, and `Composite`.
+
+For example, 
+```
+check_equal((@thunk 2*2.0), 4.1)
+```
+
+shows both the expression and the evaluated `thunk`s
+```
+   Expression: isapprox(actual, expected; kwargs...)
+   Evaluated: isapprox(4.0, 4.1)
+ERROR: There was an error during testing
+```
 
 # API Documentation
 

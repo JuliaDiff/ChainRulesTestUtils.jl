@@ -438,7 +438,7 @@ end
             return iterfun(iter), iterfun_pullback
         end
 
-        # This needs to be in a separate testet to stop the `x` being shared with `iterfun`
+        # This needs to be in a separate testset to stop the `x` being shared with `iterfun`
         @testset "Testing iterator function" begin
             x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
             ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
