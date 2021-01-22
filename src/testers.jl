@@ -210,6 +210,7 @@ end
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
+Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
 If `check_inferred=true`, then the inferrability of the `frule` is checked, as long as `f`
 is itself inferrable.
