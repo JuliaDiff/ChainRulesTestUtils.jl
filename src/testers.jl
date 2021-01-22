@@ -238,7 +238,6 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
     check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
-
     # No tangent is passed in to test accumlation, so generate one
     # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
     acc = rand_tangent(Ω)
