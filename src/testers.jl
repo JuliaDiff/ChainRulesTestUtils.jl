@@ -255,6 +255,7 @@ end
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
+Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
 If `check_inferred=true`, then the inferrability of the `rrule` is checked — if `f` is
 itself inferrable — along with the inferrability of the pullback it returns.
