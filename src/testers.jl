@@ -1,113 +1,3 @@
-function _ensure_not_running_on_functor(f, name)
-    # if x itself is a Type, then it is a constructor, thus not a functor.
-    # This also catchs UnionAll constructors which have a `:var` and `:body` fields
-    f isa Type && return
-
-    if fieldcount(typeof(f)) > 0
-        throw(ArgumentError(
-            "$name cannot be used on closures/functors (such as $f)"
-        ))
-    end
-end
-
-
-"""
-    _wrap_function(f, xs, ignores)
-
-Return a new version of `f`, `fnew`, that ignores some of the arguments `xs`.
-
-# Arguments
-- `f`: The function to be wrapped.
-- `xs`: Inputs to `f`, such that `y = f(xs...)`.
-- `ignores`: Collection of `Bool`s, the same length as `xs`.
-  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
-"""
-function _wrap_function(f, xs, ignores)
-    function fnew(sigargs...)
-        callargs = Any[]
-        j = 1
-
-        for (i, (x, ignore)) in enumerate(zip(xs, ignores))
-            if ignore
-                push!(callargs, x)
-            else
-                push!(callargs, sigargs[j])
-                j += 1
-            end
-        end
-        @assert j == length(sigargs) + 1
-        @assert length(callargs) == length(xs)
-        return f(callargs...)
-    end
-    return fnew
-end
-
-"""
-    _make_j′vp_call(fdm, f, ȳ, xs, ignores) -> Tuple
-
-Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
-
-# Arguments
-- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
-- `f`: The function to differentiate.
-- `ȳ`: The adjoint w.r.t. output of `f`.
-- `xs`: Inputs to `f`, such that `y = f(xs...)`.
-- `ignores`: Collection of `Bool`s, the same length as `xs`.
-  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
-
-# Returns
-- `∂xs::Tuple`: Derivatives estimated by finite differencing.
-"""
-function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
-    f2 = _wrap_function(f, xs, ignores)
-
-    ignores = collect(ignores)
-    args = Any[nothing for _ in 1:length(xs)]
-    all(ignores) && return (args...,)
-    sigargs = xs[.!ignores]
-    arginds = (1:length(xs))[.!ignores]
-    fd = j′vp(fdm, f2, ȳ, sigargs...)
-    @assert length(fd) == length(arginds)
-
-    for (dx, ind) in zip(fd, arginds)
-        args[ind] = _maybe_fix_to_composite(xs[ind], dx)
-    end
-    return (args...,)
-end
-
-"""
-    _make_jvp_call(fdm, f, y, xs, ẋs, ignores)
-
-Call `FiniteDifferences.jvp`, with the option to ignore certain `xs`.
-
-# Arguments
-- `fdm::FiniteDifferenceMethod`: How to numerically differentiate `f`.
-- `f`: The function to differentiate.
-- `y`: The primal output `y=f(xs...)` or at least something of the right type
-- `xs`: Inputs to `f`, such that `y = f(xs...)`.
-- `ẋs`: The directional derivatives of `xs` w.r.t. some real number `t`.
-- `ignores`: Collection of `Bool`s, the same length as `xs` and `ẋs`.
-   If `ignores[i] === true`, then `ẋs[i]` is ignored for derivative estimation.
-
-# Returns
-- `Ω̇`: Derivative of output w.r.t. `t` estimated by finite differencing.
-"""
-function _make_jvp_call(fdm, f, y, xs, ẋs, ignores)
-    f2 = _wrap_function(f, xs, ignores)
-
-    ignores = collect(ignores)
-    all(ignores) && return ntuple(_->nothing, length(xs))
-    sigargs = zip(xs[.!ignores], ẋs[.!ignores])
-    return _maybe_fix_to_composite(y, jvp(fdm, f2, sigargs...))
-end
-
-# TODO: remove after https://github.com/JuliaDiff/FiniteDifferences.jl/issues/97
-# For functions which return a tuple, FD returns a tuple to represent the differential. Tuple
-# is not a natural differential, because it doesn't overload +, so make it a Composite.
-_maybe_fix_to_composite(::P, x::Tuple) where {P} = Composite{P}(x...)
-_maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Composite{P}(;x...)
-_maybe_fix_to_composite(::Any, x) = x
-
 """
     test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
@@ -174,33 +64,6 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     end
 end
 
-"""
-    _test_inferred(f, args...; kwargs...)
-
-Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
-knowing how many `kwargs` there are.
-"""
-function _test_inferred(f, args...; kwargs...)
-    if isempty(kwargs)
-        @inferred f(args...)
-    else
-        @inferred f(args...; kwargs...)
-    end
-end
-
-"""
-    _is_inferrable(f, args...; kwargs...) -> Bool
-
-Return whether the return type of `f(args...; kwargs...)` is inferrable.
-"""
-function _is_inferrable(f, args...; kwargs...)
-    try
-        _test_inferred(f, args...; kwargs...)
-        return true
-    catch ErrorException
-        return false
-    end
-end
 
 """
     frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
@@ -312,5 +175,45 @@ function check_thunking_is_appropriate(x̄s)
         if num_zeros + num_thunks == length(x̄s)
             @test num_thunks !== 1
         end
+    end
+end
+
+function _ensure_not_running_on_functor(f, name)
+    # if x itself is a Type, then it is a constructor, thus not a functor.
+    # This also catchs UnionAll constructors which have a `:var` and `:body` fields
+    f isa Type && return
+
+    if fieldcount(typeof(f)) > 0
+        throw(ArgumentError(
+            "$name cannot be used on closures/functors (such as $f)"
+        ))
+    end
+end
+
+"""
+    _test_inferred(f, args...; kwargs...)
+
+Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
+knowing how many `kwargs` there are.
+"""
+function _test_inferred(f, args...; kwargs...)
+    if isempty(kwargs)
+        @inferred f(args...)
+    else
+        @inferred f(args...; kwargs...)
+    end
+end
+
+"""
+    _is_inferrable(f, args...; kwargs...) -> Bool
+
+Return whether the return type of `f(args...; kwargs...)` is inferrable.
+"""
+function _is_inferrable(f, args...; kwargs...)
+    try
+        _test_inferred(f, args...; kwargs...)
+        return true
+    catch ErrorException
+        return false
     end
 end

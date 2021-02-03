@@ -19,6 +19,8 @@ include("generate_tangent.jl")
 include("data_generation.jl")
 include("iterator.jl")
 include("check_result.jl")
+
+include("finite_difference_calls.jl")
 include("testers.jl")
 
 include("deprecated.jl")
