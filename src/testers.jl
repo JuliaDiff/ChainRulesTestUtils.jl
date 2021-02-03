@@ -26,7 +26,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δx = one(z)
     @testset "$f at $z, with tangent $Δx" begin
         # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, (z, Δx); rule_test_kwargs...)
+        frule_test(f, z ⟂ Δx; rule_test_kwargs...)
         if z isa Complex
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
             _, real_tangent = frule((Zero(), real(Δx)), f, z; fkwargs...)
@@ -38,7 +38,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δy = one(z) * im
         @testset "$f at $z, with tangent $Δy" begin
             # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, (z, Δy); rule_test_kwargs...)
+            frule_test(f, z ⟂ Δy; rule_test_kwargs...)
         end
     end
 
@@ -46,7 +46,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δu = one(Ω)
     @testset "$f at $z, with cotangent $Δu" begin
         # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, (z, Δx); rule_test_kwargs...)
+        rrule_test(f, Δu, z ⟂ Δx; rule_test_kwargs...)
         if Ω isa Complex
             # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
             _, back = rrule(f, z)
@@ -59,19 +59,20 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δv = one(Ω) * im
         @testset "$f at $z, with cotangent $Δv" begin
             # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, (z, Δx); rule_test_kwargs...)
+            rrule_test(f, Δv, z ⟂ Δx; rule_test_kwargs...)
         end
     end
 end
 
 
 """
-    frule_test(f, (x, ẋ)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+    frule_test(f, inputs...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
-- `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-- `ẋ`: differential w.r.t. `x` (should generally be set randomly).
+- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⟂ ẋ`
+   - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
+   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
 
 Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
@@ -79,14 +80,15 @@ If `check_inferred=true`, then the inferrability of the `frule` is checked, as l
 is itself inferrable.
 All remaining keyword arguments are passed to `isapprox`.
 """
-function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, fkwargs::NamedTuple=NamedTuple(), check_inferred::Bool=true, kwargs...)
+function frule_test(f, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, fkwargs::NamedTuple=NamedTuple(), check_inferred::Bool=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     _ensure_not_running_on_functor(f, "frule_test")
 
-    xs = first.(xẋs)
-    ẋs = last.(xẋs)
+    xẋs = auto_primal_and_tangent.(inputs)
+    xs = primal.(xẋs)
+    ẋs = tangent.(xẋs)
     if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
         _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
     end
@@ -110,14 +112,15 @@ end
 
 
 """
-    rrule_test(f, ȳ, (x, x̄)...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+    rrule_test(f, ȳ, inputs...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
 - `ȳ`: adjoint w.r.t. output of `f` (should generally be set randomly).
   Should be same structure as `f(x)` (so if multiple returns should be a tuple)
-- `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-- `x̄`: currently accumulated adjoint (should generally be set randomly).
+- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⟂ ẋ`
+    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
+    - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
 
 Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
@@ -125,15 +128,16 @@ If `check_inferred=true`, then the inferrability of the `rrule` is checked — i
 itself inferrable — along with the inferrability of the pullback it returns.
 All remaining keyword arguments are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, check_inferred::Bool=true, fkwargs::NamedTuple=NamedTuple(), kwargs...)
+function rrule_test(f, ȳ, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, check_inferred::Bool=true, fkwargs::NamedTuple=NamedTuple(), kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     _ensure_not_running_on_functor(f, "rrule_test")
 
     # Check correctness of evaluation.
-    xs = first.(xx̄s)
-    accumulated_x̄ = last.(xx̄s)
+    xx̄s = auto_primal_and_tangent.(inputs)
+    xs = primal.(xx̄s)
+    accumulated_x̄ = tangent.(xx̄s)
     if check_inferred && _is_inferrable(f, xs...; fkwargs...)
         _test_inferred(rrule, f, xs...; fkwargs...)
     end
