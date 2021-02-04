@@ -1,4 +1,13 @@
 """
+    Auto()
+
+Use this in the place of a tangent/cotangent in [`test_frule`](@ref) or
+[`test_rrule`](@ref) to have that tangent/cotangent generated automatically based on the
+primal. Uses [`rand_tangent`](@ref)
+"""
+struct Auto end
+
+"""
     PrimalAndTangent
 
 A struct that represents a primal value paired with its tangent or cotangent.
@@ -26,8 +35,12 @@ Convience constructor for `PrimalAndTangent` where the primal is provided
 
 This function is idempotent. If you pass it a `PrimalAndTangent` it doesn't change it.
 """
-auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG) = primal ⟂ rand_tangent(rng primal)
+auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG) = primal ⟂ rand_tangent(rng, primal)
 auto_primal_and_tangent(both::PrimalAndTangent; kwargs...) = both
+function auto_primal_and_tangent(auto::PrimalAndTangent{<:Any,Auto}; kwargs...)
+    # If the tangent is a Auto() marker, just use the primal to generate
+    return auto_primal_and_tangent(primal(auto); kwargs...)
+end
 
 
 """

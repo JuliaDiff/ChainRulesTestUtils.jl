@@ -66,21 +66,33 @@ end
 
 
 """
-    frule_test(f, inputs...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+    test_frule(f, inputs...; output_tangent=Auto(), fdm=central_fdm(5, 1), check_inferred=true, fkwargs::NamedTuple=NamedTuple(), rtol::Real=1e-9, atol::Real=1e-9, kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⟂ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
+     Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
 
-Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
-`fkwargs` are passed to `f` as keyword arguments.
-If `check_inferred=true`, then the inferrability of the `frule` is checked, as long as `f`
-is itself inferrable.
-All remaining keyword arguments are passed to `isapprox`.
+# Keyword Arguments
+   - `output_tangent` tangent to test accumulation of derivatives against
+     should be a differential for the output of `f`. Is set automatically if not provided.
+   - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+   - If `check_inferred=true`, then the inferrability of the `rrule` is checked
+   - If `check_inferred=true`, then the inferrability of the `frule` is checked,
+     as long as `f` is itself inferrable.
+   - `fkwargs` are passed to `f` as keyword arguments.
+   - All remaining keyword arguments are passed to `isapprox`.
 """
-function frule_test(f, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, fkwargs::NamedTuple=NamedTuple(), check_inferred::Bool=true, kwargs...)
+function test_frule(
+    f, inputs...;
+    output_tangent=Auto(),
+    fdm=_fdm,
+    check_inferred::Bool=true,
+    fkwargs::NamedTuple=NamedTuple(),
+    rtol::Real=1e-9, atol::Real=1e-9, kwargs...
+)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
@@ -111,8 +123,9 @@ function frule_test(f, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, fk
 end
 
 
+
 """
-    rrule_test(f, ȳ, inputs...; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+    test_rrule(f, ȳ, inputs...; output_tangent=Auto(), fdm=central_fdm(5, 1), check_inferred=true, fkwargs::NamedTuple=NamedTuple(), rtol::Real=1e-9, atol::Real=1e-9, kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
@@ -121,14 +134,25 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⟂ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
+      Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
 
-Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
-`fkwargs` are passed to `f` as keyword arguments.
-If `check_inferred=true`, then the inferrability of the `rrule` is checked — if `f` is
-itself inferrable — along with the inferrability of the pullback it returns.
-All remaining keyword arguments are passed to `isapprox`.
+# Keyword Arguments
+ - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
+   should be a differential for the output of `f`. Is set automatically if not provided.
+ - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+ - If `check_inferred=true`, then the inferrability of the `rrule` is checked
+   — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
+ - `fkwargs` are passed to `f` as keyword arguments.
+ - All remaining keyword arguments are passed to `isapprox`.
 """
-function rrule_test(f, ȳ, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fdm, check_inferred::Bool=true, fkwargs::NamedTuple=NamedTuple(), kwargs...)
+function test_rrule(
+    f, inputs...;
+    output_tangent=Auto(),
+    fdm=_fdm,
+    check_inferred::Bool=true,
+    fkwargs::NamedTuple=NamedTuple(),
+    rtol::Real=1e-9, atol::Real=1e-9, kwargs...
+)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
@@ -146,6 +170,8 @@ function rrule_test(f, ȳ, inputs...; rtol::Real=1e-9, atol::Real=1e-9, fdm=_fd
     y_ad, pullback = res
     y = f(xs...; fkwargs...)
     check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+
+    ȳ = tangent(auto_primal_and_tangent(y ⟂ output_tangent))
 
     check_inferred && _test_inferred(pullback, ȳ)
     ∂s = pullback(ȳ)
