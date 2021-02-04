@@ -21,11 +21,11 @@ primal(p::PrimalAndTangent) = p.primal
 tangent(p::PrimalAndTangent) = p.tangent
 
 """
-    primal ⟂ tangent
+    primal ⊢ tangent
 
 Infix shorthand method to construct a `PrimalAndTangent`.
 """
-const ⟂ = PrimalAndTangent
+const ⊢ = PrimalAndTangent
 
 """
     auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG)
@@ -35,7 +35,7 @@ Convience constructor for `PrimalAndTangent` where the primal is provided
 
 This function is idempotent. If you pass it a `PrimalAndTangent` it doesn't change it.
 """
-auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG) = primal ⟂ rand_tangent(rng, primal)
+auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG) = primal ⊢ rand_tangent(rng, primal)
 auto_primal_and_tangent(both::PrimalAndTangent; kwargs...) = both
 function auto_primal_and_tangent(auto::PrimalAndTangent{<:Any,Auto}; kwargs...)
     # If the tangent is a Auto() marker, just use the primal to generate

@@ -13,7 +13,7 @@ const _fdm = central_fdm(5, 1; max_range=1e-2)
 
 export TestIterator
 export check_equal, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
-export Auto, ⟂
+export Auto, ⊢
 
 
 include("generate_tangent.jl")
