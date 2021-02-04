@@ -45,13 +45,13 @@ end
             end
             return x, identity_pullback
         end
-        @testset "frule_test" begin
-            frule_test(identity, (randn(), randn()))
-            frule_test(identity, (randn(4), randn(4)))
+        @testset "test_frule" begin
+            test_frule(identity, randn())
+            test_frule(identity, randn(4))
         end
-        @testset "rrule_test" begin
-            rrule_test(identity, randn(), (randn(), randn()))
-            rrule_test(identity, randn(4), (randn(4), randn(4)))
+        @testset "test_rrule" begin
+            test_rrule(identity, randn())
+            test_rrule(identity, randn(4))
         end
     end
 
@@ -71,11 +71,11 @@ end
             end
 
             inplace_used = false
-            frule_test(identity, (randn(4), randn(4)))
+            test_frule(identity, randn(4))
             @test inplace_used  # make sure we are using, and thus testing the add!
 
             inplace_used = false
-            rrule_test(identity, randn(4), (randn(4), randn(4)))
+            test_rrule(identity, randn(4))
             @test inplace_used  # make sure we are using, and thus testing the add!
         end
 
@@ -95,15 +95,12 @@ end
                 end
                 return my_identity(x), my_identity_pullback
             end
-            @test fails(()->frule_test(my_identity, (randn(4), randn(4))))
-            @test fails(()->rrule_test(my_identity, randn(4), (randn(4), randn(4))))
+            @test fails(()->test_frule(my_identity, randn(4)))
+            @test fails(()->test_rrule(my_identity, randn(4)))
         end
     end
 
     @testset "check rules are inferrable" begin
-        x = 2.0
-        ẋ, x̄, y, ẏ, ȳ, z̄ = randn(6)
-
         @testset "check inferred" begin
             ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable), x) = (x, Δx)
             function ChainRulesCore.rrule(::typeof(f_inferrable), x)
@@ -111,12 +108,12 @@ end
                 return x, f_inferrable_pullback
             end
 
-            frule_test(f_inferrable, (x, ẋ); check_inferred = false)
-            frule_test(f_inferrable, (x, ẋ))
-            rrule_test(f_inferrable, z̄, (x, x̄); check_inferred = false)
-            rrule_test(f_inferrable, z̄, (x, x̄))
-            test_scalar(f_inferrable, x)
-            test_scalar(f_inferrable, x; check_inferred = false)
+            test_frule(f_inferrable, 2.0; check_inferred = false)
+            test_frule(f_inferrable, 2.0)
+            test_rrule(f_inferrable, 2.0; check_inferred = false)
+            test_rrule(f_inferrable, 2.0)
+            test_scalar(f_inferrable, 2.0)
+            test_scalar(f_inferrable, 2.0; check_inferred = false)
         end
 
         @testset "check not inferred in frule" begin
@@ -128,12 +125,12 @@ end
                 return x, f_noninferrable_frule_pullback
             end
 
-            frule_test(f_noninferrable_frule, (x, ẋ); check_inferred = false)
-            @test_throws ErrorException frule_test(f_noninferrable_frule, (x, ẋ))
-            test_scalar(f_noninferrable_frule, x; check_inferred = false)
+            test_frule(f_noninferrable_frule, 2.0; check_inferred = false)
+            @test_throws ErrorException test_frule(f_noninferrable_frule, 2.0)
+            test_scalar(f_noninferrable_frule, 2.0; check_inferred = false)
             # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
             # `mute` silences the printed error
-            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_frule, x)))
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_frule, 2.0)))
         end
 
         @testset "check not inferred in rrule" begin
@@ -147,12 +144,12 @@ end
                 end
             end
 
-            rrule_test(f_noninferrable_rrule, z̄, (x, x̄); check_inferred = false)
-            @test_throws ErrorException rrule_test(f_noninferrable_rrule, z̄, (x, x̄))
-            test_scalar(f_noninferrable_rrule, x; check_inferred = false)
+            test_rrule(f_noninferrable_rrule, 2.0; check_inferred = false)
+            @test_throws ErrorException test_rrule(f_noninferrable_rrule, 2.0)
+            test_scalar(f_noninferrable_rrule, 2.0; check_inferred = false)
             # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
             # `mute` silences the printed error
-            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_rrule, x)))
+            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_rrule, 2.0)))
         end
 
         @testset "check not inferred in pullback" begin
@@ -160,8 +157,8 @@ end
                 f_noninferrable_pullback_pullback(Δy) = (NO_FIELDS, x > 0 ? Float64(Δy) : Float32(Δy))
                 return x, f_noninferrable_pullback_pullback
             end
-            rrule_test(f_noninferrable_pullback, z̄, (x, x̄); check_inferred = false)
-            @test_throws ErrorException rrule_test(f_noninferrable_pullback, z̄, (x, x̄))
+            test_rrule(f_noninferrable_pullback, 2.0; check_inferred = false)
+            @test_throws ErrorException test_rrule(f_noninferrable_pullback, 2.0)
         end
 
         @testset "check not inferred in thunk" begin
@@ -172,8 +169,8 @@ end
                 end
                 return x + y, f_noninferrable_thunk_pullback
             end
-            rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ); check_inferred = false)
-            @test_throws ErrorException rrule_test(f_noninferrable_thunk, z̄, (x, x̄), (y, ȳ))
+            test_rrule(f_noninferrable_thunk, 2.0, 3.0; check_inferred = false)
+            @test_throws ErrorException test_rrule(f_noninferrable_thunk, 2.0, 3.0)
         end
 
         @testset "check non-inferrable primal still passes if pullback inferrable" begin
@@ -184,8 +181,8 @@ end
                 f_inferrable_pullback_only_pullback(Δy) = (NO_FIELDS, oftype(x, Δy))
                 return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
             end
-            frule_test(f_inferrable_pullback_only, (x, ẋ); check_inferred = true)
-            rrule_test(f_inferrable_pullback_only, z̄, (x, x̄); check_inferred = true)
+            test_frule(f_inferrable_pullback_only, 2.0; check_inferred = true)
+            test_rrule(f_inferrable_pullback_only, 2.0; check_inferred = true)
         end
     end
 
@@ -199,7 +196,7 @@ end
             return sin(x), sinconj_pullback
         end
 
-        rrule_test(sinconj, randn(ComplexF64), (randn(ComplexF64), randn(ComplexF64)))
+        test_rrule(sinconj, randn(ComplexF64))
         test_scalar(sinconj, randn(ComplexF64))
     end
 
@@ -212,13 +209,13 @@ end
             end
             return x, fst_pullback
         end
-        @testset "frule_test" begin
-            frule_test(fst, (2, 4.0), (3, 5.0))
-            frule_test(fst, (randn(4), randn(4)), (randn(4), randn(4)))
+        @testset "test_frule" begin
+            test_frule(fst, 2.0, 3.0)
+            test_frule(fst, randn(4), randn(4))
         end
-        @testset "rrule_test" begin
-            rrule_test(fst, rand(), (2.0, 4.0), (3.0, 5.0))
-            rrule_test(fst, randn(4), (randn(4), randn(4)), (randn(4), randn(4)))
+        @testset "test_rrule" begin
+            test_rrule(fst, 2.0, 4.0)
+            test_rrule(fst, randn(4), randn(4))
         end
     end
 
@@ -233,14 +230,13 @@ end
             return y, Composite{typeof(y)}(ẋ, 2ẋ)
         end
 
-        @testset "frule_test" begin
-            frule_test(simo, (randn(), randn()))  # on scalar
-            frule_test(simo, (randn(4), randn(4)))  # on array
+        @testset "test_frule" begin
+            test_frule(simo, 1.5)  # on scalar
+            test_frule(simo, randn(4))  # on array
         end
-        @testset "rrule_test" begin
-            # note: we are pulling back tuples (could use Composites here instead)
-            rrule_test(simo, (randn(), rand()), (randn(), randn()))  # on scalar
-            rrule_test(simo, (randn(4), rand(4)), (randn(4), randn(4))) # on array
+        @testset "test_rrule" begin
+            test_rrule(simo, 3.0)  # on scalar
+            test_rrule(simo, randn(4))  # on array
         end
     end
 
@@ -254,14 +250,14 @@ end
             return first(x), first_pullback
         end
 
-        CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
-        @testset "frule_test" begin
-            frule_test(first, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
-            frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
+        #CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
+        @testset "test_frule" begin
+            test_frule(first, (2.0, 3.0))
+            test_frule(first, Tuple(randn(4)))
         end
-        @testset "rrule_test" begin
-            rrule_test(first, 2.0, ((2.0, 3.0), CTuple{2}(4.0, 5.0)); check_inferred = false)
-            rrule_test(first, randn(), (Tuple(randn(4)), CTuple{4}(randn(4)...)); check_inferred = false)
+        @testset "test_rrule" begin
+            test_rrule(first, (2.0, 3.0); check_inferred = false)
+            test_rrule(first, Tuple(randn(4)); check_inferred = false)
         end
     end
 
@@ -272,7 +268,7 @@ end
             ∂Ω = Composite{typeof(Ω)}(dx, Zero())
             return Ω, ∂Ω
         end
-        frule_test(tuple_out, (2.0, 1))
+        test_frule(tuple_out, 2.0)
     end
 
     @testset "ignoring arguments" begin
@@ -285,12 +281,12 @@ end
             return x, fsymtest_pullback
         end
 
-        @testset "frule_test" begin
-            frule_test(fsymtest, (randn(), randn()), (:x, nothing))
+        @testset "test_frule" begin
+            test_frule(fsymtest, 2.5, :x ⊢ nothing)
         end
 
-        @testset "rrule_test" begin
-            rrule_test(fsymtest, randn(), (randn(), randn()), (:x, nothing))
+        @testset "test_rrule" begin
+            test_rrule(fsymtest, 2.5, :x ⊢ nothing)
         end
     end
 
@@ -316,15 +312,15 @@ end
         @test_throws ErrorException rrule(futestkws, randn(4))
 
         @testset "scalar_test" begin
-            test_scalar(futestkws, randn(); fkwargs=(; err = false))
+            test_scalar(futestkws, 2.5; fkwargs=(; err = false))
         end
-        @testset "frule_test" begin
-            frule_test(futestkws, (randn(), randn()); fkwargs=(; err = false))
-            frule_test(futestkws, (randn(4), randn(4)); fkwargs=(; err = false))
+        @testset "test_frule" begin
+            test_frule(futestkws, 2.5; fkwargs=(; err = false))
+            test_frule(futestkws, 2.5; fkwargs=(; err = false))
         end
-        @testset "rrule_test" begin
-            rrule_test(futestkws, randn(), (randn(), randn()); fkwargs=(; err = false))
-            rrule_test(futestkws, randn(4), (randn(4), randn(4)); fkwargs=(; err = false))
+        @testset "test_rrule" begin
+            test_rrule(futestkws, 2.5; fkwargs=(; err = false))
+            test_rrule(futestkws, 2.5; fkwargs=(; err = false))
         end
     end
 
@@ -348,13 +344,13 @@ end
         @test_throws ErrorException frule((nothing, randn(4), nothing), fbtestkws, randn(4), randn(4))
         @test_throws ErrorException rrule(fbtestkws, randn(4), randn(4))
 
-        @testset "frule_test" begin
-            frule_test(fbtestkws, (randn(), randn()), (randn(), randn()); fkwargs=(; err = false))
-            frule_test(fbtestkws, (randn(4), randn(4)), (randn(4), randn(4)); fkwargs=(; err = false))
+        @testset "test_frule" begin
+            test_frule(fbtestkws, 2.5, 3.0; fkwargs=(; err = false))
+            test_frule(fbtestkws, randn(4), randn(4); fkwargs=(; err = false))
         end
-        @testset "rrule_test" begin
-            rrule_test(fbtestkws, randn(), (randn(), randn()), (randn(), randn()); fkwargs=(; err = false))
-            rrule_test(fbtestkws, randn(4), (randn(4), randn(4)), (randn(4), randn(4)); fkwargs=(; err = false))
+        @testset "test_rrule" begin
+            test_rrule(fbtestkws, 2.5, 3.0; fkwargs=(; err = false))
+            test_rrule(fbtestkws, randn(4), randn(4); fkwargs=(; err = false))
         end
     end
 
@@ -368,8 +364,8 @@ end
             return x + sqrt(eps(x)), primalapprox_pullback
         end
 
-        frule_test(primalapprox, (randn(), randn()); atol = 1e-6)
-        rrule_test(primalapprox, randn(), (randn(), randn()); atol = 1e-6)
+        test_frule(primalapprox, 2.5; atol = 1e-6)
+        test_rrule(primalapprox, 2.5; atol = 1e-6)
     end
 
     @testset "frule with mutation" begin
@@ -380,11 +376,12 @@ end
             return x, ẋ
         end
 
+        # these pass in tangents explictly so that we can check them after
         x = randn(3)
         ẋ = [4.0, 5.0, 6.0]
         xcopy, ẋcopy = copy(x), copy(ẋ)
         y = [1, 2]
-        frule_test(finplace!, (x, ẋ); fkwargs=(y = y,))
+        test_frule(finplace!, x⊢ẋ; fkwargs=(y = y,))
         @test x == xcopy
         @test ẋ == ẋcopy
         @test y == [1, 2]
@@ -438,14 +435,11 @@ end
             return iterfun(iter), iterfun_pullback
         end
 
-        # This needs to be in a separate testset to stop the `x` being shared with `iterfun`
         @testset "Testing iterator function" begin
+            # This needs to be in a separate testset to stop the `x` being shared with `iterfun`
             x = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-            ẋ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-            x̄ = TestIterator(randn(2, 3), Base.SizeUnknown(), Base.EltypeUnknown())
-
-            frule_test(iterfun, (x, ẋ))
-            rrule_test(iterfun, randn(), (x, x̄))
+            test_frule(iterfun, x)
+            test_rrule(iterfun, x)
         end
     end
 
@@ -462,8 +456,8 @@ end
                 return 2.5 * x, identity_pullback
             end
 
-            @test fails(()->frule_test(my_identity1, (2.2, 3.3)))
-            @test fails(()->rrule_test(my_identity1, 4.1, (2.2, 3.3)))
+            @test fails(()->test_frule(my_identity1, 2.2))
+            @test fails(()->test_rrule(my_identity1, 2.2))
         end
 
         @testset "derivative wrong" begin
@@ -478,8 +472,8 @@ end
                 return x, identity_pullback
             end
 
-            @test fails(()->frule_test(my_identity2, (2.2, 3.3)))
-            @test fails(()->rrule_test(my_identity2, 4.1, (2.2, 3.3)))
+            @test fails(()->test_frule(my_identity2, 2.2))
+            @test fails(()->test_rrule(my_identity2, 2.2))
         end
     end
 
@@ -488,19 +482,13 @@ end
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
         forwards_trouble(x) = (1, 2.0*x)
         @scalar_rule(forwards_trouble(v), Zero(), 2.0)
-        frule_test(forwards_trouble, (2.5, 2.1))
+        test_frule(forwards_trouble, 2.5)
 
         rev_trouble((x,y)) = y
         function ChainRulesCore.rrule(::typeof(rev_trouble), (x,y)::P) where P
             rev_trouble_pullback(ȳ) = (NO_FIELDS, Composite{P}(Zero(), ȳ))
             return y, rev_trouble_pullback
         end
-        rrule_test(
-            rev_trouble, 2.5,
-            (
-                (3, 3.0),
-                Composite{Tuple{Int, Float64}}(Zero(), 1.0)
-            )
-        )
+        test_rrule(rev_trouble, (3, 3.0) ⊢ Composite{Tuple{Int, Float64}}(Zero(), 1.0))
     end
 end
