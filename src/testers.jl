@@ -73,6 +73,7 @@ end
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `ẋ`: differential w.r.t. `x` (should generally be set randomly).
 
+Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
 If `check_inferred=true`, then the inferrability of the `frule` is checked, as long as `f`
 is itself inferrable.
@@ -101,7 +102,6 @@ function frule_test(f, xẋs::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Real=1e
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
     check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
-
     # No tangent is passed in to test accumlation, so generate one
     # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
     acc = rand_tangent(Ω)
@@ -119,6 +119,7 @@ end
 - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
 - `x̄`: currently accumulated adjoint (should generally be set randomly).
 
+Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
 `fkwargs` are passed to `f` as keyword arguments.
 If `check_inferred=true`, then the inferrability of the `rrule` is checked — if `f` is
 itself inferrable — along with the inferrability of the pullback it returns.

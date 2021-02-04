@@ -52,12 +52,9 @@ They can be used for any type and number of inputs and outputs.
 ### Testing the `frule`
 
 [`frule_test`](@ref) takes in the function `f` and tuples `(x, ẋ)` for each function argument `x`.
-The call will test the `frule` for function `f` at the point `x` in the domain. Keep
-this in mind when testing discontinuous rules for functions like
-[ReLU](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)), which should ideally
-be tested at both `x` being above and below zero.
-Additionally, choosing `ẋ` in an unfortunate way (e.g. as zeros) could hide
-underlying problems with the defined `frule`.
+The call will test the `frule` for function `f` at the point `x` in the domain.
+Keep this in mind when testing discontinuous rules for functions like [ReLU](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)), which should ideally be tested at both `x` being above and below zero.
+Additionally, choosing `ẋ` in an unfortunate way (e.g. as zeros) could hide underlying problems with the defined `frule`.
 
 ```jldoctest ex; output = false
 using ChainRulesTestUtils
@@ -78,13 +75,10 @@ Test Passed
 
 ### Testing the `rrule`
 
-[`rrule_test`](@ref) takes in the function `f`, sensitivities of the function outputs `ȳ`,
-and tuples `(x, x̄)` for each function argument `x`.
+[`rrule_test`](@ref) takes in the function `f`, sensitivities of the function outputs `ȳ`, and tuples `(x, x̄)` for each function argument `x`.
 `x̄` is the accumulated adjoint which can be set arbitrarily.
-The call will test the `rrule` for function `f` at the point `x`, and similarly to
-`frule` some rules should be tested at multiple points in the domain.
-Choosing `ȳ` in an unfortunate way (e.g. as zeros) could hide underlying problems with
-the `rrule`. 
+The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
+Choosing `ȳ` in an unfortunate way (e.g. as zeros) could hide underlying problems with the `rrule`. 
 ```jldoctest ex; output = false
 x1, x2 = (3.33, -7.77)
 x̄1, x̄2 = (rand(), rand())
@@ -134,7 +128,31 @@ Test Summary:                    | Pass  Total
 relu at -0.5, with cotangent 1.0 |    4      4
 ```
 
+## Custom finite differencing
 
+If a package is using a custom finite differencing method of testing the `frule`s and `rrule`s, `check_equal` function provides a convenient way of comparing [various types](https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.) of differentials.
+
+It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `Zero()`, `DoesNotExist()`, and `Composite`, such that the error messages are helpful.
+
+For example, 
+```julia
+check_equal((@thunk 2*2.0), 4.1)
+```
+shows both the expression and the evaluated `thunk`s
+```julia
+   Expression: isapprox(actual, expected; kwargs...)
+   Evaluated: isapprox(4.0, 4.1)
+ERROR: There was an error during testing
+```
+compared to
+```julia
+julia> @test isapprox(@thunk 2*2.0, 4.0)
+Test Failed at REPL[52]:1
+  Expression: isapprox(#= REPL[52]:1 =# @thunk((2 * 2.0, 4.0)))
+   Evaluated: isapprox(Thunk(var"#24#25"()))
+ERROR: There was an error during testing
+```
+which should have passed the test.
 # API Documentation
 
 ```@autodocs
