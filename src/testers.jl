@@ -26,7 +26,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δx = one(z)
     @testset "$f at $z, with tangent $Δx" begin
         # check ∂u_∂x and (if Ω is complex) ∂v_∂x via forward mode
-        frule_test(f, z ⊢ Δx; rule_test_kwargs...)
+        test_frule(f, z ⊢ Δx; rule_test_kwargs...)
         if z isa Complex
             # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
             _, real_tangent = frule((Zero(), real(Δx)), f, z; fkwargs...)
@@ -38,7 +38,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δy = one(z) * im
         @testset "$f at $z, with tangent $Δy" begin
             # check ∂u_∂y and (if Ω is complex) ∂v_∂y via forward mode
-            frule_test(f, z ⊢ Δy; rule_test_kwargs...)
+            test_frule(f, z ⊢ Δy; rule_test_kwargs...)
         end
     end
 
@@ -46,7 +46,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     Δu = one(Ω)
     @testset "$f at $z, with cotangent $Δu" begin
         # check ∂u_∂x and (if z is complex) ∂u_∂y via reverse mode
-        rrule_test(f, Δu, z ⊢ Δx; rule_test_kwargs...)
+        test_rrule(f, z ⊢ Δx; output_tangent=Δu, rule_test_kwargs...)
         if Ω isa Complex
             # check that same cotangent is produced for cotangent 1.0 and 1.0 + 0.0im
             _, back = rrule(f, z)
@@ -59,7 +59,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
         Δv = one(Ω) * im
         @testset "$f at $z, with cotangent $Δv" begin
             # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-            rrule_test(f, Δv, z ⊢ Δx; rule_test_kwargs...)
+            test_rrule(f, z ⊢ Δx; output_tangent=Δv,  rule_test_kwargs...)
         end
     end
 end
