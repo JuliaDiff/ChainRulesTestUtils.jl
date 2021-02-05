@@ -122,16 +122,16 @@ relu at -0.5, with cotangent 1.0 |    4      4
 [`frule_test`](@ref) and [`rrule_test`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
 If this is not done the tangent will be automatically generated via [`rand_tangent`](@ref).
-A special-case of this is that if you specify it as `x ⊢ nothing` then finite differencing will not be used on that input.
+A special case of this is that if you specify it as `x ⊢ nothing` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
 
 This can be useful when the default provided [`rand_tangent`](@ref) doesn't produce the desired tangent for your type.
 For example the default tangent for an `Int` is `DoesNotExist()`.
-Which is correct e.g. when the Int represents a descrete integer like in indexing.
-But if you are testing something where the `Int` actually is a special-case of real number, then you would want specify the tangent as a `Float64`.
+Which is correct e.g. when the `Int` represents a discrete integer like in indexing.
+But if you are testing something where the `Int` is actually a special case of a real number, then you would want to specify the tangent as a `Float64`.
 
 Care must be taken when manually specifying tangents.
-In particular when specifying the input tangents to [`test_frule`](@ref) and the output tangent to [`test_rrule`](@ref).
+In particular, when specifying the input tangents to [`test_frule`](@ref) and the output tangent to [`test_rrule`](@ref).
 As these tangents are used to seed the derivative computation.
 Inserting inappropriate zeros can thus hide errors.
 
