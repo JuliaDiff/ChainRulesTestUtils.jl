@@ -38,11 +38,6 @@ This function is idempotent. If you pass it a `PrimalAndTangent` it doesn't chan
 """
 auto_primal_and_tangent(primal; rng=Random.GLOBAL_RNG) = primal ⊢ rand_tangent(rng, primal)
 auto_primal_and_tangent(both::PrimalAndTangent; kwargs...) = both
-function auto_primal_and_tangent(auto::PrimalAndTangent{<:Any,Auto}; kwargs...)
-    # If the tangent is a Auto() marker, just use the primal to generate
-    return auto_primal_and_tangent(primal(auto); kwargs...)
-end
-
 
 """
     rand_tangent([rng::AbstractRNG,] x)

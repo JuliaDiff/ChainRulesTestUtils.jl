@@ -116,7 +116,7 @@ function test_frule(
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
     check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
-    acc = tangent(auto_primal_and_tangent(Ω ⊢ output_tangent))
+    acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
     _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
 end
 
@@ -167,7 +167,7 @@ function test_rrule(
     y = f(xs...; fkwargs...)
     check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
-    ȳ = tangent(auto_primal_and_tangent(y ⊢ output_tangent))
+    ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
     check_inferred && _test_inferred(pullback, ȳ)
     ∂s = pullback(ȳ)
