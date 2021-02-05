@@ -116,9 +116,7 @@ function test_frule(
     dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
     check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
-    # No tangent is passed in to test accumlation, so generate one
-    # See: https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/66
-    acc = rand_tangent(Ω)
+    acc = tangent(auto_primal_and_tangent(Ω ⊢ output_tangent))
     _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
 end
 
