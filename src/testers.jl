@@ -66,7 +66,7 @@ end
 
 
 """
-    test_frule(f, inputs...; output_tangent=Auto(), fdm=central_fdm(5, 1), check_inferred=true, fkwargs::NamedTuple=NamedTuple(), rtol::Real=1e-9, atol::Real=1e-9, kwargs...)
+    test_frule(f, inputs...; kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
@@ -125,12 +125,10 @@ end
 
 
 """
-    test_rrule(f, ȳ, inputs...; output_tangent=Auto(), fdm=central_fdm(5, 1), check_inferred=true, fkwargs::NamedTuple=NamedTuple(), rtol::Real=1e-9, atol::Real=1e-9, kwargs...)
+    test_rrule(f, inputs...; kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
-- `ȳ`: adjoint w.r.t. output of `f` (should generally be set randomly).
-  Should be same structure as `f(x)` (so if multiple returns should be a tuple)
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
