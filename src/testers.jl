@@ -156,6 +156,9 @@ function rrule_test(f, ȳ, xx̄s::Tuple{Any, Any}...; rtol::Real=1e-9, atol::Re
     for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
         if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
             @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
+
+            x̄_ad isa DoesNotExist || error("When defining non-differentiable behaviour in pullback for $f, use DoesNotExist() instead of Zero()")
+
             @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
         else
             x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
