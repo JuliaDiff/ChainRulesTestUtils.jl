@@ -96,7 +96,7 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    _ensure_not_running_on_functor(f, "frule_test")
+    _ensure_not_running_on_functor(f, "test_frule")
 
     xẋs = auto_primal_and_tangent.(inputs)
     xs = primal.(xẋs)
@@ -156,7 +156,7 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    _ensure_not_running_on_functor(f, "rrule_test")
+    _ensure_not_running_on_functor(f, "test_rrule")
 
     # Check correctness of evaluation.
     xx̄s = auto_primal_and_tangent.(inputs)
