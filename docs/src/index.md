@@ -58,7 +58,7 @@ Keep this in mind when testing discontinuous rules for functions like [ReLU](htt
 ```jldoctest ex; output = false
 using ChainRulesTestUtils
 
-test_frule(two2three, 3.33, -7.77))
+test_frule(two2three, 3.33, -7.77)
 # output
 Test Summary:                    | Pass  Total
 Tuple{Float64,Float64,Float64}.1 |    1      1
@@ -75,7 +75,7 @@ Test Passed
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
 ```jldoctest ex; output = false
-test_rrule(two2three, 3.33, -7.77))
+test_rrule(two2three, 3.33, -7.77)
 # output
 Test Summary:                      |
 Don't thunk only non_zero argument | No tests
@@ -119,13 +119,13 @@ relu at -0.5, with cotangent 1.0 |    4      4
 ```
 
 ## Specifying Tangents
-[`frule_test`](@ref) and [`rrule_test`](@ref) allow you to specify the tangents used for testing.
+[`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
-If this is not done the tangent will be automatically generated via [`rand_tangent`](@ref).
+If this is not done the tangent will be automatically generated via [`ChainRulesTestUtils.rand_tangent`](@ref).
 A special case of this is that if you specify it as `x ⊢ nothing` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
 
-This can be useful when the default provided [`rand_tangent`](@ref) doesn't produce the desired tangent for your type.
+This can be useful when the default provided [`ChainRulesTestUtils.rand_tangent`](@ref) doesn't produce the desired tangent for your type.
 For example the default tangent for an `Int` is `DoesNotExist()`.
 Which is correct e.g. when the `Int` represents a discrete integer like in indexing.
 But if you are testing something where the `Int` is actually a special case of a real number, then you would want to specify the tangent as a `Float64`.
@@ -165,4 +165,8 @@ which should have passed the test.
 ```@autodocs
 Modules = [ChainRulesTestUtils]
 Private = false
+```
+
+```@docs
+ChainRulesTestUtils.rand_tangent
 ```
