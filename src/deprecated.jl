@@ -27,3 +27,15 @@ end
 
 # Must be for same primal
 Base.isapprox(d_ad::Composite{P}, d_fd::Composite{Q}; kwargs...) where {P, Q} = false
+
+
+# From when primal and tangent was passed as a tuple
+@deprecate(
+    rrule_test(f, ȳ, inputs::Tuple{Any,Any}...; kwargs...),
+    test_rrule(f, ((x ⊢ dx) for (x, dx) in inputs)...; output_tangent=ȳ, kwargs...)
+)
+
+@deprecate(
+    frule_test(f, inputs::Tuple{Any,Any}...; kwargs...),
+    test_frule(f, ((x ⊢ dx) for (x, dx) in inputs)...; kwargs...)
+)

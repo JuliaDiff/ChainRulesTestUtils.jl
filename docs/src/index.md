@@ -45,24 +45,20 @@ end
 
 ```
 
-The [`frule_test`](@ref)/[`rrule_test`](@ref) helper function compares the `frule`/`rrule` outputs
+The [`test_frule`](@ref)/[`test_rrule`](@ref) helper function compares the `frule`/`rrule` outputs
 to the gradients obtained by finite differencing.
 They can be used for any type and number of inputs and outputs.
 
 ### Testing the `frule`
 
-[`frule_test`](@ref) takes in the function `f` and tuples `(x, ẋ)` for each function argument `x`.
+[`test_frule`](@ref) takes in the function `f` and the primal input `x`.
 The call will test the `frule` for function `f` at the point `x` in the domain.
 Keep this in mind when testing discontinuous rules for functions like [ReLU](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)), which should ideally be tested at both `x` being above and below zero.
-Additionally, choosing `ẋ` in an unfortunate way (e.g. as zeros) could hide underlying problems with the defined `frule`.
 
 ```jldoctest ex; output = false
 using ChainRulesTestUtils
 
-x1, x2 = (3.33, -7.77)
-ẋ1, ẋ2 = (rand(), rand())
-
-frule_test(two2three, (x1, ẋ1), (x2, ẋ2))
+test_frule(two2three, 3.33, -7.77)
 # output
 Test Summary:                    | Pass  Total
 Tuple{Float64,Float64,Float64}.1 |    1      1
@@ -75,17 +71,11 @@ Test Passed
 
 ### Testing the `rrule`
 
-[`rrule_test`](@ref) takes in the function `f`, sensitivities of the function outputs `ȳ`, and tuples `(x, x̄)` for each function argument `x`.
-`x̄` is the accumulated adjoint which can be set arbitrarily.
+[`test_rrule`](@ref) takes in the function `f`, and primal inputsr `x`.
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
-Choosing `ȳ` in an unfortunate way (e.g. as zeros) could hide underlying problems with the `rrule`. 
+
 ```jldoctest ex; output = false
-x1, x2 = (3.33, -7.77)
-x̄1, x̄2 = (rand(), rand())
-ȳs = (rand(), rand(), rand())
-
-rrule_test(two2three, ȳs, (x1, x̄1), (x2, x̄2))
-
+test_rrule(two2three, 3.33, -7.77)
 # output
 Test Summary:                      |
 Don't thunk only non_zero argument | No tests
@@ -128,13 +118,30 @@ Test Summary:                    | Pass  Total
 relu at -0.5, with cotangent 1.0 |    4      4
 ```
 
+## Specifying Tangents
+[`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
+This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
+If this is not done the tangent will be automatically generated via [`ChainRulesTestUtils.rand_tangent`](@ref).
+A special case of this is that if you specify it as `x ⊢ nothing` then finite differencing will not be used on that input.
+Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
+
+This can be useful when the default provided [`ChainRulesTestUtils.rand_tangent`](@ref) doesn't produce the desired tangent for your type.
+For example the default tangent for an `Int` is `DoesNotExist()`.
+Which is correct e.g. when the `Int` represents a discrete integer like in indexing.
+But if you are testing something where the `Int` is actually a special case of a real number, then you would want to specify the tangent as a `Float64`.
+
+Care must be taken when manually specifying tangents.
+In particular, when specifying the input tangents to [`test_frule`](@ref) and the output tangent to [`test_rrule`](@ref).
+As these tangents are used to seed the derivative computation.
+Inserting inappropriate zeros can thus hide errors.
+
 ## Custom finite differencing
 
 If a package is using a custom finite differencing method of testing the `frule`s and `rrule`s, `check_equal` function provides a convenient way of comparing [various types](https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.) of differentials.
 
 It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `Zero()`, `DoesNotExist()`, and `Composite`, such that the error messages are helpful.
 
-For example, 
+For example,
 ```julia
 check_equal((@thunk 2*2.0), 4.1)
 ```
@@ -158,4 +165,8 @@ which should have passed the test.
 ```@autodocs
 Modules = [ChainRulesTestUtils]
 Private = false
+```
+
+```@docs
+ChainRulesTestUtils.rand_tangent
 ```
