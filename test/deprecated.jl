@@ -162,7 +162,10 @@ end
 
         # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException futestkws(randn())
-        @test_throws ErrorException test_scalar(futestkws, randn())
+        @test errors(
+            ()->test_scalar(futestkws, randn()),
+            "futestkws_err",
+        )
         @test_throws ErrorException frule((nothing, randn()), futestkws, randn())
         @test_throws ErrorException rrule(futestkws, randn())
 
