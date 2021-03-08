@@ -2,6 +2,14 @@
 # if they were less nasty in implementation we might consider moving them to a package
 # MetaTesting.jl
 
+"""
+    NonPassingTestset(desc, results) <: AbstractTestset
+
+A custom testset that doesn't let anything propagate up to the parent testset (or top-level fallback to throwning an error).
+Not passes, not failures, not even errors.
+
+This is useful for being able to observe the testsets results programatically.
+"""
 struct NonPassingTestset <: Test.AbstractTestSet
     description::String
     results::Vector{Any}
