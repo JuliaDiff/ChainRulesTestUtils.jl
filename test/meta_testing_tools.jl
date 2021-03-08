@@ -2,8 +2,27 @@
 # if they were less nasty in implementation we might consider moving them to a package
 # MetaTesting.jl
 
-# need to bring this into scope explictly so can use in @testset nonpassing_results
-using Test: DefaultTestSet
+struct NonPassingTestset <: Test.AbstractTestSet
+    description::String
+    results::Vector{Any}
+end
+NonPassingTestset(desc) = NonPassingTestset(desc, [])
+
+# Records nothing, and throws an error immediately whenever a Fail or
+# Error occurs. Takes no action in the event of a Pass or Broken result
+Test.record(ts::NonPassingTestset, t) = (@show push!(ts.results, t); t)
+
+function Test.finish(ts::NonPassingTestset)
+    if Test.get_testset_depth() != 0
+        # Attach this test set to the parent test set *if* it is also a NonPassingTestset
+        # Otherwise don't as we don't want to push the errors and failures further up.
+        parent_ts = Test.get_testset()
+        parent_ts isa NonPassingTestset && Test.record(parent_ts, ts)
+        return ts
+    end
+    return ts
+end
+
 
 """
     nonpassing_results(f)
@@ -15,19 +34,11 @@ current testset, and will return a collection of all nonpassing test results.
 function nonpassing_results(f)
     mute() do
         try
-            nonpasses = []
-            # Specify testset type incase parent testset is some other typer
-            @testset DefaultTestSet "nonpassing internal" begin
+            # Specify testset type to hijack system
+            ts = @testset NonPassingTestset "nonpassing internal" begin
                 f()
-                ts = Test.get_testset()  # this is the current testset "nonpassing internal"
-                nonpasses = _extract_nonpasses(ts)
-                # Prevent the failure being recorded in parent testset.
-                empty!(ts.results)
-                ts.anynonpass = false
             end
-            # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
-            # passing testset in its parent testset. We could remove that if we wanted
-            return nonpasses
+            return _extract_nonpasses(ts)
         catch err
             # errors thrown in tests can cause it to error upwards, but the exception thrown
             # has exactly the info we need
@@ -55,7 +66,7 @@ end
 "extracts as flat collection of failures from a (potential nested) testset"
 _extract_nonpasses(x::Test.Result) = [x,]
 _extract_nonpasses(x::Test.Pass) = Test.Result[]
-_extract_nonpasses(ts::Test.DefaultTestSet) = _extract_nonpasses(ts.results)
+_extract_nonpasses(ts::NonPassingTestset) = _extract_nonpasses(ts.results)
 function _extract_nonpasses(xs::Vector)
     if isempty(xs)
         return Test.Result[]
@@ -103,7 +114,6 @@ function errors(f, msg_pattern="")
 
     for result in results
         result isa Test.Fail && error("Test actually failed (nor errored): \n $result")
-        @show result.value
         result isa Test.Error && occursin(msg_pattern, result.value) && return true
     end
     return false  # no matching error occured
