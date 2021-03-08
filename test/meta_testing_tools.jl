@@ -75,7 +75,6 @@ end
 """
     errors(f, msg_pattern="")
 
-
 `errors(f, msg_pattern)` returns true if at least 1 error is recorded into a testset,
     with a failure matching the given pattern.
 
