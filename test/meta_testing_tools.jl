@@ -10,7 +10,7 @@ NonPassingTestset(desc) = NonPassingTestset(desc, [])
 
 # Records nothing, and throws an error immediately whenever a Fail or
 # Error occurs. Takes no action in the event of a Pass or Broken result
-Test.record(ts::NonPassingTestset, t) = (@show push!(ts.results, t); t)
+Test.record(ts::NonPassingTestset, t) = (push!(ts.results, t); t)
 
 function Test.finish(ts::NonPassingTestset)
     if Test.get_testset_depth() != 0
@@ -32,35 +32,11 @@ Invoking it via `nonpassing_results(f)` will prevent those `@test` being added t
 current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
-    mute() do
-        try
-            # Specify testset type to hijack system
-            ts = @testset NonPassingTestset "nonpassing internal" begin
-                f()
-            end
-            return _extract_nonpasses(ts)
-        catch err
-            # errors thrown in tests can cause it to error upwards, but the exception thrown
-            # has exactly the info we need
-            err isa Test.TestSetException || rethrow()
-            return err.errors_and_fails
-        end
+    # Specify testset type to hijack system
+    ts = @testset NonPassingTestset "nonpassing internal" begin
+        f()
     end
-end
-
-"""
-    mute(f)
-
-Calls `f()` silencing stdout.
-"""
-function mute(f)
-    # TODO: once we are on Julia 1.6 this can be change to just use
-    # `redirect_stdout(devnull)` See: https://github.com/JuliaLang/julia/pull/36146
-    mktemp() do path, tempio
-        redirect_stdout(tempio) do
-            f()
-        end
-    end
+    return _extract_nonpasses(ts)
 end
 
 "extracts as flat collection of failures from a (potential nested) testset"
@@ -191,9 +167,7 @@ end
             end
         end
 
-        @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
-            fails(()->@test error("Bad"))
-        end
+        @test_throws ErrorException fails(()->@test error("Bad"))
     end
 
 
@@ -211,8 +185,6 @@ end
             end
         end
 
-        @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
-            errors(()->@test false)
-        end
+        @test_throws ErrorException errors(()->@test false)
     end
 end
