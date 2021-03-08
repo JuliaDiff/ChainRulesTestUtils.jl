@@ -14,19 +14,26 @@ current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
     mute() do
-        nonpasses = []
-        # Specify testset type incase parent testset is some other typer
-        @testset DefaultTestSet "nonpassing internal" begin
-            f()
-            ts = Test.get_testset()  # this is the current testset "nonpassing internal"
-            nonpasses = _extract_nonpasses(ts)
-            # Prevent the failure being recorded in parent testset.
-            empty!(ts.results)
-            ts.anynonpass = false
+        try
+            nonpasses = []
+            # Specify testset type incase parent testset is some other typer
+            @testset DefaultTestSet "nonpassing internal" begin
+                f()
+                ts = Test.get_testset()  # this is the current testset "nonpassing internal"
+                nonpasses = _extract_nonpasses(ts)
+                # Prevent the failure being recorded in parent testset.
+                empty!(ts.results)
+                ts.anynonpass = false
+            end
+            # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
+            # passing testset in its parent testset. We could remove that if we wanted
+            return nonpasses
+        catch err
+            # errors thrown in tests can cause it to error upwards, but the exception thrown
+            # has exactly the info we need
+            err isa Test.TestSetException || rethrow()
+            return err.errors_and_fails
         end
-        # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
-        # passing testset in its parent testset. We could remove that if we wanted
-        return nonpasses
     end
 end
 
@@ -71,13 +78,39 @@ function fails(f)
         did_fail |= result isa Test.Fail
         if result isa Test.Error
             # Log a error message, with original backtrace
-            show(result)
             # Sadly we can't throw the original exception as it is only stored as a String
             error("Error occurred during `fails`")
         end
     end
     return did_fail
 end
+
+"""
+    errors(f, msg_pattern="")
+
+
+`errors(f, msg_pattern)` returns true if at least 1 error is recorded into a testset,
+    with a failure matching the given pattern.
+
+`f` should be a function that takes no argument, and calls some code that uses `@testset`.
+`msg_pattern` is a regex or a string, that should be contained in the error message.
+If nothing is passed then it default to the empty string, which matches any error message.
+
+If a test fails (rather than passing or erroring) then `errors` will throw an error.
+"""
+function errors(f, msg_pattern="")
+    results = nonpassing_results(f)
+
+    for result in results
+        result isa Test.Fail && error("Test actually failed (nor errored): \n $result")
+        @show result.value
+        result isa Test.Error && occursin(msg_pattern, result.value) && return true
+    end
+    return false  # no matching error occured
+end
+
+
+
 
 #Meta Meta tests
 @testset "meta_testing_tools.jl" begin
@@ -110,6 +143,29 @@ end
             @test fails[1].orig_expr == :(false==true)
             @test fails[2].orig_expr == :(true==false)
         end
+
+
+        @testset "Single Error" begin
+            bads = nonpassing_results(()->error("noo"))
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
+
+        @testset "Single Test Erroring" begin
+            bads = nonpassing_results(()->@test error("nooo"))
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
+
+        @testset "Single Testset Erroring" begin
+            bads = nonpassing_results() do
+                @testset "inner" begin
+                    error("noo")
+                end
+            end
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
     end
 
     @testset "fails" begin
@@ -127,6 +183,26 @@ end
 
         @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
             fails(()->@test error("Bad"))
+        end
+    end
+
+
+    @testset "errors" begin
+        @test !errors(()->@test true)
+        @test errors(()->error("nooo"))
+        @test errors(()->error("nooo"), "noo")
+        @test !errors(()->error("nooo"), "ok")
+
+        @test errors() do
+            @testset "eg" begin
+                @test true
+                error("nooo")
+                @test true
+            end
+        end
+
+        @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
+            errors(()->@test false)
         end
     end
 end
