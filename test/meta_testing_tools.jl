@@ -17,7 +17,6 @@ end
 NonPassingTestset(desc) = NonPassingTestset(desc, [])
 
 # Records nothing, and throws an error immediately whenever a Fail or
-# Error occurs. Takes no action in the event of a Pass or Broken result
 Test.record(ts::NonPassingTestset, t) = (push!(ts.results, t); t)
 
 function Test.finish(ts::NonPassingTestset)
