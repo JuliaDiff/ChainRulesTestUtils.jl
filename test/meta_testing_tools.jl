@@ -2,8 +2,37 @@
 # if they were less nasty in implementation we might consider moving them to a package
 # MetaTesting.jl
 
-# need to bring this into scope explictly so can use in @testset nonpassing_results
-using Test: DefaultTestSet
+"""
+    EncasedTestSet(desc, results) <: AbstractTestset
+
+A custom testset that encases all test results within, not letting them out.
+It doesn't let anything propagate up to the parent testset
+(or to the top-level fallback testset, which throws an error on any non-passing result).
+Not passes, not failures, not even errors.
+
+
+This is useful for being able to observe the testsets results programatically;
+without them triggering actual passes/failures/errors.
+"""
+struct EncasedTestSet <: Test.AbstractTestSet
+    description::String
+    results::Vector{Any}
+end
+EncasedTestSet(desc) = EncasedTestSet(desc, [])
+
+Test.record(ts::EncasedTestSet, t) = (push!(ts.results, t); t)
+
+function Test.finish(ts::EncasedTestSet)
+    if Test.get_testset_depth() != 0
+        # Attach this test set to the parent test set *if* it is also a NonPassingTestset
+        # Otherwise don't as we don't want to push the errors and failures further up.
+        parent_ts = Test.get_testset()
+        parent_ts isa EncasedTestSet && Test.record(parent_ts, ts)
+        return ts
+    end
+    return ts
+end
+
 
 """
     nonpassing_results(f)
@@ -13,42 +42,17 @@ Invoking it via `nonpassing_results(f)` will prevent those `@test` being added t
 current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
-    mute() do
-        nonpasses = []
-        # Specify testset type incase parent testset is some other typer
-        @testset DefaultTestSet "nonpassing internal" begin
-            f()
-            ts = Test.get_testset()  # this is the current testset "nonpassing internal"
-            nonpasses = _extract_nonpasses(ts)
-            # Prevent the failure being recorded in parent testset.
-            empty!(ts.results)
-            ts.anynonpass = false
-        end
-        # Note: we allow the "nonpassing internal" testset to still be pushed as an empty
-        # passing testset in its parent testset. We could remove that if we wanted
-        return nonpasses
+    # Specify testset type to hijack system
+    ts = @testset EncasedTestSet "nonpassing internal" begin
+        f()
     end
-end
-
-"""
-    mute(f)
-
-Calls `f()` silencing stdout.
-"""
-function mute(f)
-    # TODO: once we are on Julia 1.6 this can be change to just use
-    # `redirect_stdout(devnull)` See: https://github.com/JuliaLang/julia/pull/36146
-    mktemp() do path, tempio
-        redirect_stdout(tempio) do
-            f()
-        end
-    end
+    return _extract_nonpasses(ts)
 end
 
 "extracts as flat collection of failures from a (potential nested) testset"
 _extract_nonpasses(x::Test.Result) = [x,]
 _extract_nonpasses(x::Test.Pass) = Test.Result[]
-_extract_nonpasses(ts::Test.DefaultTestSet) = _extract_nonpasses(ts.results)
+_extract_nonpasses(ts::EncasedTestSet) = _extract_nonpasses(ts.results)
 function _extract_nonpasses(xs::Vector)
     if isempty(xs)
         return Test.Result[]
@@ -71,12 +75,33 @@ function fails(f)
         did_fail |= result isa Test.Fail
         if result isa Test.Error
             # Log a error message, with original backtrace
-            show(result)
             # Sadly we can't throw the original exception as it is only stored as a String
             error("Error occurred during `fails`")
         end
     end
     return did_fail
+end
+
+"""
+    errors(f, msg_pattern="")
+
+Returns true if at least 1 error is recorded into a testset
+with a failure matching the given pattern.
+
+`f` should be a function that takes no argument, and calls some code that uses `@testset`.
+`msg_pattern` is a regex or a string, that should be contained in the error message.
+If nothing is passed then it default to the empty string, which matches any error message.
+
+If a test fails (rather than passing or erroring) then `errors` will throw an error.
+"""
+function errors(f, msg_pattern="")
+    results = nonpassing_results(f)
+
+    for result in results
+        result isa Test.Fail && error("Test actually failed (nor errored): \n $result")
+        result isa Test.Error && occursin(msg_pattern, result.value) && return true
+    end
+    return false  # no matching error occured
 end
 
 #Meta Meta tests
@@ -110,6 +135,29 @@ end
             @test fails[1].orig_expr == :(false==true)
             @test fails[2].orig_expr == :(true==false)
         end
+
+
+        @testset "Single Error" begin
+            bads = nonpassing_results(()->error("noo"))
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
+
+        @testset "Single Test Erroring" begin
+            bads = nonpassing_results(()->@test error("nooo"))
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
+
+        @testset "Single Testset Erroring" begin
+            bads = nonpassing_results() do
+                @testset "inner" begin
+                    error("noo")
+                end
+            end
+            @test length(bads) === 1
+            @test bads[1] isa Test.Error
+        end
     end
 
     @testset "fails" begin
@@ -125,8 +173,24 @@ end
             end
         end
 
-        @test_throws Exception mute() do  # mute it so we don't see the reprinted error.
-            fails(()->@test error("Bad"))
+        @test_throws ErrorException fails(()->@test error("Bad"))
+    end
+
+
+    @testset "errors" begin
+        @test !errors(()->@test true)
+        @test errors(()->error("nooo"))
+        @test errors(()->error("nooo"), "noo")
+        @test !errors(()->error("nooo"), "ok")
+
+        @test errors() do
+            @testset "eg" begin
+                @test true
+                error("nooo")
+                @test true
+            end
         end
+
+        @test_throws ErrorException errors(()->@test false)
     end
 end

@@ -1,7 +1,7 @@
 # For some reason if these aren't defined here, then they are interpreted as closures
-futestkws(x; err = true) = err ? error() : x
+futestkws(x; err = true) = err ? error("futestkws_err") : x
 
-fbtestkws(x, y; err = true) = err ? error() : x
+fbtestkws(x, y; err = true) = err ? error("fbtestkws_err") : x
 
 sinconj(x) = sin(x)
 
@@ -126,11 +126,16 @@ end
             end
 
             test_frule(f_noninferrable_frule, 2.0; check_inferred = false)
-            @test_throws ErrorException test_frule(f_noninferrable_frule, 2.0)
+            @test errors(
+                ()->test_frule(f_noninferrable_frule, 2.0),
+                "does not match inferred return type"
+            )
+
             test_scalar(f_noninferrable_frule, 2.0; check_inferred = false)
-            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
-            # `mute` silences the printed error
-            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_frule, 2.0)))
+            @test errors(
+                ()->test_scalar(f_noninferrable_frule, 2.0),
+                "does not match inferred return type"
+            )
         end
 
         @testset "check not inferred in rrule" begin
@@ -145,11 +150,16 @@ end
             end
 
             test_rrule(f_noninferrable_rrule, 2.0; check_inferred = false)
-            @test_throws ErrorException test_rrule(f_noninferrable_rrule, 2.0)
+            @test errors(
+                ()->test_rrule(f_noninferrable_rrule, 2.0),
+                "does not match inferred return type"
+            )
+
             test_scalar(f_noninferrable_rrule, 2.0; check_inferred = false)
-            # `fails` plucks out `ErrorException` raised by `@inferred` from nested `TestSet`
-            # `mute` silences the printed error
-            @test_throws ErrorException mute(() -> fails(() -> test_scalar(f_noninferrable_rrule, 2.0)))
+            @test errors(
+                ()->test_scalar(f_noninferrable_rrule, 2.0),
+                "does not match inferred return type"
+            )
         end
 
         @testset "check not inferred in pullback" begin
@@ -158,7 +168,10 @@ end
                 return x, f_noninferrable_pullback_pullback
             end
             test_rrule(f_noninferrable_pullback, 2.0; check_inferred = false)
-            @test_throws ErrorException test_rrule(f_noninferrable_pullback, 2.0)
+            @test errors(
+                ()->test_rrule(f_noninferrable_pullback, 2.0),
+                "does not match inferred return type"
+            )
         end
 
         @testset "check not inferred in thunk" begin
@@ -170,7 +183,10 @@ end
                 return x + y, f_noninferrable_thunk_pullback
             end
             test_rrule(f_noninferrable_thunk, 2.0, 3.0; check_inferred = false)
-            @test_throws ErrorException test_rrule(f_noninferrable_thunk, 2.0, 3.0)
+            @test errors(
+                ()->test_rrule(f_noninferrable_thunk, 2.0, 3.0),
+                "does not match inferred return type"
+            )
         end
 
         @testset "check non-inferrable primal still passes if pullback inferrable" begin
@@ -303,7 +319,7 @@ end
 
         # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException futestkws(randn())
-        @test_throws ErrorException test_scalar(futestkws, randn())
+        @test errors(()->test_scalar(futestkws, randn()), "futestkws_err")
         @test_throws ErrorException frule((nothing, randn()), futestkws, randn())
         @test_throws ErrorException rrule(futestkws, randn())
 

@@ -58,15 +58,12 @@ Keep this in mind when testing discontinuous rules for functions like [ReLU](htt
 ```jldoctest ex; output = false
 using ChainRulesTestUtils
 
-test_frule(two2three, 3.33, -7.77)
+test_frule(two2three, 3.33, -7.77);
+
 # output
-Test Summary:                    | Pass  Total
-Tuple{Float64,Float64,Float64}.1 |    1      1
-Test Summary:                    | Pass  Total
-Tuple{Float64,Float64,Float64}.2 |    1      1
-Test Summary:                    | Pass  Total
-Tuple{Float64,Float64,Float64}.3 |    1      1
-Test Passed
+Test Summary:                          | Pass  Total
+test_frule: two2three at (3.33, -7.77) |    5      5
+Test.DefaultTestSet("test_frule: two2three at (3.33, -7.77)", Any[Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.1", Any[], 1, false), Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.2", Any[], 1, false), Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.3", Any[], 1, false)], 2, false)
 ```
 
 ### Testing the `rrule`
@@ -75,11 +72,12 @@ Test Passed
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
 ```jldoctest ex; output = false
-test_rrule(two2three, 3.33, -7.77)
+test_rrule(two2three, 3.33, -7.77);
+
 # output
-Test Summary:                      |
-Don't thunk only non_zero argument | No tests
-Test.DefaultTestSet("Don't thunk only non_zero argument", Any[], 0, false)
+Test Summary:                          | Pass  Total
+test_rrule: two2three at (3.33, -7.77) |    6      6
+Test.DefaultTestSet("test_rrule: two2three at (3.33, -7.77)", Any[Test.DefaultTestSet("Don't thunk only non_zero argument", Any[], 0, false)], 6, false)
 ```
 
 ## Scalar example
@@ -104,18 +102,15 @@ with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
 `test_scalar` function is provided to test both the `frule` and the `rrule` with a single
 call.
 ```jldoctest ex; output = false
-test_scalar(relu, 0.5)
-test_scalar(relu, -0.5)
+test_scalar(relu, 0.5);
+test_scalar(relu, -0.5);
 
 # output
-Test Summary:                 | Pass  Total
-relu at 0.5, with tangent 1.0 |    3      3
-Test Summary:                   | Pass  Total
-relu at 0.5, with cotangent 1.0 |    4      4
-Test Summary:                  | Pass  Total
-relu at -0.5, with tangent 1.0 |    3      3
-Test Summary:                    | Pass  Total
-relu at -0.5, with cotangent 1.0 |    4      4
+Test Summary:            | Pass  Total
+test_scalar: relu at 0.5 |    7      7
+Test Summary:             | Pass  Total
+test_scalar: relu at -0.5 |    7      7
+Test.DefaultTestSet("test_scalar: relu at -0.5", Any[Test.DefaultTestSet("with tangent 1.0", Any[Test.DefaultTestSet("test_frule: relu at (ChainRulesTestUtils.PrimalAndTangent{Float64,Float64}(-0.5, 1.0),)", Any[], 3, false)], 0, false), Test.DefaultTestSet("with cotangent 1.0", Any[Test.DefaultTestSet("test_rrule: relu at (ChainRulesTestUtils.PrimalAndTangent{Float64,Float64}(-0.5, 1.0),)", Any[Test.DefaultTestSet("Don't thunk only non_zero argument", Any[], 0, false)], 4, false)], 0, false)], 0, false)
 ```
 
 ## Specifying Tangents
