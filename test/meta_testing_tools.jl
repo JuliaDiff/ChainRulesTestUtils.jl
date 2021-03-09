@@ -82,7 +82,7 @@ end
     errors(f, msg_pattern="")
 
 Returns true if at least 1 error is recorded into a testset
-    with a failure matching the given pattern.
+with a failure matching the given pattern.
 
 `f` should be a function that takes no argument, and calls some code that uses `@testset`.
 `msg_pattern` is a regex or a string, that should be contained in the error message.
