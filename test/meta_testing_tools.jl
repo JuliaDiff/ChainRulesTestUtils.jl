@@ -3,7 +3,7 @@
 # MetaTesting.jl
 
 """
-    EncasedTestset(desc, results) <: AbstractTestset
+    EncasedTestSet(desc, results) <: AbstractTestset
 
 A custom testset that encases all test results within, not letting them out.
 It doesn't let anything propagate up to the parent testset
@@ -14,20 +14,20 @@ Not passes, not failures, not even errors.
 This is useful for being able to observe the testsets results programatically;
 without them triggering actual passes/failures/errors.
 """
-struct EncasedTestset <: Test.AbstractTestSet
+struct EncasedTestSet <: Test.AbstractTestSet
     description::String
     results::Vector{Any}
 end
-EncasedTestset(desc) = EncasedTestset(desc, [])
+EncasedTestSet(desc) = EncasedTestSet(desc, [])
 
-Test.record(ts::EncasedTestset, t) = (push!(ts.results, t); t)
+Test.record(ts::EncasedTestSet, t) = (push!(ts.results, t); t)
 
-function Test.finish(ts::EncasedTestset)
+function Test.finish(ts::EncasedTestSet)
     if Test.get_testset_depth() != 0
         # Attach this test set to the parent test set *if* it is also a NonPassingTestset
         # Otherwise don't as we don't want to push the errors and failures further up.
         parent_ts = Test.get_testset()
-        parent_ts isa EncasedTestset && Test.record(parent_ts, ts)
+        parent_ts isa EncasedTestSet && Test.record(parent_ts, ts)
         return ts
     end
     return ts
@@ -43,7 +43,7 @@ current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
     # Specify testset type to hijack system
-    ts = @testset EncasedTestset "nonpassing internal" begin
+    ts = @testset EncasedTestSet "nonpassing internal" begin
         f()
     end
     return _extract_nonpasses(ts)
@@ -52,7 +52,7 @@ end
 "extracts as flat collection of failures from a (potential nested) testset"
 _extract_nonpasses(x::Test.Result) = [x,]
 _extract_nonpasses(x::Test.Pass) = Test.Result[]
-_extract_nonpasses(ts::EncasedTestset) = _extract_nonpasses(ts.results)
+_extract_nonpasses(ts::EncasedTestSet) = _extract_nonpasses(ts.results)
 function _extract_nonpasses(xs::Vector)
     if isempty(xs)
         return Test.Result[]
