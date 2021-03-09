@@ -81,7 +81,7 @@ end
 """
     errors(f, msg_pattern="")
 
-`errors(f, msg_pattern)` returns true if at least 1 error is recorded into a testset,
+Returns true if at least 1 error is recorded into a testset
     with a failure matching the given pattern.
 
 `f` should be a function that takes no argument, and calls some code that uses `@testset`.
