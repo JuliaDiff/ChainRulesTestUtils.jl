@@ -5,7 +5,8 @@
 """
     NonPassingTestset(desc, results) <: AbstractTestset
 
-A custom testset that doesn't let anything propagate up to the parent testset (or top-level fallback to throwning an error).
+A custom testset that doesn't let anything propagate up to the parent testset 
+(or to the top-level fallback testset, which throws an error on any non-passing result).
 Not passes, not failures, not even errors.
 
 This is useful for being able to observe the testsets results programatically.
