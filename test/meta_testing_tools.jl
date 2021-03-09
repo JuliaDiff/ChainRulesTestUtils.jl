@@ -3,28 +3,31 @@
 # MetaTesting.jl
 
 """
-    NonPassingTestset(desc, results) <: AbstractTestset
+    EncasedTestset(desc, results) <: AbstractTestset
 
-A custom testset that doesn't let anything propagate up to the parent testset 
+A custom testset that encases all test results within, not letting them out.
+It doesn't let anything propagate up to the parent testset
 (or to the top-level fallback testset, which throws an error on any non-passing result).
 Not passes, not failures, not even errors.
 
-This is useful for being able to observe the testsets results programatically.
+
+This is useful for being able to observe the testsets results programatically;
+without them triggering actual passes/failures/errors.
 """
-struct NonPassingTestset <: Test.AbstractTestSet
+struct EncasedTestset <: Test.AbstractTestSet
     description::String
     results::Vector{Any}
 end
-NonPassingTestset(desc) = NonPassingTestset(desc, [])
+EncasedTestset(desc) = EncasedTestset(desc, [])
 
-Test.record(ts::NonPassingTestset, t) = (push!(ts.results, t); t)
+Test.record(ts::EncasedTestset, t) = (push!(ts.results, t); t)
 
-function Test.finish(ts::NonPassingTestset)
+function Test.finish(ts::EncasedTestset)
     if Test.get_testset_depth() != 0
         # Attach this test set to the parent test set *if* it is also a NonPassingTestset
         # Otherwise don't as we don't want to push the errors and failures further up.
         parent_ts = Test.get_testset()
-        parent_ts isa NonPassingTestset && Test.record(parent_ts, ts)
+        parent_ts isa EncasedTestset && Test.record(parent_ts, ts)
         return ts
     end
     return ts
@@ -40,7 +43,7 @@ current testset, and will return a collection of all nonpassing test results.
 """
 function nonpassing_results(f)
     # Specify testset type to hijack system
-    ts = @testset NonPassingTestset "nonpassing internal" begin
+    ts = @testset EncasedTestset "nonpassing internal" begin
         f()
     end
     return _extract_nonpasses(ts)
@@ -49,7 +52,7 @@ end
 "extracts as flat collection of failures from a (potential nested) testset"
 _extract_nonpasses(x::Test.Result) = [x,]
 _extract_nonpasses(x::Test.Pass) = Test.Result[]
-_extract_nonpasses(ts::NonPassingTestset) = _extract_nonpasses(ts.results)
+_extract_nonpasses(ts::EncasedTestset) = _extract_nonpasses(ts.results)
 function _extract_nonpasses(xs::Vector)
     if isempty(xs)
         return Test.Result[]
@@ -100,9 +103,6 @@ function errors(f, msg_pattern="")
     end
     return false  # no matching error occured
 end
-
-
-
 
 #Meta Meta tests
 @testset "meta_testing_tools.jl" begin
