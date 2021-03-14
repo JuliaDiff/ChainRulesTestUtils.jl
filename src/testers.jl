@@ -81,7 +81,6 @@ end
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
-   - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
