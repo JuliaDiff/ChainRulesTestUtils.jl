@@ -182,7 +182,7 @@ function test_rrule(
         @test ∂self === NO_FIELDS  # No internal fields
 
         # Correctness testing via finite differencing.
-        x̄s_is_dne = accumulated_x̄ .== nothing
+        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, DoesNotExist})
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
             if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
