@@ -106,7 +106,6 @@ end
 
 #Meta Meta tests
 @testset "meta_testing_tools.jl" begin
-    maybe_expr2string = VERSION < v"1.6" ? identity : Meta.parse
     @testset "Checking for non-passes" begin
         @testset "No Tests" begin
             fails = nonpassing_results(()->nothing)
@@ -122,7 +121,7 @@ end
         @testset "Single Test" begin
             fails = nonpassing_results(()->@test false)
             @test length(fails) === 1
-            @test maybe_expr2string(fails[1].orig_expr) == false
+            @test fails[1].orig_expr == false
         end
 
         @testset "Single Testset" begin
@@ -133,8 +132,8 @@ end
                 end
             end
             @test length(fails) === 2
-            @test maybe_expr2string(fails[1].orig_expr) == :(false==true)
-            @test maybe_expr2string(fails[2].orig_expr) == :(true==false)
+            @test fails[1].orig_expr == :(false==true)
+            @test fails[2].orig_expr == :(true==false)
         end
 
 
