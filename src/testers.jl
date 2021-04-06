@@ -114,7 +114,8 @@ function test_frule(
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
-        ẋs_is_ignored = ẋs .== nothing
+        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+        ẋs_is_ignored = isa.(ẋs, Union{Nothing, DoesNotExist})
         # Correctness testing via finite differencing.
         dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
         check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
