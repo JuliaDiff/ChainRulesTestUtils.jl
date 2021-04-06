@@ -17,6 +17,7 @@ end
         (true, DoesNotExist),
         (4, DoesNotExist),
         (5.0, Float64),
+        (big(5.0), BigFloat),
         (5.0 + 0.4im, Complex{Float64}),
         (randn(Float32, 3), Vector{Float32}),
         (randn(Complex{Float64}, 2), Vector{Complex{Float64}}),
