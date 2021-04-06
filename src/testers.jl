@@ -116,6 +116,14 @@ function test_frule(
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
         ẋs_is_ignored = isa.(ẋs, Union{Nothing, DoesNotExist})
+        if any(ẋs .== nothing)
+            Base.depwarn(
+                "test_frule(f, k ⊢ nothing) is deprecated, use " *
+                "test_frule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                :test_frule
+            )
+        end
+
         # Correctness testing via finite differencing.
         dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
         check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
@@ -185,6 +193,14 @@ function test_rrule(
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
         x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, DoesNotExist})
+        if any(accumulated_x̄ .== nothing)
+            Base.depwarn(
+                "test_rrule(f, k ⊢ nothing) is deprecated, use " *
+                "test_rrule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                :test_rrule
+            )
+        end
+
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
             if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
