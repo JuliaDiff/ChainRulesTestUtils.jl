@@ -75,7 +75,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-     Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `DoesNotExist()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
@@ -143,7 +143,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
-      Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
+    Non-differentiable arguments, such as indices, should have `x̄` set as `DoesNotExist()`.
 
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
@@ -203,7 +203,7 @@ function test_rrule(
 
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
+            if accumulated_x̄ isa Union{Nothing, DoesNotExist}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
             else
