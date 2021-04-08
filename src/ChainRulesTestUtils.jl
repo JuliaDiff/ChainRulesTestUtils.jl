@@ -4,7 +4,7 @@ using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using Compat: only
 using FiniteDifferences
-using FiniteDifferences: to_vec
+using FiniteDifferences: to_vec, rand_tangent
 using LinearAlgebra
 using Random
 using Test
