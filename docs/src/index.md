@@ -117,7 +117,7 @@ Test.DefaultTestSet("test_scalar: relu at -0.5", Any[Test.DefaultTestSet("with t
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
 If this is not done the tangent will be automatically generated via [`ChainRulesTestUtils.rand_tangent`](@ref).
-A special case of this is that if you specify it as `x ⊢ nothing` then finite differencing will not be used on that input.
+A special case of this is that if you specify it as `x ⊢ DoesNotExist()` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
 
 This can be useful when the default provided [`ChainRulesTestUtils.rand_tangent`](@ref) doesn't produce the desired tangent for your type.

@@ -29,6 +29,10 @@ check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
 check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
 check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
+# remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
+check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
+
 """
     _can_pass_early(actual, expected; kwargs...)
 Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;

@@ -75,7 +75,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-     Non-differentiable arguments, such as indices, should have `ẋ` set as `nothing`.
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `DoesNotExist()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
@@ -114,7 +114,16 @@ function test_frule(
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
-        ẋs_is_ignored = ẋs .== nothing
+        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+        ẋs_is_ignored = isa.(ẋs, Union{Nothing, DoesNotExist})
+        if any(ẋs .== nothing)
+            Base.depwarn(
+                "test_frule(f, k ⊢ nothing) is deprecated, use " *
+                "test_frule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                :test_frule
+            )
+        end
+
         # Correctness testing via finite differencing.
         dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
         check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
@@ -134,7 +143,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
-      Non-differentiable arguments, such as indices, should have `x̄` set as `nothing`.
+    Non-differentiable arguments, such as indices, should have `x̄` set as `DoesNotExist()`.
 
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
@@ -182,10 +191,19 @@ function test_rrule(
         @test ∂self === NO_FIELDS  # No internal fields
 
         # Correctness testing via finite differencing.
-        x̄s_is_dne = accumulated_x̄ .== nothing
+        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, DoesNotExist})
+        if any(accumulated_x̄ .== nothing)
+            Base.depwarn(
+                "test_rrule(f, k ⊢ nothing) is deprecated, use " *
+                "test_rrule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                :test_rrule
+            )
+        end
+
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ === nothing  # then we marked this argument as not differentiable
+            if accumulated_x̄ isa Union{Nothing, DoesNotExist}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
             else
