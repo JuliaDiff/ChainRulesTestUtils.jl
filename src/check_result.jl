@@ -33,6 +33,12 @@ check_equal(x::Zero, y::Zero; kwargs...) = @test true
 check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
 check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
 
+check_equal(::ChainRulesCore.NotImplemented, x; kwargs...) = @test true
+check_equal(x, ::ChainRulesCore.NotImplemented; kwargs...) = @test true
+function check_equal(::ChainRulesCore.NotImplemented, ::ChainRulesCore.NotImplemented; kwargs...)
+    return @test true
+end
+
 """
     _can_pass_early(actual, expected; kwargs...)
 Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;
@@ -136,4 +142,13 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
     check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
+end
+
+# `+` is not defined for `NotImplemented`
+_check_add!!_behaviour(acc, ::ChainRulesCore.NotImplemented; kwargs...) = @test true
+_check_add!!_behaviour(::ChainRulesCore.NotImplemented, val; kwargs...) = @test true
+function _check_add!!_behaviour(
+    ::ChainRulesCore.NotImplemented, ::ChainRulesCore.NotImplemented; kwargs...
+)
+    return @test true
 end

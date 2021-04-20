@@ -33,7 +33,7 @@ end
 
     @testset "check_equal" begin
 
-        @testset "possive cases" begin
+        @testset "positive cases" begin
             check_equal(1.0, 1.0)
             check_equal(1.0 + im, 1.0 + im)
             check_equal(1.0, 1.0+1e-10)  # isapprox _behaviour
@@ -45,6 +45,10 @@ end
             check_equal([[1.0], [2.0]], [[1.0], [2.0]])
 
             check_equal(@thunk(10*0.1*[[1.0], [2.0]]), [[1.0], [2.0]])
+
+            check_equal(@not_implemented(""), rand(3))
+            check_equal(rand(3), @not_implemented(""))
+            check_equal(@not_implemented("a"), @not_implemented("b"))
 
             check_equal(
                 Composite{Tuple{Float64, Float64}}(1.0, 2.0),

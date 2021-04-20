@@ -14,7 +14,6 @@ f_noninferrable_pullback(x) = x
 f_noninferrable_thunk(x, y) = x + y
 f_inferrable_pullback_only(x) = x > 0 ? Float64(x) : Float32(x)
 
-
 function finplace!(x; y = [1])
     y[1] = 2
     x .*= y[1]
@@ -506,5 +505,12 @@ end
             return y, rev_trouble_pullback
         end
         test_rrule(rev_trouble, (3, 3.0) ⊢ Composite{Tuple{Int, Float64}}(Zero(), 1.0))
+    end
+
+    @testset "NotImplemented" begin
+        f_notimplemented(x, y) = (x + y, x - y)
+        @scalar_rule f_notimplemented(x, y) (@not_implemented(""), 1) (1, -1)
+        test_frule(f_notimplemented, randn(), randn())
+        test_rrule(f_notimplemented, randn(), randn())
     end
 end
