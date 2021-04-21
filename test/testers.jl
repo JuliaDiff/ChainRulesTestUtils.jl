@@ -507,4 +507,17 @@ end
         end
         test_rrule(rev_trouble, (3, 3.0) ⊢ Composite{Tuple{Int, Float64}}(Zero(), 1.0))
     end
+
+    @testset "error message about incorrectly using Zero()" begin
+        foo(a, i) = a[i]
+        function ChainRulesCore.rrule(::typeof(foo), a, i)
+            function foo_pullback(Δy)
+                da = zeros(size(a))
+                da[i] = Δy
+                return NO_FIELDS, da, Zero()
+            end
+            return foo(a, i), foo_pullback
+        end
+        @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use DoesNotExist()")
+    end
 end
