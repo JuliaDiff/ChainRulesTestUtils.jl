@@ -207,7 +207,7 @@ function test_rrule(
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 x̄_ad isa Zero && error(
                     "The pullback in the rrule for $f function should use DoesNotExist()" *
-                    " rather than Zero() for non-differentiable arguments."
+                    " rather than Zero() for non-perturbable arguments."
                 )
                 @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
             else
