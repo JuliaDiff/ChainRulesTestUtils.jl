@@ -33,10 +33,10 @@ check_equal(x::Zero, y::Zero; kwargs...) = @test true
 check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
 check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
 
-check_equal(::ChainRulesCore.NotImplemented, x; kwargs...) = @test true
-check_equal(x, ::ChainRulesCore.NotImplemented; kwargs...) = @test true
+check_equal(::ChainRulesCore.NotImplemented, x; kwargs...) = @test_broken false
+check_equal(x, ::ChainRulesCore.NotImplemented; kwargs...) = @test_broken false
 function check_equal(::ChainRulesCore.NotImplemented, ::ChainRulesCore.NotImplemented; kwargs...)
-    return @test true
+    return @test_broken false
 end
 
 """
@@ -145,10 +145,10 @@ function _check_add!!_behaviour(acc, val; kwargs...)
 end
 
 # `+` is not defined for `NotImplemented`
-_check_add!!_behaviour(acc, ::ChainRulesCore.NotImplemented; kwargs...) = @test true
-_check_add!!_behaviour(::ChainRulesCore.NotImplemented, val; kwargs...) = @test true
+_check_add!!_behaviour(acc, ::ChainRulesCore.NotImplemented; kwargs...) = @test_broken false
+_check_add!!_behaviour(::ChainRulesCore.NotImplemented, val; kwargs...) = @test_broken false
 function _check_add!!_behaviour(
     ::ChainRulesCore.NotImplemented, ::ChainRulesCore.NotImplemented; kwargs...
 )
-    return @test true
+    return @test_broken false
 end
