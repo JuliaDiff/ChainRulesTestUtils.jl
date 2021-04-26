@@ -146,7 +146,8 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
 end
 
-# `+` is not defined for `NotImplemented`
+# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
+# not yet been implemented
 _check_add!!_behaviour(acc, ::ChainRulesCore.NotImplemented; kwargs...) = @test_broken false
 _check_add!!_behaviour(::ChainRulesCore.NotImplemented, val; kwargs...) = @test_broken false
 function _check_add!!_behaviour(
