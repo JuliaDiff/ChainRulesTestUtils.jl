@@ -33,6 +33,8 @@ check_equal(x::Zero, y::Zero; kwargs...) = @test true
 check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
 check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
 
+# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionalyl
+# not yet been implemented
 check_equal(::ChainRulesCore.NotImplemented, x; kwargs...) = @test_broken false
 check_equal(x, ::ChainRulesCore.NotImplemented; kwargs...) = @test_broken false
 function check_equal(::ChainRulesCore.NotImplemented, ::ChainRulesCore.NotImplemented; kwargs...)
