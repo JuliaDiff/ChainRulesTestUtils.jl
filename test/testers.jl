@@ -14,7 +14,6 @@ f_noninferrable_pullback(x) = x
 f_noninferrable_thunk(x, y) = x + y
 f_inferrable_pullback_only(x) = x > 0 ? Float64(x) : Float32(x)
 
-
 function finplace!(x; y = [1])
     y[1] = 2
     x .*= y[1]
@@ -519,5 +518,12 @@ end
             return foo(a, i), foo_pullback
         end
         @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use DoesNotExist()")
+    end
+
+    @testset "NotImplemented" begin
+        f_notimplemented(x, y) = (x + y, x - y)
+        @scalar_rule f_notimplemented(x, y) (@not_implemented(""), 1) (1, -1)
+        test_frule(f_notimplemented, randn(), randn())
+        test_rrule(f_notimplemented, randn(), randn())
     end
 end
