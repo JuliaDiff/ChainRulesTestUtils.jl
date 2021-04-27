@@ -48,7 +48,7 @@ end
 
             check_equal(@not_implemented(""), rand(3))
             check_equal(rand(3), @not_implemented(""))
-            check_equal(@not_implemented("a"), @not_implemented("b"))
+            check_equal(@not_implemented("a"), @not_implemented("a"))
 
             check_equal(
                 Composite{Tuple{Float64, Float64}}(1.0, 2.0),
@@ -96,6 +96,8 @@ end
             @test fails(()->check_equal([[1.0], [2.0]], [[1.1], [2.0]]))
 
             @test fails(()->check_equal(@thunk(10*[[1.0], [2.0]]), [[1.0], [2.0]]))
+
+            @test fails(()->check_equal(@not_implemented("a"), @not_implemented("b")))
         end
         @testset "type negative" begin
             @test fails() do  # these have different primals so should not be equal
