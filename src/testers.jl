@@ -114,8 +114,7 @@ function test_frule(
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        ẋs_is_ignored = isa.(ẋs, Union{Nothing, DoesNotExist})
+        ẋs_is_ignored = _ignore.(ẋs)
         if any(ẋs .== nothing)
             Base.depwarn(
                 "test_frule(f, k ⊢ nothing) is deprecated, use " *
@@ -165,6 +164,7 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
+    println("HI")
     @testset "test_rrule: $f at $inputs" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
@@ -191,8 +191,7 @@ function test_rrule(
         @test ∂self === NO_FIELDS  # No internal fields
 
         # Correctness testing via finite differencing.
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, DoesNotExist})
+        x̄s_is_ignored = _ignore.(accumulated_x̄)
         if any(accumulated_x̄ .== nothing)
             Base.depwarn(
                 "test_rrule(f, k ⊢ nothing) is deprecated, use " *
@@ -201,9 +200,9 @@ function test_rrule(
             )
         end
 
-        x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
+        x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_ignored)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ isa Union{Nothing, DoesNotExist}  # then we marked this argument as not differentiable # TODO remove once #113
+            if _ignore(accumulated_x̄) # then we marked this argument as not differentiable
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 x̄_ad isa Zero && error(
                     "The pullback in the rrule for $f function should use DoesNotExist()" *
@@ -243,6 +242,18 @@ function _ensure_not_running_on_functor(f, name)
             "$name cannot be used on closures/functors (such as $f)"
         ))
     end
+end
+
+"""
+    _ignore(x) -> Bool
+
+Decides whether to ignore certain kinds of arguments for finite differencing.
+"""
+_ignore(::Any) = false
+_ignore(::DoesNotExist) = true
+_ignore(::Nothing) = true # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+function _ignore(c::Composite)
+    return all([d === DoesNotExist() for d in c])
 end
 
 """
