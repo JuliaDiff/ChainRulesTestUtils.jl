@@ -251,9 +251,7 @@ Returns true for tangents we want to ignore in finite differencing, and false ot
 _ignore(::Any) = false
 _ignore(::DoesNotExist) = true
 _ignore(::Nothing) = true # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-function _ignore(c::Composite)
-    return all([d === DoesNotExist() for d in c])
-end
+_ignore(c::Composite) = all([d === DoesNotExist() for d in c])
 
 """
     _test_inferred(f, args...; kwargs...)
