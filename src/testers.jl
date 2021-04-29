@@ -164,7 +164,6 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    println("HI")
     @testset "test_rrule: $f at $inputs" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
