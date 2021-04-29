@@ -526,4 +526,23 @@ end
         test_frule(f_notimplemented, randn(), randn())
         test_rrule(f_notimplemented, randn(), randn())
     end
+
+    @testset "ignore Composites fully made of DoesNotExist" begin
+        mygetindex(x, ind) = x[ind]
+        function ChainRulesCore.rrule(::typeof(mygetindex), x, ind)
+            function myfunc_pullback(Δy)
+                xgrad = zero(x)
+                xgrad[ind] = Δy
+                return NO_FIELDS, xgrad, DoesNotExist()
+            end
+            return mygetindex(x, ind), myfunc_pullback
+        end
+
+        # test that Composites made only of DoesNotExist() are ignored in finite differencing
+        test_rrule(mygetindex, [1, 2, 3, 4, 5.0], 1:2 ⊢ Composite{UnitRange{Int64}}(start=DoesNotExist(), stop=DoesNotExist()))
+
+        # rand_tangent also returns Composites with all DoesNotExist()
+        test_rrule(mygetindex, [1, 2, 3, 4, 5.0], 1:2)
+        test_rrule(mygetindex, [1, 2, 3, 4, 5.0], 1:2:4)
+    end
 end
