@@ -246,7 +246,7 @@ end
 """
     _ignore(x) -> Bool
 
-Decides whether to ignore certain kinds of arguments for finite differencing.
+Returns true for tangents we want to ignore in finite differencing, and false otherwise.
 """
 _ignore(::Any) = false
 _ignore(::DoesNotExist) = true
