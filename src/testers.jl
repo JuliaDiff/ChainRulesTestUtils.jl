@@ -219,17 +219,15 @@ function test_rrule(
             end
         end
 
-        check_thunking_is_appropriate(x̄s_ad)
+        check_thunking_is_appropriate(f, x̄s_ad)
     end  # top-level testset
 end
 
-function check_thunking_is_appropriate(x̄s)
-    @testset "Don't thunk only non_zero argument" begin
-        num_zeros = count(x->x isa AbstractZero, x̄s)
-        num_thunks = count(x->x isa Thunk, x̄s)
-        if num_zeros + num_thunks == length(x̄s)
-            @test num_thunks !== 1
-        end
+function check_thunking_is_appropriate(f, x̄s)
+    num_zeros = count(x->x isa AbstractZero, x̄s)
+    num_thunks = count(x->x isa Thunk, x̄s)
+    if num_thunks == 1 && num_zeros + num_thunks == length(x̄s)
+        @warn "function has a thunk for its only non-zero argument, this works but is considered poor style" f
     end
 end
 
