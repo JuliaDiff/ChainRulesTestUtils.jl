@@ -134,7 +134,6 @@ function test_frule(
 end
 
 
-
 """
     test_rrule(f, inputs...; kwargs...)
 
@@ -225,8 +224,8 @@ end
 
 function check_thunking_is_appropriate(x̄s)
     @testset "Don't thunk only non_zero argument" begin
-        num_zeros = count(x->x isa AbstractZero, x̄s)
-        num_thunks = count(x->x isa Thunk, x̄s)
+        num_zeros = count(x -> x isa AbstractZero, x̄s)
+        num_thunks = count(x -> x isa AbstractThunk, x̄s)
         if num_zeros + num_thunks == length(x̄s)
             @test num_thunks !== 1
         end
