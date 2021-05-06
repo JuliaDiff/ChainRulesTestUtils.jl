@@ -4,10 +4,12 @@ using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using Compat: only
 using FiniteDifferences
-using FiniteDifferences: to_vec, rand_tangent
+using FiniteDifferences: to_vec
 using LinearAlgebra
 using Random
 using Test
+
+import FiniteDifferences: rand_tangent
 
 const _fdm = central_fdm(5, 1; max_range=1e-2)
 
