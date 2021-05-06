@@ -3,7 +3,7 @@
 
 Use this in the place of a tangent/cotangent in [`test_frule`](@ref) or
 [`test_rrule`](@ref) to have that tangent/cotangent generated automatically based on the
-primal. Uses [`rand_tangent`](@ref)
+primal. Uses `FiniteDifferences.rand_tangent`.
 """
 struct Auto end
 
