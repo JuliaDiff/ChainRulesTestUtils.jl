@@ -29,6 +29,22 @@ check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
 check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
 check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
+# remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
+check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
+
+# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
+# not yet been implemented
+# `@test_broken x == y` yields more descriptive messages than `@test_broken false`
+check_equal(x::ChainRulesCore.NotImplemented, y; kwargs...) = @test_broken x == y
+check_equal(x, y::ChainRulesCore.NotImplemented; kwargs...) = @test_broken x == y
+# In this case we check for equality (messages etc. have to be equal)
+function check_equal(
+    x::ChainRulesCore.NotImplemented, y::ChainRulesCore.NotImplemented; kwargs...
+)
+    return @test x == y
+end
+
 """
     _can_pass_early(actual, expected; kwargs...)
 Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;
@@ -132,4 +148,21 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
     check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
+end
+
+# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
+# not yet been implemented
+# `@test_broken x == y` yields more descriptive messages than `@test_broken false`
+function _check_add!!_behaviour(acc_mutated, acc::ChainRulesCore.NotImplemented; kwargs...)
+    return @test_broken acc_mutated == acc
+end
+function _check_add!!_behaviour(acc_mutated::ChainRulesCore.NotImplemented, acc; kwargs...)
+    return @test_broken acc_mutated == acc
+end
+# In this case we check for equality (messages etc. have to be equal)
+function _check_add!!_behaviour(
+    acc_mutated::ChainRulesCore.NotImplemented, acc::ChainRulesCore.NotImplemented;
+    kwargs...,
+)
+    return @test acc_mutated == acc
 end
