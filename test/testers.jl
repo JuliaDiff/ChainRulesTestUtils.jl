@@ -297,11 +297,11 @@ end
         end
 
         @testset "test_frule" begin
-            test_frule(fsymtest, 2.5, :x ⊢ nothing)
+            test_frule(fsymtest, 2.5, :x)
         end
 
         @testset "test_rrule" begin
-            test_rrule(fsymtest, 2.5, :x ⊢ nothing)
+            test_rrule(fsymtest, 2.5, :x)
         end
     end
 
