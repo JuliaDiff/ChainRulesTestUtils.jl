@@ -23,25 +23,6 @@
     end
 end
 
-@testset "ignoring arguments" begin
-    fsymtest(x, s::Symbol) = x
-    ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
-    function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
-        function fsymtest_pullback(Δx)
-            return NO_FIELDS, Δx, DoesNotExist()
-        end
-        return x, fsymtest_pullback
-    end
-
-    @testset "test_frule" begin
-        test_frule(fsymtest, 2.5, :x ⊢ nothing)
-    end
-
-    @testset "test_rrule" begin
-        test_rrule(fsymtest, 2.5, :x ⊢ nothing)
-    end
-end
-
 @testset "old testers.jl" begin
     @testset "unary: identity(x)" begin
         function ChainRulesCore.frule((_, ẏ), ::typeof(identity), x)
@@ -161,10 +142,12 @@ end
 
         @testset "frule_test" begin
             frule_test(fsymtest, (randn(), randn()), (:x, nothing))
+            test_frule(fsymtest, 2.5, :x ⊢ nothing)
         end
 
         @testset "rrule_test" begin
             rrule_test(fsymtest, randn(), (randn(), randn()), (:x, nothing))
+            test_rrule(fsymtest, 2.5, :x ⊢ nothing)
         end
     end
 
