@@ -92,7 +92,7 @@
     @testset "rand_tangent" begin
         data = randn(2, 3, 4)
         iter = TestIterator(data, Base.SizeUnknown(), Base.EltypeUnknown())
-        ∂iter = rand_tangent(iter)
+        ∂iter = FiniteDifferences.rand_tangent(iter)
         @test ∂iter isa typeof(iter)
         @test size(∂iter.data) == size(iter.data)
         @test eltype(∂iter.data) === eltype(iter.data)

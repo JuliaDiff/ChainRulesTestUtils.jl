@@ -81,7 +81,6 @@ end
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
-   - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
@@ -205,6 +204,10 @@ function test_rrule(
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
             if accumulated_x̄ isa Union{Nothing, DoesNotExist}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
+                x̄_ad isa Zero && error(
+                    "The pullback in the rrule for $f function should use DoesNotExist()" *
+                    " rather than Zero() for non-perturbable arguments."
+                )
                 @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
             else
                 x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)

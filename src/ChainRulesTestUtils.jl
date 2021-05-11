@@ -9,6 +9,8 @@ using LinearAlgebra
 using Random
 using Test
 
+import FiniteDifferences: rand_tangent
+
 const _fdm = central_fdm(5, 1; max_range=1e-2)
 
 export TestIterator
