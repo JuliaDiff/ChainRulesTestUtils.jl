@@ -26,7 +26,7 @@ using ChainRulesCore
 
 function ChainRulesCore.frule((Δf, Δx1, Δx2), ::typeof(two2three), x1, x2)
     y = two2three(x1, x2)
-    ∂y = Tangent{Tuple{Float64, Float64, Float64}}(Zero(), 2.0*Δx1, 3.0*Δx2)
+    ∂y = Tangent{Tuple{Float64, Float64, Float64}}(ZeroTangent(), 2.0*Δx1, 3.0*Δx2)
     return y, ∂y
 end
 # output
@@ -134,7 +134,7 @@ Inserting inappropriate zeros can thus hide errors.
 
 If a package is using a custom finite differencing method of testing the `frule`s and `rrule`s, `check_equal` function provides a convenient way of comparing [various types](https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.) of differentials.
 
-It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `Zero()`, `NoTangent()`, and `Tangent`, such that the error messages are helpful.
+It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `ZeroTangent()`, `NoTangent()`, and `Tangent`, such that the error messages are helpful.
 
 For example,
 ```julia

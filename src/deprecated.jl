@@ -4,8 +4,8 @@
 Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
 Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
 Base.isapprox(d_ad::NoTangent, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `NoTangent`")
-# Call `all` to handle the case where `Zero` is standing in for a non-scalar zero
-Base.isapprox(d_ad::Zero, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
+# Call `all` to handle the case where `ZeroTangent` is standing in for a non-scalar zero
+Base.isapprox(d_ad::ZeroTangent, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
 
 isapprox_vec(a, b; kwargs...) = isapprox(first(to_vec(a)), first(to_vec(b)); kwargs...)
 Base.isapprox(a, b::Tangent; kwargs...) = isapprox(b, a; kwargs...)

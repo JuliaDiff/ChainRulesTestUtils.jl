@@ -15,7 +15,7 @@ end
         check = ChainRulesTestUtils._check_add!!_behaviour
 
         check(10.0, 2.0)
-        check(11.0, Zero())
+        check(11.0, ZeroTangent())
         check([10.0, 20.0],  @thunk([2.0, 0.0]))
 
         check(12.0, InplaceableThunk(@thunk(2.0), X̄ -> error("Should not have in-placed")))
@@ -39,7 +39,7 @@ end
             check_equal(1.0, 1.0+1e-10)  # isapprox _behaviour
             check_equal((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-10))
 
-            check_equal(Zero(), 0.0)
+            check_equal(ZeroTangent(), 0.0)
 
             check_equal([1.0, 2.0], [1.0, 2.0])
             check_equal([[1.0], [2.0]], [[1.0], [2.0]])
@@ -68,11 +68,11 @@ end
             T = (a=1.0, b=2.0)
             check_equal(
                 Tangent{typeof(T)}(a=1.0),
-                Tangent{typeof(T)}(a=1.0, b=Zero())
+                Tangent{typeof(T)}(a=1.0, b=ZeroTangent())
             )
             check_equal(
                 Tangent{typeof(T)}(a=1.0),
-                Tangent{typeof(T)}(a=1.0+1e-10, b=Zero())
+                Tangent{typeof(T)}(a=1.0+1e-10, b=ZeroTangent())
             )
 
             check_equal(
@@ -89,8 +89,8 @@ end
             @test fails(()->check_equal(1.0 + im, 1.0 - im))
             @test fails(()->check_equal((1.5, 2.5, 3.5), (1.5, 2.5, 4.5)))
 
-            @test fails(()->check_equal(Zero(), 20.0))
-            @test fails(()->check_equal(10.0, Zero()))
+            @test fails(()->check_equal(ZeroTangent(), 20.0))
+            @test fails(()->check_equal(10.0, ZeroTangent()))
 
             @test fails(()->check_equal([1.0, 2.0], [1.0, 3.9]))
             @test fails(()->check_equal([[1.0], [2.0]], [[1.1], [2.0]]))

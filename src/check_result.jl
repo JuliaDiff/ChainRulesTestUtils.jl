@@ -25,9 +25,9 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
     end
 end
 
-check_equal(::Zero, x; kwargs...) = check_equal(zero(x), x; kwargs...)
-check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
-check_equal(x::Zero, y::Zero; kwargs...) = @test true
+check_equal(::ZeroTangent, x; kwargs...) = check_equal(zero(x), x; kwargs...)
+check_equal(x, ::ZeroTangent; kwargs...) = check_equal(x, zero(x); kwargs...)
+check_equal(x::ZeroTangent, y::ZeroTangent; kwargs...) = @test true
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
 check_equal(x::NoTangent, y::Nothing; kwargs...) = @test true

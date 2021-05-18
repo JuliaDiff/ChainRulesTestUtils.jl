@@ -30,8 +30,8 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
             test_frule(f, z ⊢ Δx; rule_test_kwargs...)
             if z isa Complex
                 # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
-                _, real_tangent = frule((Zero(), real(Δx)), f, z; fkwargs...)
-                _, embedded_tangent = frule((Zero(), Δx), f, z; fkwargs...)
+                _, real_tangent = frule((ZeroTangent(), real(Δx)), f, z; fkwargs...)
+                _, embedded_tangent = frule((ZeroTangent(), Δx), f, z; fkwargs...)
                 check_equal(real_tangent, embedded_tangent; isapprox_kwargs...)
             end
         end
@@ -204,9 +204,9 @@ function test_rrule(
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
             if accumulated_x̄ isa Union{Nothing, NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
-                x̄_ad isa Zero && error(
+                x̄_ad isa ZeroTangent && error(
                     "The pullback in the rrule for $f function should use NoTangent()" *
-                    " rather than Zero() for non-perturbable arguments."
+                    " rather than ZeroTangent() for non-perturbable arguments."
                 )
                 @test x̄_ad isa NoTangent  # we said it wasn't differentiable.
             else

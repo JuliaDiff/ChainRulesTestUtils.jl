@@ -63,7 +63,7 @@ end
         ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
         function ChainRulesCore.rrule(::typeof(fst), x, y)
             function fst_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return x, fst_pullback
         end
@@ -124,7 +124,7 @@ end
         tuple_out(x) = return (x, 1.0) # i.e. (x, 1.0) and not (x, x)
         function ChainRulesCore.frule((_, dx), ::typeof(tuple_out), x)
             Ω = tuple_out(x)
-            ∂Ω = Tangent{typeof(Ω)}(dx, Zero())
+            ∂Ω = Tangent{typeof(Ω)}(dx, ZeroTangent())
             return Ω, ∂Ω
         end
         frule_test(tuple_out, (2.0, 1))
@@ -194,7 +194,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
             function fbtestkws_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return fbtestkws(x, y; err = err), fbtestkws_pullback
         end
