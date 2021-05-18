@@ -92,7 +92,7 @@ end
 
 # TODO: remove after https://github.com/JuliaDiff/FiniteDifferences.jl/issues/97
 # For functions which return a tuple, FD returns a tuple to represent the differential. Tuple
-# is not a natural differential, because it doesn't overload +, so make it a Composite.
-_maybe_fix_to_composite(::P, x::Tuple) where {P} = Composite{P}(x...)
-_maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Composite{P}(;x...)
+# is not a natural differential, because it doesn't overload +, so make it a Tangent.
+_maybe_fix_to_composite(::P, x::Tuple) where {P} = Tangent{P}(x...)
+_maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Tangent{P}(;x...)
 _maybe_fix_to_composite(::Any, x) = x

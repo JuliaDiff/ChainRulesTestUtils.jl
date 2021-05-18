@@ -75,7 +75,7 @@ function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
     end
 end
 
-function check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) where P
+function check_equal(actual::Tangent{P}, expected::Tangent{P}; kwargs...) where P
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -87,7 +87,7 @@ function check_equal(actual::Composite{P}, expected::Composite{P}; kwargs...) wh
 end
 
 function check_equal(
-    ::Composite{ActualPrimal}, expected::Composite{ExpectedPrimal}; kwargs...
+    ::Tangent{ActualPrimal}, expected::Tangent{ExpectedPrimal}; kwargs...
 ) where {ActualPrimal, ExpectedPrimal}
     # this will certainly fail as we have another dispatch for that, but this will give as
     # good error message
@@ -96,26 +96,26 @@ end
 
 
 # Some structual differential and a natural differential
-function check_equal(actual::Composite{P, T}, expected; kwargs...) where {T, P}
+function check_equal(actual::Tangent{P, T}, expected; kwargs...) where {T, P}
     if _can_pass_early(actual, expected)
         @test true
     else
         @assert (T <: NamedTuple)  # it should be a structual differential if we hit this
 
-        # We are only checking the properties that are in the Composite
+        # We are only checking the properties that are in the Tangent
         # the natural differential is allowed to have other properties that we ignore
         @testset "$P.$ii" for ii in propertynames(actual)
             check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
         end
     end
 end
-check_equal(x, y::Composite; kwargs...) = check_equal(y, x; kwargs...)
+check_equal(x, y::Tangent; kwargs...) = check_equal(y, x; kwargs...)
 
-# This catches comparisons of Composites and Tuples/NamedTuple
+# This catches comparisons of Tangents and Tuples/NamedTuple
 # and gives an error message complaining about that
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
-check_equal(::C, ::T; kwargs...) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test C === T
-check_equal(::T, ::C; kwargs...) where {C<:Composite,T<:LegacyZygoteCompTypes} = @test T === C
+check_equal(::C, ::T; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @test C === T
+check_equal(::T, ::C; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @test T === C
 
 # Generic fallback, probably a tuple or something
 function check_equal(actual::A, expected::E; kwargs...) where {A, E}

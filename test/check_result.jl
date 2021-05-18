@@ -1,11 +1,11 @@
 
-struct FakeNaturalDiffWithIsApprox  # For testing overloading isapprox(::Composite) works:
+struct FakeNaturalDiffWithIsApprox  # For testing overloading isapprox(::Tangent) works:
     x
 end
-function Base.isapprox(c::Composite, d::FakeNaturalDiffWithIsApprox; kwargs...)
+function Base.isapprox(c::Tangent, d::FakeNaturalDiffWithIsApprox; kwargs...)
     return isapprox(c.x, d.x, kwargs...)
 end
-function Base.isapprox(d::FakeNaturalDiffWithIsApprox, c::Composite; kwargs...)
+function Base.isapprox(d::FakeNaturalDiffWithIsApprox, c::Tangent; kwargs...)
     return isapprox(c.x, d.x, kwargs...)
 end
 
@@ -51,37 +51,37 @@ end
             check_equal(@not_implemented("a"), @not_implemented("a"))
 
             check_equal(
-                Composite{Tuple{Float64, Float64}}(1.0, 2.0),
-                Composite{Tuple{Float64, Float64}}(1.0, 2.0)
+                Tangent{Tuple{Float64, Float64}}(1.0, 2.0),
+                Tangent{Tuple{Float64, Float64}}(1.0, 2.0)
             )
 
             diag_eg = Diagonal(randn(5))
             check_equal( # Structual == Structural
-                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
-                Composite{typeof(diag_eg)}(diag=diag_eg.diag)
+                Tangent{typeof(diag_eg)}(diag=diag_eg.diag),
+                Tangent{typeof(diag_eg)}(diag=diag_eg.diag)
             )
             check_equal( # Structural == Natural
-                Composite{typeof(diag_eg)}(diag=diag_eg.diag),
+                Tangent{typeof(diag_eg)}(diag=diag_eg.diag),
                 diag_eg
             )
 
             T = (a=1.0, b=2.0)
             check_equal(
-                Composite{typeof(T)}(a=1.0),
-                Composite{typeof(T)}(a=1.0, b=Zero())
+                Tangent{typeof(T)}(a=1.0),
+                Tangent{typeof(T)}(a=1.0, b=Zero())
             )
             check_equal(
-                Composite{typeof(T)}(a=1.0),
-                Composite{typeof(T)}(a=1.0+1e-10, b=Zero())
+                Tangent{typeof(T)}(a=1.0),
+                Tangent{typeof(T)}(a=1.0+1e-10, b=Zero())
             )
 
             check_equal(
-                Composite{FakeNaturalDiffWithIsApprox}(; x=1.4),
+                Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
                 FakeNaturalDiffWithIsApprox(1.4)
             )
             check_equal(
                 FakeNaturalDiffWithIsApprox(1.4),
-                Composite{FakeNaturalDiffWithIsApprox}(; x=1.4)
+                Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4)
             )
         end
         @testset "negative case" begin
@@ -102,12 +102,12 @@ end
         @testset "type negative" begin
             @test fails() do  # these have different primals so should not be equal
                 check_equal(
-                    Composite{Tuple{Float32, Float32}}(1f0, 2f0),
-                    Composite{Tuple{Float64, Float64}}(1.0, 2.0)
+                    Tangent{Tuple{Float32, Float32}}(1f0, 2f0),
+                    Tangent{Tuple{Float64, Float64}}(1.0, 2.0)
                 )
             end
             @test fails() do
-                check_equal((1.0, 2.0), Composite{Tuple{Float64, Float64}}(1.0, 2.0))
+                check_equal((1.0, 2.0), Tangent{Tuple{Float64, Float64}}(1.0, 2.0))
             end
         end
 
