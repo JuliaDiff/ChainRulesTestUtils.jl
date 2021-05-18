@@ -75,7 +75,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-   Non-differentiable arguments, such as indices, should have `ẋ` set as `DoesNotExist()`.
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
@@ -114,11 +114,11 @@ function test_frule(
         check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        ẋs_is_ignored = isa.(ẋs, Union{Nothing, DoesNotExist})
+        ẋs_is_ignored = isa.(ẋs, Union{Nothing, NoTangent})
         if any(ẋs .== nothing)
             Base.depwarn(
                 "test_frule(f, k ⊢ nothing) is deprecated, use " *
-                "test_frule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
                 :test_frule
             )
         end
@@ -142,7 +142,7 @@ end
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
-    Non-differentiable arguments, such as indices, should have `x̄` set as `DoesNotExist()`.
+    Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
 
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
@@ -191,24 +191,24 @@ function test_rrule(
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, DoesNotExist})
+        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, NoTangent})
         if any(accumulated_x̄ .== nothing)
             Base.depwarn(
                 "test_rrule(f, k ⊢ nothing) is deprecated, use " *
-                "test_rrule(f, k ⊢ DoesNotExist()) instead for non-differentiable ks",
+                "test_rrule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
                 :test_rrule
             )
         end
 
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ isa Union{Nothing, DoesNotExist}  # then we marked this argument as not differentiable # TODO remove once #113
+            if accumulated_x̄ isa Union{Nothing, NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 x̄_ad isa Zero && error(
-                    "The pullback in the rrule for $f function should use DoesNotExist()" *
+                    "The pullback in the rrule for $f function should use NoTangent()" *
                     " rather than Zero() for non-perturbable arguments."
                 )
-                @test x̄_ad isa DoesNotExist  # we said it wasn't differentiable.
+                @test x̄_ad isa NoTangent  # we said it wasn't differentiable.
             else
                 x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
 

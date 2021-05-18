@@ -3,7 +3,7 @@
 
 Base.isapprox(a, b::Union{AbstractZero, AbstractThunk}; kwargs...) = isapprox(b, a; kwargs...)
 Base.isapprox(d_ad::AbstractThunk, d_fd; kwargs...) = isapprox(extern(d_ad), d_fd; kwargs...)
-Base.isapprox(d_ad::DoesNotExist, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `DoesNotExist`")
+Base.isapprox(d_ad::NoTangent, d_fd; kwargs...) = error("Tried to differentiate w.r.t. a `NoTangent`")
 # Call `all` to handle the case where `Zero` is standing in for a non-scalar zero
 Base.isapprox(d_ad::Zero, d_fd; kwargs...) = all(isapprox.(extern(d_ad), d_fd; kwargs...))
 

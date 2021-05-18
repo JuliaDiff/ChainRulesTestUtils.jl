@@ -291,7 +291,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, DoesNotExist()
+                return NO_FIELDS, Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end
@@ -517,7 +517,7 @@ end
             end
             return foo(a, i), foo_pullback
         end
-        @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use DoesNotExist()")
+        @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use NoTangent()")
     end
 
     @testset "NotImplemented" begin

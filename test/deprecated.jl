@@ -135,7 +135,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, DoesNotExist()
+                return NO_FIELDS, Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end

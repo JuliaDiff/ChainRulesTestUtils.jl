@@ -117,11 +117,11 @@ Test.DefaultTestSet("test_scalar: relu at -0.5", Any[Test.DefaultTestSet("with t
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
 If this is not done the tangent will be automatically generated via `FiniteDifferences.rand_tangent`.
-A special case of this is that if you specify it as `x ⊢ DoesNotExist()` then finite differencing will not be used on that input.
+A special case of this is that if you specify it as `x ⊢ NoTangent()` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
 
 This can be useful when the default provided `FiniteDifferences.rand_tangent` doesn't produce the desired tangent for your type.
-For example the default tangent for an `Int` is `DoesNotExist()`.
+For example the default tangent for an `Int` is `NoTangent()`.
 Which is correct e.g. when the `Int` represents a discrete integer like in indexing.
 But if you are testing something where the `Int` is actually a special case of a real number, then you would want to specify the tangent as a `Float64`.
 
@@ -134,7 +134,7 @@ Inserting inappropriate zeros can thus hide errors.
 
 If a package is using a custom finite differencing method of testing the `frule`s and `rrule`s, `check_equal` function provides a convenient way of comparing [various types](https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.) of differentials.
 
-It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `Zero()`, `DoesNotExist()`, and `Composite`, such that the error messages are helpful.
+It is effectively `(a, b) -> @test isapprox(a, b)`, but it preprocesses `thunk`s and `ChainRules` differential types `Zero()`, `NoTangent()`, and `Composite`, such that the error messages are helpful.
 
 For example,
 ```julia

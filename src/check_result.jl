@@ -30,8 +30,8 @@ check_equal(x, ::Zero; kwargs...) = check_equal(x, zero(x); kwargs...)
 check_equal(x::Zero, y::Zero; kwargs...) = @test true
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-check_equal(x::DoesNotExist, y::Nothing; kwargs...) = @test true
-check_equal(x::Nothing, y::DoesNotExist; kwargs...) = @test true
+check_equal(x::NoTangent, y::Nothing; kwargs...) = @test true
+check_equal(x::Nothing, y::NoTangent; kwargs...) = @test true
 
 # Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
 # not yet been implemented
