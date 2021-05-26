@@ -1,8 +1,8 @@
 @testset "isapprox" begin
-    @testset "Composite{Tuple}" begin
+    @testset "Tangent{Tuple}" begin
         @testset "basic" begin
             x_tup = (1.5, 2.5, 3.5)
-            x_comp = Composite{typeof(x_tup)}(x_tup...)
+            x_comp = Tangent{typeof(x_tup)}(x_tup...)
             @test x_comp ≈ x_tup
             @test x_tup ≈ x_comp
             @test x_comp ≈ x_comp
@@ -12,13 +12,13 @@
 
         @testset "different types" begin
             # both of these are reasonable diffentials for the `Tuple{Int, Int}` primal
-            @test Composite{Tuple{Int, Int}}(1f0, 2f0) ≈ Composite{Tuple{Int, Int}}(1.0, 2.0)
+            @test Tangent{Tuple{Int, Int}}(1f0, 2f0) ≈ Tangent{Tuple{Int, Int}}(1.0, 2.0)
 
             D = Diagonal(randn(5))
-            @test Composite{typeof(D)}(diag=D.diag) ≈ Composite{typeof(D)}(diag=D.diag)
+            @test Tangent{typeof(D)}(diag=D.diag) ≈ Tangent{typeof(D)}(diag=D.diag)
 
             # But these have different primals so should not be equal
-            @test !(Composite{Tuple{Int, Int}}(1.0, 2.0) ≈ Composite{Tuple{Float64, Float64}}(1.0, 2.0))
+            @test !(Tangent{Tuple{Int, Int}}(1.0, 2.0) ≈ Tangent{Tuple{Float64, Float64}}(1.0, 2.0))
         end
     end
 end
@@ -63,7 +63,7 @@ end
         ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
         function ChainRulesCore.rrule(::typeof(fst), x, y)
             function fst_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return x, fst_pullback
         end
@@ -85,7 +85,7 @@ end
         end
         function ChainRulesCore.frule((_, ẋ), simo, x)
             y = simo(x)
-            return y, Composite{typeof(y)}(ẋ, 2ẋ)
+            return y, Tangent{typeof(y)}(ẋ, 2ẋ)
         end
 
         @testset "frule_test" begin
@@ -93,7 +93,7 @@ end
             frule_test(simo, (randn(4), randn(4)))  # on array
         end
         @testset "rrule_test" begin
-            # note: we are pulling back tuples (could use Composites here instead)
+            # note: we are pulling back tuples (could use Tangents here instead)
             rrule_test(simo, (randn(), rand()), (randn(), randn()))  # on scalar
             rrule_test(simo, (randn(4), rand(4)), (randn(4), randn(4))) # on array
         end
@@ -104,12 +104,12 @@ end
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
         function ChainRulesCore.rrule(::typeof(first), x::Tuple)
             function first_pullback(Δx)
-                return (NO_FIELDS, Composite{typeof(x)}(Δx, falses(length(x)-1)...))
+                return (NO_FIELDS, Tangent{typeof(x)}(Δx, falses(length(x)-1)...))
             end
             return first(x), first_pullback
         end
 
-        CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
+        CTuple{N} = Tangent{NTuple{N, Float64}}  # shorter for testing
         @testset "frule_test" begin
             frule_test(first, ((2.0, 3.0), CTuple{2}(4.0, 5.0)))
             frule_test(first, (Tuple(randn(4)), CTuple{4}(randn(4)...)))
@@ -120,11 +120,11 @@ end
         end
     end
 
-    @testset "tuple output (backing type of Composite =/= natural differential)" begin
+    @testset "tuple output (backing type of Tangent =/= natural differential)" begin
         tuple_out(x) = return (x, 1.0) # i.e. (x, 1.0) and not (x, x)
         function ChainRulesCore.frule((_, dx), ::typeof(tuple_out), x)
             Ω = tuple_out(x)
-            ∂Ω = Composite{typeof(Ω)}(dx, Zero())
+            ∂Ω = Tangent{typeof(Ω)}(dx, ZeroTangent())
             return Ω, ∂Ω
         end
         frule_test(tuple_out, (2.0, 1))
@@ -135,7 +135,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, DoesNotExist()
+                return NO_FIELDS, Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end
@@ -194,7 +194,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
             function fbtestkws_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return fbtestkws(x, y; err = err), fbtestkws_pullback
         end

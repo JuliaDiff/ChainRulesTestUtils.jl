@@ -220,7 +220,7 @@ end
         ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
         function ChainRulesCore.rrule(::typeof(fst), x, y)
             function fst_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return x, fst_pullback
         end
@@ -242,7 +242,7 @@ end
         end
         function ChainRulesCore.frule((_, ẋ), simo, x)
             y = simo(x)
-            return y, Composite{typeof(y)}(ẋ, 2ẋ)
+            return y, Tangent{typeof(y)}(ẋ, 2ẋ)
         end
 
         @testset "test_frule" begin
@@ -260,12 +260,12 @@ end
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
         function ChainRulesCore.rrule(::typeof(first), x::Tuple)
             function first_pullback(Δx)
-                return (NO_FIELDS, Composite{typeof(x)}(Δx, falses(length(x)-1)...))
+                return (NO_FIELDS, Tangent{typeof(x)}(Δx, falses(length(x)-1)...))
             end
             return first(x), first_pullback
         end
 
-        #CTuple{N} = Composite{NTuple{N, Float64}}  # shorter for testing
+        #CTuple{N} = Tangent{NTuple{N, Float64}}  # shorter for testing
         @testset "test_frule" begin
             test_frule(first, (2.0, 3.0))
             test_frule(first, Tuple(randn(4)))
@@ -276,11 +276,11 @@ end
         end
     end
 
-    @testset "tuple output (backing type of Composite =/= natural differential)" begin
+    @testset "tuple output (backing type of Tangent =/= natural differential)" begin
         tuple_out(x) = return (x, 1.0) # i.e. (x, 1.0) and not (x, x)
         function ChainRulesCore.frule((_, dx), ::typeof(tuple_out), x)
             Ω = tuple_out(x)
-            ∂Ω = Composite{typeof(Ω)}(dx, Zero())
+            ∂Ω = Tangent{typeof(Ω)}(dx, ZeroTangent())
             return Ω, ∂Ω
         end
         test_frule(tuple_out, 2.0)
@@ -291,7 +291,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, DoesNotExist()
+                return NO_FIELDS, Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end
@@ -345,7 +345,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
             function fbtestkws_pullback(Δx)
-                return (NO_FIELDS, Δx, Zero())
+                return (NO_FIELDS, Δx, ZeroTangent())
             end
             return fbtestkws(x, y; err = err), fbtestkws_pullback
         end
@@ -496,28 +496,28 @@ end
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
         forwards_trouble(x) = (1, 2.0*x)
-        @scalar_rule(forwards_trouble(v), Zero(), 2.0)
+        @scalar_rule(forwards_trouble(v), ZeroTangent(), 2.0)
         test_frule(forwards_trouble, 2.5)
 
         rev_trouble((x,y)) = y
         function ChainRulesCore.rrule(::typeof(rev_trouble), (x,y)::P) where P
-            rev_trouble_pullback(ȳ) = (NO_FIELDS, Composite{P}(Zero(), ȳ))
+            rev_trouble_pullback(ȳ) = (NO_FIELDS, Tangent{P}(ZeroTangent(), ȳ))
             return y, rev_trouble_pullback
         end
-        test_rrule(rev_trouble, (3, 3.0) ⊢ Composite{Tuple{Int, Float64}}(Zero(), 1.0))
+        test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int, Float64}}(ZeroTangent(), 1.0))
     end
 
-    @testset "error message about incorrectly using Zero()" begin
+    @testset "error message about incorrectly using ZeroTangent()" begin
         foo(a, i) = a[i]
         function ChainRulesCore.rrule(::typeof(foo), a, i)
             function foo_pullback(Δy)
                 da = zeros(size(a))
                 da[i] = Δy
-                return NO_FIELDS, da, Zero()
+                return NO_FIELDS, da, ZeroTangent()
             end
             return foo(a, i), foo_pullback
         end
-        @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use DoesNotExist()")
+        @test errors(() -> test_rrule(foo, [1.0, 2.0, 3.0], 2), "should use NoTangent()")
     end
 
     @testset "NotImplemented" begin
