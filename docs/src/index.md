@@ -56,14 +56,11 @@ The call will test the `frule` for function `f` at the point `x` in the domain.
 Keep this in mind when testing discontinuous rules for functions like [ReLU](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)), which should ideally be tested at both `x` being above and below zero.
 
 ```jldoctest ex; output = false
-using ChainRulesTestUtils
+julia> using ChainRulesTestUtils;
 
-test_frule(two2three, 3.33, -7.77);
-
-# output
-Test Summary:                          | Pass  Total
-test_frule: two2three at (3.33, -7.77) |    5      5
-Test.DefaultTestSet("test_frule: two2three at (3.33, -7.77)", Any[Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.1", Any[], 1, false), Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.2", Any[], 1, false), Test.DefaultTestSet("Tuple{Float64,Float64,Float64}.3", Any[], 1, false)], 2, false)
+julia> test_frule(two2three, 3.33, -7.77);
+Test Summary:                            | Pass  Total
+test_frule: two2three on Float64,Float64 |    5      5
 ```
 
 ### Testing the `rrule`
@@ -72,12 +69,9 @@ Test.DefaultTestSet("test_frule: two2three at (3.33, -7.77)", Any[Test.DefaultTe
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
 ```jldoctest ex; output = false
-test_rrule(two2three, 3.33, -7.77);
-
-# output
-Test Summary:                          | Pass  Total
-test_rrule: two2three at (3.33, -7.77) |    6      6
-Test.DefaultTestSet("test_rrule: two2three at (3.33, -7.77)", Any[Test.DefaultTestSet("Don't thunk only non_zero argument", Any[], 0, false)], 6, false)
+julia> test_rrule(two2three, 3.33, -7.77);
+Test Summary:                            | Pass  Total
+test_rrule: two2three on Float64,Float64 |    6      6
 ```
 
 ## Scalar example
@@ -102,15 +96,13 @@ with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
 `test_scalar` function is provided to test both the `frule` and the `rrule` with a single
 call.
 ```jldoctest ex; output = false
-test_scalar(relu, 0.5);
-test_scalar(relu, -0.5);
-
-# output
+julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total
 test_scalar: relu at 0.5 |    7      7
+
+julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total
 test_scalar: relu at -0.5 |    7      7
-Test.DefaultTestSet("test_scalar: relu at -0.5", Any[Test.DefaultTestSet("with tangent 1.0", Any[Test.DefaultTestSet("test_frule: relu at (ChainRulesTestUtils.PrimalAndTangent{Float64,Float64}(-0.5, 1.0),)", Any[], 3, false)], 0, false), Test.DefaultTestSet("with cotangent 1.0", Any[Test.DefaultTestSet("test_rrule: relu at (ChainRulesTestUtils.PrimalAndTangent{Float64,Float64}(-0.5, 1.0),)", Any[Test.DefaultTestSet("Don't thunk only non_zero argument", Any[], 0, false)], 4, false)], 0, false)], 0, false)
 ```
 
 ## Specifying Tangents

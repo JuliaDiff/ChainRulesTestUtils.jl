@@ -97,7 +97,7 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_frule: $f at $inputs" begin
+    @testset "test_frule: $f on $(join(typeof.(inputs), ","))" begin
         _ensure_not_running_on_functor(f, "test_frule")
 
         xẋs = auto_primal_and_tangent.(inputs)
@@ -164,7 +164,7 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_rrule: $f at $inputs" begin
+    @testset "test_rrule: $f on $(join(typeof.(inputs), ","))" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
         # Check correctness of evaluation.
