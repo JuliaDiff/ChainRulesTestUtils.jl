@@ -1,6 +1,5 @@
 # This is tools for testing ChainRulesTestUtils itself
-# if they were less nasty in implementation we might consider moving them to a package
-# MetaTesting.jl
+# We might consider moving them to a package MetaTesting.jl
 
 """
     EncasedTestSet(desc, results) <: AbstractTestset
@@ -97,7 +96,7 @@ function errors(f, msg_pattern="")
     results = nonpassing_results(f)
 
     for result in results
-        result isa Test.Fail && error("Test actually failed (nor errored): \n $result")
+        result isa Test.Fail && error("Test actually failed (not errored): \n $result")
         result isa Test.Error && occursin(msg_pattern, result.value) && return true
     end
     return false  # no matching error occured
