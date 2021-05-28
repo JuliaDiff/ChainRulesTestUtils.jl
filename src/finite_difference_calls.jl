@@ -19,11 +19,10 @@ function _make_jvp_call(fdm, f, y, xs, ẋs, ignores)
     f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
-    all(ignores) && return ntuple(_->nothing, length(xs))
+    all(ignores) && return ntuple(_ -> nothing, length(xs))
     sigargs = zip(xs[.!ignores], ẋs[.!ignores])
     return _maybe_fix_to_composite(y, jvp(fdm, f2, sigargs...))
 end
-
 
 """
     _make_j′vp_call(fdm, f, ȳ, xs, ignores) -> Tuple
@@ -89,10 +88,9 @@ function _wrap_function(f, xs, ignores)
     return fnew
 end
 
-
 # TODO: remove after https://github.com/JuliaDiff/FiniteDifferences.jl/issues/97
 # For functions which return a tuple, FD returns a tuple to represent the differential. Tuple
 # is not a natural differential, because it doesn't overload +, so make it a Tangent.
 _maybe_fix_to_composite(::P, x::Tuple) where {P} = Tangent{P}(x...)
-_maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Tangent{P}(;x...)
+_maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Tangent{P}(; x...)
 _maybe_fix_to_composite(::Any, x) = x

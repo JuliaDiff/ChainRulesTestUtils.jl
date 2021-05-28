@@ -12,16 +12,16 @@ Understands things like `unthunk`ing `ChainRuleCore.Thunk`s, etc.
 All keyword arguments are passed to `isapprox`.
 """
 function check_equal(
-    actual::Union{AbstractArray{<:Number}, Number},
-    expected::Union{AbstractArray{<:Number}, Number};
-    kwargs...
+    actual::Union{AbstractArray{<:Number},Number},
+    expected::Union{AbstractArray{<:Number},Number};
+    kwargs...,
 )
     @test isapprox(actual, expected; kwargs...)
 end
 
 for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
     @eval function check_equal(actual::$T1, expected::$T2; kwargs...)
-        check_equal(unthunk(actual), unthunk(expected); kwargs...)
+        return check_equal(unthunk(actual), unthunk(expected); kwargs...)
     end
 end
 
@@ -75,7 +75,7 @@ function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
     end
 end
 
-function check_equal(actual::Tangent{P}, expected::Tangent{P}; kwargs...) where P
+function check_equal(actual::Tangent{P}, expected::Tangent{P}; kwargs...) where {P}
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -88,15 +88,14 @@ end
 
 function check_equal(
     ::Tangent{ActualPrimal}, expected::Tangent{ExpectedPrimal}; kwargs...
-) where {ActualPrimal, ExpectedPrimal}
+) where {ActualPrimal,ExpectedPrimal}
     # this will certainly fail as we have another dispatch for that, but this will give as
     # good error message
     @test ActualPrimal === ExpectedPrimal
 end
 
-
 # Some structual differential and a natural differential
-function check_equal(actual::Tangent{P, T}, expected; kwargs...) where {T, P}
+function check_equal(actual::Tangent{P,T}, expected; kwargs...) where {T,P}
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -118,7 +117,7 @@ check_equal(::C, ::T; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @
 check_equal(::T, ::C; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @test T === C
 
 # Generic fallback, probably a tuple or something
-function check_equal(actual::A, expected::E; kwargs...) where {A, E}
+function check_equal(actual::A, expected::E; kwargs...) where {A,E}
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -147,7 +146,7 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     # e.g. if it is immutable. We do test the `add!!` return value.
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
-    check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
+    return check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
 end
 
 # Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
@@ -161,7 +160,8 @@ function _check_add!!_behaviour(acc_mutated::ChainRulesCore.NotImplemented, acc;
 end
 # In this case we check for equality (messages etc. have to be equal)
 function _check_add!!_behaviour(
-    acc_mutated::ChainRulesCore.NotImplemented, acc::ChainRulesCore.NotImplemented;
+    acc_mutated::ChainRulesCore.NotImplemented,
+    acc::ChainRulesCore.NotImplemented;
     kwargs...,
 )
     return @test acc_mutated == acc
