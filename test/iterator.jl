@@ -3,18 +3,14 @@
         data = randn(3)
         iter = TestIterator(data)
         @test iter isa TestIterator{
-            typeof(data),
-            typeof(Base.IteratorSize(data)),
-            typeof(Base.IteratorEltype(data)),
+            typeof(data),typeof(Base.IteratorSize(data)),typeof(Base.IteratorEltype(data))
         }
         @test iter.data === data
 
         data = randn(2, 3, 4)
         iter = TestIterator(data)
         @test iter isa TestIterator{
-            typeof(data),
-            typeof(Base.IteratorSize(data)),
-            typeof(Base.IteratorEltype(data)),
+            typeof(data),typeof(Base.IteratorSize(data)),typeof(Base.IteratorEltype(data))
         }
         @test iter.data === data
 

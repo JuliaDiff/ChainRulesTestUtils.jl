@@ -33,7 +33,6 @@ function Test.finish(ts::EncasedTestSet)
     return ts
 end
 
-
 """
     nonpassing_results(f)
 
@@ -50,7 +49,7 @@ function nonpassing_results(f)
 end
 
 "extracts as flat collection of failures from a (potential nested) testset"
-_extract_nonpasses(x::Test.Result) = [x,]
+_extract_nonpasses(x::Test.Result) = [x]
 _extract_nonpasses(x::Test.Pass) = Test.Result[]
 _extract_nonpasses(ts::EncasedTestSet) = _extract_nonpasses(ts.results)
 function _extract_nonpasses(xs::Vector)
@@ -108,18 +107,17 @@ end
 @testset "meta_testing_tools.jl" begin
     @testset "Checking for non-passes" begin
         @testset "No Tests" begin
-            fails = nonpassing_results(()->nothing)
+            fails = nonpassing_results(() -> nothing)
             @test length(fails) === 0
         end
 
         @testset "No Failures" begin
-            fails = nonpassing_results(()->@test true)
+            fails = nonpassing_results(() -> @test true)
             @test length(fails) === 0
         end
 
-
         @testset "Single Test" begin
-            fails = nonpassing_results(()->@test false)
+            fails = nonpassing_results(() -> @test false)
             @test length(fails) === 1
             # Julia 1.6 return a `String`, not an `Expr`.
             # Always calling  `string` on it gives gives consistency regardless of version.
@@ -143,15 +141,14 @@ end
             @test string(fails[2].orig_expr) == string(:(true == false))
         end
 
-
         @testset "Single Error" begin
-            bads = nonpassing_results(()->error("noo"))
+            bads = nonpassing_results(() -> error("noo"))
             @test length(bads) === 1
             @test bads[1] isa Test.Error
         end
 
         @testset "Single Test Erroring" begin
-            bads = nonpassing_results(()->@test error("nooo"))
+            bads = nonpassing_results(() -> @test error("nooo"))
             @test length(bads) === 1
             @test bads[1] isa Test.Error
         end
@@ -168,9 +165,9 @@ end
     end
 
     @testset "fails" begin
-        @test !fails(()->@test true)
-        @test fails(()->@test false)
-        @test !fails(()->@test_broken false)
+        @test !fails(() -> @test true)
+        @test fails(() -> @test false)
+        @test !fails(() -> @test_broken false)
 
         @test fails() do
             @testset "eg" begin
@@ -180,15 +177,14 @@ end
             end
         end
 
-        @test_throws ErrorException fails(()->@test error("Bad"))
+        @test_throws ErrorException fails(() -> @test error("Bad"))
     end
 
-
     @testset "errors" begin
-        @test !errors(()->@test true)
-        @test errors(()->error("nooo"))
-        @test errors(()->error("nooo"), "noo")
-        @test !errors(()->error("nooo"), "ok")
+        @test !errors(() -> @test true)
+        @test errors(() -> error("nooo"))
+        @test errors(() -> error("nooo"), "noo")
+        @test !errors(() -> error("nooo"), "ok")
 
         @test errors() do
             @testset "eg" begin
@@ -198,6 +194,6 @@ end
             end
         end
 
-        @test_throws ErrorException errors(()->@test false)
+        @test_throws ErrorException errors(() -> @test false)
     end
 end

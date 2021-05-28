@@ -6,7 +6,6 @@
         @test cond(matrix) < 100
     end
 
-
     @testset "Generate Well Conditioned Matrix" begin
         rng = MersenneTwister(1)
         @testset "Pass in RNG" begin
