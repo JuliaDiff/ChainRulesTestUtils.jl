@@ -37,7 +37,7 @@ and `rrule`
 function ChainRulesCore.rrule(::typeof(two2three), x1, x2)
     y = two2three(x1, x2)
     function two2three_pullback(Ȳ)
-        return (NO_FIELDS, 2.0*Ȳ[2], 3.0*Ȳ[3])
+        return (NoTangent(), 2.0*Ȳ[2], 3.0*Ȳ[3])
     end
     return y, two2three_pullback
 end

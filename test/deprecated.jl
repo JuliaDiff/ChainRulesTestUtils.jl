@@ -30,7 +30,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(identity), x)
             function identity_pullback(ȳ)
-                return (NO_FIELDS, ȳ)
+                return (NoTangent(), ȳ)
             end
             return x, identity_pullback
         end
@@ -50,7 +50,7 @@ end
         # define rrule using ChainRulesCore's v0.9.0 convention, conjugating the derivative
         # in the rrule
         function ChainRulesCore.rrule(::typeof(sinconj), x)
-            sinconj_pullback(ΔΩ) = (NO_FIELDS, conj(cos(x)) * ΔΩ)
+            sinconj_pullback(ΔΩ) = (NoTangent(), conj(cos(x)) * ΔΩ)
             return sin(x), sinconj_pullback
         end
 
@@ -63,7 +63,7 @@ end
         ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
         function ChainRulesCore.rrule(::typeof(fst), x, y)
             function fst_pullback(Δx)
-                return (NO_FIELDS, Δx, ZeroTangent())
+                return (NoTangent(), Δx, ZeroTangent())
             end
             return x, fst_pullback
         end
@@ -80,7 +80,7 @@ end
     @testset "single input, multiple output" begin
         simo(x) = (x, 2x)
         function ChainRulesCore.rrule(simo, x)
-            simo_pullback((a, b)) = (NO_FIELDS, a .+ 2 .* b)
+            simo_pullback((a, b)) = (NoTangent(), a .+ 2 .* b)
             return simo(x), simo_pullback
         end
         function ChainRulesCore.frule((_, ẋ), simo, x)
@@ -104,7 +104,7 @@ end
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
         function ChainRulesCore.rrule(::typeof(first), x::Tuple)
             function first_pullback(Δx)
-                return (NO_FIELDS, Tangent{typeof(x)}(Δx, falses(length(x)-1)...))
+                return (NoTangent(), Tangent{typeof(x)}(Δx, falses(length(x)-1)...))
             end
             return first(x), first_pullback
         end
@@ -135,7 +135,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, NoTangent()
+                return NoTangent(), Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end
@@ -157,7 +157,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(futestkws), x; err = true)
             function futestkws_pullback(Δx)
-                return (NO_FIELDS, Δx)
+                return (NoTangent(), Δx)
             end
             return futestkws(x; err = err), futestkws_pullback
         end
@@ -194,7 +194,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
             function fbtestkws_pullback(Δx)
-                return (NO_FIELDS, Δx, ZeroTangent())
+                return (NoTangent(), Δx, ZeroTangent())
             end
             return fbtestkws(x, y; err = err), fbtestkws_pullback
         end
