@@ -10,8 +10,8 @@ function Base.isapprox(d::FakeNaturalDiffWithIsApprox, c::Tangent; kwargs...)
 end
 
 @testset "check_result.jl" begin
-    @testset "_check_add!!_behaviour" begin
-        check = ChainRulesTestUtils._check_add!!_behaviour
+    @testset "_test_add!!_behaviour" begin
+        check = ChainRulesTestUtils._test_add!!_behaviour
 
         check(10.0, 2.0)
         check(11.0, ZeroTangent())

@@ -149,7 +149,7 @@ end
 ###########################################################################################
 
 """
-_check_add!!_behaviour(acc, val)
+_test_add!!_behaviour(acc, val)
 
 This checks that `acc + val` is the same as `add!!(acc, val)`.
 It matters primarily for types that overload `add!!` such as `InplaceableThunk`s.
@@ -159,7 +159,7 @@ It matters primarily for types that overload `add!!` such as `InplaceableThunk`s
 
 `kwargs` are all passed on to isapprox
 """
-function _check_add!!_behaviour(acc, val; kwargs...)
+function _test_add!!_behaviour(acc, val; kwargs...)
     # Note, we don't test that `acc` is actually mutated because it doesn't have to be
     # e.g. if it is immutable. We do test the `add!!` return value.
     # That is what people should rely on. The mutation is just to save allocations.
@@ -170,14 +170,14 @@ end
 # Checking equality with `NotImplemented` reports `@test_broken` since the derivative has
 # intentionally not yet been implemented
 # `@test_broken x == y` yields more descriptive messages than `@test_broken false`
-function _check_add!!_behaviour(acc_mutated, acc::ChainRulesCore.NotImplemented; kwargs...)
+function _test_add!!_behaviour(acc_mutated, acc::ChainRulesCore.NotImplemented; kwargs...)
     return @test_broken acc_mutated == acc
 end
-function _check_add!!_behaviour(acc_mutated::ChainRulesCore.NotImplemented, acc; kwargs...)
+function _test_add!!_behaviour(acc_mutated::ChainRulesCore.NotImplemented, acc; kwargs...)
     return @test_broken acc_mutated == acc
 end
 # In this case we check for equality (not implemented messages etc. have to be equal)
-function _check_add!!_behaviour(
+function _test_add!!_behaviour(
     acc_mutated::ChainRulesCore.NotImplemented,
     acc::ChainRulesCore.NotImplemented;
     kwargs...,

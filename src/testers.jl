@@ -130,7 +130,7 @@ function test_frule(
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
-        _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
+        _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
     end  # top-level testset
 end
 
@@ -217,7 +217,7 @@ function test_rrule(
 
                 # The main test of the actual deriviative being correct:
                 test_approx(x̄_ad, x̄_fd; isapprox_kwargs...)
-                _check_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
+                _test_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
             end
         end
 
