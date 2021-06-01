@@ -4,50 +4,55 @@
 # Note that this must work well both on Differential types and Primal types
 
 """
-    check_equal(actual, expected; kwargs...)
+    check_equal(actual, expected, [msg]; kwargs...)
 
 `@test`'s  that `actual ≈ expected`, but breaks up data such that human readable results
 are shown on failures.
 Understands things like `unthunk`ing `ChainRuleCore.Thunk`s, etc.
+
+If provided `msg` is printed on a failure. Often additional items are appended to `msg` to
+give bread-crumbs into nested structures.
+
 All keyword arguments are passed to `isapprox`.
 """
 function check_equal(
     actual::Union{AbstractArray{<:Number},Number},
-    expected::Union{AbstractArray{<:Number},Number};
+    expected::Union{AbstractArray{<:Number},Number},
+    msg="";
     kwargs...,
 )
-    @test isapprox(actual, expected; kwargs...)
+    @test_msg msg isapprox(actual, expected; kwargs...)
 end
 
 for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
-    @eval function check_equal(actual::$T1, expected::$T2; kwargs...)
-        return check_equal(unthunk(actual), unthunk(expected); kwargs...)
+    @eval function check_equal(actual::$T1, expected::$T2, msg=""; kwargs...)
+        return check_equal(unthunk(actual), unthunk(expected), msg; kwargs...)
     end
 end
 
-check_equal(::ZeroTangent, x; kwargs...) = check_equal(zero(x), x; kwargs...)
-check_equal(x, ::ZeroTangent; kwargs...) = check_equal(x, zero(x); kwargs...)
-check_equal(x::ZeroTangent, y::ZeroTangent; kwargs...) = @test true
+check_equal(::ZeroTangent, x, msg=""; kwargs...) = check_equal(zero(x), x, msg; kwargs...)
+check_equal(x, ::ZeroTangent, msg=""; kwargs...) = check_equal(x, zero(x), msg; kwargs...)
+check_equal(x::ZeroTangent, y::ZeroTangent, msg=""; kwargs...) = @test true
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-check_equal(x::NoTangent, y::Nothing; kwargs...) = @test true
-check_equal(x::Nothing, y::NoTangent; kwargs...) = @test true
+check_equal(x::NoTangent, y::Nothing, msg=""; kwargs...) = @test true
+check_equal(x::Nothing, y::NoTangent, msg=""; kwargs...) = @test true
 
 # Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
 # not yet been implemented
 # `@test_broken x == y` yields more descriptive messages than `@test_broken false`
-check_equal(x::ChainRulesCore.NotImplemented, y; kwargs...) = @test_broken x == y
-check_equal(x, y::ChainRulesCore.NotImplemented; kwargs...) = @test_broken x == y
+check_equal(x::ChainRulesCore.NotImplemented, y, msg=""; kwargs...) = @test_broken x == y
+check_equal(x, y::ChainRulesCore.NotImplemented, msg=""; kwargs...) = @test_broken x == y
 # In this case we check for equality (messages etc. have to be equal)
 function check_equal(
-    x::ChainRulesCore.NotImplemented, y::ChainRulesCore.NotImplemented; kwargs...
+    x::ChainRulesCore.NotImplemented, y::ChainRulesCore.NotImplemented, msg=""; kwargs...
 )
-    return @test x == y
+    return @test_msg msg x == y
 end
 
 """
     _can_pass_early(actual, expected; kwargs...)
-Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper;
+Used to check if `actual` is basically equal to `expected`, so we don't need to check deeper
 and can just report `check_equal` as passing.
 
 If either `==` or `≈` return true then so does this.
@@ -64,30 +69,34 @@ function _can_pass_early(actual, expected; kwargs...)
     return false
 end
 
-function check_equal(actual::AbstractArray, expected::AbstractArray; kwargs...)
+function check_equal(actual::AbstractArray, expected::AbstractArray, msg=""; kwargs...)
     if _can_pass_early(actual, expected)
         @test true
     else
-        @test eachindex(actual) == eachindex(expected)
-        @testset "$(typeof(actual))[$ii]" for ii in eachindex(actual)
-            check_equal(actual[ii], expected[ii]; kwargs...)
+        @test_msg "$msg: indices must match" eachindex(actual) == eachindex(expected)
+        for ii in eachindex(actual)
+            new_msg = "$msg $(typeof(actual))[$ii]"
+            check_equal(actual[ii], expected[ii], new_msg; kwargs...)
         end
     end
 end
 
-function check_equal(actual::Tangent{P}, expected::Tangent{P}; kwargs...) where {P}
+function check_equal(actual::Tangent{P}, expected::Tangent{P}, msg=""; kwargs...) where {P}
     if _can_pass_early(actual, expected)
         @test true
     else
         all_keys = union(keys(actual), keys(expected))
-        @testset "$P.$ii" for ii in all_keys
-            check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
+        for ii in all_keys
+            new_msg = "$msg $P.$ii"
+            check_equal(
+                getproperty(actual, ii), getproperty(expected, ii), new_msg; kwargs...
+            )
         end
     end
 end
 
 function check_equal(
-    ::Tangent{ActualPrimal}, expected::Tangent{ExpectedPrimal}; kwargs...
+    ::Tangent{ActualPrimal}, expected::Tangent{ExpectedPrimal}, msg=""; kwargs...
 ) where {ActualPrimal,ExpectedPrimal}
     # this will certainly fail as we have another dispatch for that, but this will give as
     # good error message
@@ -95,7 +104,7 @@ function check_equal(
 end
 
 # Some structual differential and a natural differential
-function check_equal(actual::Tangent{P,T}, expected; kwargs...) where {T,P}
+function check_equal(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T,P}
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -103,21 +112,28 @@ function check_equal(actual::Tangent{P,T}, expected; kwargs...) where {T,P}
 
         # We are only checking the properties that are in the Tangent
         # the natural differential is allowed to have other properties that we ignore
-        @testset "$P.$ii" for ii in propertynames(actual)
-            check_equal(getproperty(actual, ii), getproperty(expected, ii); kwargs...)
+        for ii in propertynames(actual)
+            new_msg = "$msg $P.$ii"
+            check_equal(
+                getproperty(actual, ii), getproperty(expected, ii), new_msg; kwargs...
+            )
         end
     end
 end
-check_equal(x, y::Tangent; kwargs...) = check_equal(y, x; kwargs...)
+check_equal(x, y::Tangent, msg=""; kwargs...) = check_equal(y, x, msg; kwargs...)
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
-# and gives an error message complaining about that
+# and gives an error message complaining about that. the `@test` will definitely fail
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
-check_equal(::C, ::T; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @test C === T
-check_equal(::T, ::C; kwargs...) where {C<:Tangent,T<:LegacyZygoteCompTypes} = @test T === C
+function check_equal(x::Tangent, y::LegacyZygoteCompTypes, msg=""; kwargs...)
+    @test_msg "$msg: for structural differentials use `Tangent`" typeof(x) === typeof(y)
+end
+function check_equal(x::LegacyZygoteCompTypes, y::Tangent, msg=""; kwargs...)
+    return check_equal(y, x, msg; kwargs...)
+end
 
 # Generic fallback, probably a tuple or something
-function check_equal(actual::A, expected::E; kwargs...) where {A,E}
+function check_equal(actual::A, expected::E, msg=""; kwargs...) where {A,E}
     if _can_pass_early(actual, expected)
         @test true
     else
@@ -129,6 +145,8 @@ function check_equal(actual::A, expected::E; kwargs...) where {A,E}
         check_equal(c_actual, c_expected; kwargs...)
     end
 end
+
+###########################################################################################
 
 """
 _check_add!!_behaviour(acc, val)
@@ -146,11 +164,11 @@ function _check_add!!_behaviour(acc, val; kwargs...)
     # e.g. if it is immutable. We do test the `add!!` return value.
     # That is what people should rely on. The mutation is just to save allocations.
     acc_mutated = deepcopy(acc)  # prevent this test changing others
-    return check_equal(add!!(acc_mutated, val), acc + val; kwargs...)
+    return check_equal(add!!(acc_mutated, val), acc + val, "in add!!"; kwargs...)
 end
 
-# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has intentionally
-# not yet been implemented
+# Checking equality with `NotImplemented` reports `@test_broken` since the derivative has
+# intentionally not yet been implemented
 # `@test_broken x == y` yields more descriptive messages than `@test_broken false`
 function _check_add!!_behaviour(acc_mutated, acc::ChainRulesCore.NotImplemented; kwargs...)
     return @test_broken acc_mutated == acc
@@ -158,7 +176,7 @@ end
 function _check_add!!_behaviour(acc_mutated::ChainRulesCore.NotImplemented, acc; kwargs...)
     return @test_broken acc_mutated == acc
 end
-# In this case we check for equality (messages etc. have to be equal)
+# In this case we check for equality (not implemented messages etc. have to be equal)
 function _check_add!!_behaviour(
     acc_mutated::ChainRulesCore.NotImplemented,
     acc::ChainRulesCore.NotImplemented;

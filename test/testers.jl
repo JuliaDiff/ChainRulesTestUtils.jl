@@ -1,4 +1,5 @@
-# For some reason if these aren't defined here, then they are interpreted as closures
+# Defining test functions here as if they are defined where used it is too easy to
+# mistakenly create closures over variables that only share names by coincidence.
 futestkws(x; err=true) = err ? error("futestkws_err") : x
 
 fbtestkws(x, y; err=true) = err ? error("fbtestkws_err") : x
@@ -268,7 +269,6 @@ end
             return first(x), first_pullback
         end
 
-        #CTuple{N} = Tangent{NTuple{N, Float64}}  # shorter for testing
         @testset "test_frule" begin
             test_frule(first, (2.0, 3.0))
             test_frule(first, Tuple(randn(4)))

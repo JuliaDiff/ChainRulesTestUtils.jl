@@ -99,7 +99,7 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_frule: $f on $(join(typeof.(inputs), ","))" begin
+    @testset "test_frule: $f on $(_string_typeof(inputs))" begin
         _ensure_not_running_on_functor(f, "test_frule")
 
         xẋs = auto_primal_and_tangent.(inputs)
@@ -167,7 +167,7 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_rrule: $f on $(join(typeof.(inputs), ","))" begin
+    @testset "test_rrule: $f on $(_string_typeof(inputs))" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
         # Check correctness of evaluation.
@@ -226,12 +226,11 @@ function test_rrule(
 end
 
 function check_thunking_is_appropriate(x̄s)
-    @testset "Don't thunk only non_zero argument" begin
-        num_zeros = count(x -> x isa AbstractZero, x̄s)
-        num_thunks = count(x -> x isa Thunk, x̄s)
-        if num_zeros + num_thunks == length(x̄s)
-            @test num_thunks !== 1
-        end
+    num_zeros = count(x -> x isa AbstractZero, x̄s)
+    num_thunks = count(x -> x isa Thunk, x̄s)
+    if num_zeros + num_thunks == length(x̄s)
+        # num_thunks can be either 0, or greater than 1.
+        @test_msg "Should not thunk only non_zero argument" num_thunks != 1
     end
 end
 
