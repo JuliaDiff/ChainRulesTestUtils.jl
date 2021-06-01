@@ -1,4 +1,4 @@
-# TODO remove these in version 0.6
+# TODO remove these in version 0.7
 # We are silently deprecating them as there is no alternative we are providing
 
 function Base.isapprox(a, b::Union{AbstractZero,AbstractThunk}; kwargs...)
@@ -35,6 +35,8 @@ end
 # Must be for same primal
 Base.isapprox(d_ad::Tangent{P}, d_fd::Tangent{Q}; kwargs...) where {P,Q} = false
 
+###############################################
+
 # From when primal and tangent was passed as a tuple
 @deprecate(
     rrule_test(f, ȳ, inputs::Tuple{Any,Any}...; kwargs...),
@@ -45,3 +47,6 @@ Base.isapprox(d_ad::Tangent{P}, d_fd::Tangent{Q}; kwargs...) where {P,Q} = false
     frule_test(f, inputs::Tuple{Any,Any}...; kwargs...),
     test_frule(f, ((x ⊢ dx) for (x, dx) in inputs)...; kwargs...)
 )
+
+# renamed
+Base.@deprecate_binding check_equal test_approx

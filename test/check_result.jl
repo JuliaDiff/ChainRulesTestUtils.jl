@@ -25,81 +25,81 @@ end
         end
     end
 
-    @testset "check_equal" begin
+    @testset "test_approx" begin
         @testset "positive cases" begin
-            check_equal(1.0, 1.0)
-            check_equal(1.0 + im, 1.0 + im)
-            check_equal(1.0, 1.0 + 1e-10)  # isapprox _behaviour
-            check_equal((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-10))
+            test_approx(1.0, 1.0)
+            test_approx(1.0 + im, 1.0 + im)
+            test_approx(1.0, 1.0 + 1e-10)  # isapprox _behaviour
+            test_approx((1.5, 2.5, 3.5), (1.5, 2.5, 3.5 + 1e-10))
 
-            check_equal(ZeroTangent(), 0.0)
+            test_approx(ZeroTangent(), 0.0)
 
-            check_equal([1.0, 2.0], [1.0, 2.0])
-            check_equal([[1.0], [2.0]], [[1.0], [2.0]])
+            test_approx([1.0, 2.0], [1.0, 2.0])
+            test_approx([[1.0], [2.0]], [[1.0], [2.0]])
 
-            check_equal(@thunk(10 * 0.1 * [[1.0], [2.0]]), [[1.0], [2.0]])
+            test_approx(@thunk(10 * 0.1 * [[1.0], [2.0]]), [[1.0], [2.0]])
 
-            check_equal(@not_implemented(""), rand(3))
-            check_equal(rand(3), @not_implemented(""))
-            check_equal(@not_implemented("a"), @not_implemented("a"))
+            test_approx(@not_implemented(""), rand(3))
+            test_approx(rand(3), @not_implemented(""))
+            test_approx(@not_implemented("a"), @not_implemented("a"))
 
-            check_equal(
+            test_approx(
                 Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
                 Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
             )
 
             diag_eg = Diagonal(randn(5))
-            check_equal( # Structual == Structural
+            test_approx( # Structual == Structural
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
             )
-            check_equal( # Structural == Natural
+            test_approx( # Structural == Natural
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
                 diag_eg,
             )
 
             T = (a=1.0, b=2.0)
-            check_equal(
+            test_approx(
                 Tangent{typeof(T)}(; a=1.0), Tangent{typeof(T)}(; a=1.0, b=ZeroTangent())
             )
-            check_equal(
+            test_approx(
                 Tangent{typeof(T)}(; a=1.0),
                 Tangent{typeof(T)}(; a=1.0 + 1e-10, b=ZeroTangent()),
             )
 
-            check_equal(
+            test_approx(
                 Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
                 FakeNaturalDiffWithIsApprox(1.4),
             )
-            check_equal(
+            test_approx(
                 FakeNaturalDiffWithIsApprox(1.4),
                 Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
             )
         end
         @testset "negative case" begin
-            @test fails(() -> check_equal(1.0, 2.0))
-            @test fails(() -> check_equal(1.0 + im, 1.0 - im))
-            @test fails(() -> check_equal((1.5, 2.5, 3.5), (1.5, 2.5, 4.5)))
+            @test fails(() -> test_approx(1.0, 2.0))
+            @test fails(() -> test_approx(1.0 + im, 1.0 - im))
+            @test fails(() -> test_approx((1.5, 2.5, 3.5), (1.5, 2.5, 4.5)))
 
-            @test fails(() -> check_equal(ZeroTangent(), 20.0))
-            @test fails(() -> check_equal(10.0, ZeroTangent()))
+            @test fails(() -> test_approx(ZeroTangent(), 20.0))
+            @test fails(() -> test_approx(10.0, ZeroTangent()))
 
-            @test fails(() -> check_equal([1.0, 2.0], [1.0, 3.9]))
-            @test fails(() -> check_equal([[1.0], [2.0]], [[1.1], [2.0]]))
+            @test fails(() -> test_approx([1.0, 2.0], [1.0, 3.9]))
+            @test fails(() -> test_approx([[1.0], [2.0]], [[1.1], [2.0]]))
 
-            @test fails(() -> check_equal(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
+            @test fails(() -> test_approx(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
 
-            @test fails(() -> check_equal(@not_implemented("a"), @not_implemented("b")))
+            @test fails(() -> test_approx(@not_implemented("a"), @not_implemented("b")))
         end
         @testset "type negative" begin
             @test fails() do  # these have different primals so should not be equal
-                check_equal(
+                test_approx(
                     Tangent{Tuple{Float32,Float32}}(1.0f0, 2.0f0),
                     Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
                 )
             end
             @test fails() do
-                check_equal((1.0, 2.0), Tangent{Tuple{Float64,Float64}}(1.0, 2.0))
+                test_approx((1.0, 2.0), Tangent{Tuple{Float64,Float64}}(1.0, 2.0))
             end
         end
 
@@ -107,13 +107,13 @@ end
             data = randn(3)
             iter1 = TestIterator(data, Base.HasLength(), Base.HasEltype())
             iter2 = TestIterator(data, Base.HasLength(), Base.EltypeUnknown())
-            check_equal(iter2, iter1)
+            test_approx(iter2, iter1)
 
             iter3 = TestIterator(data .+ 1e-10, Base.HasLength(), Base.HasEltype())
-            check_equal(iter3, iter1)
+            test_approx(iter3, iter1)
 
             iter_bad = TestIterator(data .+ 010, Base.HasLength(), Base.HasEltype())
-            @test fails(() -> check_equal(iter_bad, iter1))
+            @test fails(() -> test_approx(iter_bad, iter1))
         end
     end
 end
