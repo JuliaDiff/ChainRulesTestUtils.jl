@@ -18,8 +18,7 @@ All keyword arguments are passed to `isapprox`.
 function check_equal(
     actual::Union{AbstractArray{<:Number},Number},
     expected::Union{AbstractArray{<:Number},Number},
-    msg="",
-    ;
+    msg="";
     kwargs...,
 )
     @test_msg msg isapprox(actual, expected; kwargs...)
@@ -74,7 +73,7 @@ function check_equal(actual::AbstractArray, expected::AbstractArray, msg=""; kwa
     if _can_pass_early(actual, expected)
         @test true
     else
-        @test_msg "$msg: indexes must match" eachindex(actual) == eachindex(expected)
+        @test_msg "$msg: indices must match" eachindex(actual) == eachindex(expected)
         for ii in eachindex(actual)
             new_msg = "$msg $(typeof(actual))[$ii]"
             check_equal(actual[ii], expected[ii], new_msg; kwargs...)
@@ -124,7 +123,7 @@ end
 check_equal(x, y::Tangent, msg=""; kwargs...) = check_equal(y, x, msg; kwargs...)
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
-# and gives an error message complaining about that. the `@test` will definately fail
+# and gives an error message complaining about that. the `@test` will definitely fail
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
 function check_equal(x::Tangent, y::LegacyZygoteCompTypes, msg=""; kwargs...)
     @test_msg "$msg: for structural differentials use `Tangent`" typeof(x) === typeof(y)

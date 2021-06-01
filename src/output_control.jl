@@ -41,6 +41,9 @@ julia> @test_msg a sum(1:1000) < 10;
 ```
 """
 macro test_msg(msg, ex, kws...)
+    # This code is basically a evil hack that accesses the internals of the Test stdlib.
+    # Code below is based on the `@test` macro definition as it was in Julia 1.6.
+    # https://github.com/JuliaLang/julia/blob/v1.6.1/stdlib/Test/src/Test.jl#L371-L376
     Test.test_expr!("@test_msg msg", ex, kws...)
 
     result = Test.get_test_result(ex, __source__)
