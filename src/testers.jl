@@ -106,9 +106,9 @@ function test_frule(
         xs = primal.(xẋs)
         ẋs = tangent.(xẋs)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, (NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+            _test_inferred(frule, (NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         end
-        res = frule((NO_FIELDS, deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+        res = frule((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule, typeof((f, xs...))))
         res isa Tuple || error("The frule should return (y, ∂y), not $res.")
         Ω_ad, dΩ_ad = res
@@ -190,7 +190,7 @@ function test_rrule(
         ∂s isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
         ∂self = ∂s[1]
         x̄s_ad = ∂s[2:end]
-        @test ∂self === NO_FIELDS  # No internal fields
+        @test ∂self === NoTangent()  # No internal fields
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113

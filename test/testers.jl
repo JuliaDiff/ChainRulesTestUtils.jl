@@ -41,7 +41,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(identity), x)
             function identity_pullback(ȳ)
-                return (NO_FIELDS, ȳ)
+                return (NoTangent(), ȳ)
             end
             return x, identity_pullback
         end
@@ -67,7 +67,7 @@ end
                     x̄_ret = InplaceableThunk(
                         @thunk(ȳ), ā -> (inplace_used = true; ā .+= ȳ)
                     )
-                    return (NO_FIELDS, x̄_ret)
+                    return (NoTangent(), x̄_ret)
                 end
                 return identity(x), identity_pullback
             end
@@ -93,7 +93,7 @@ end
                 function my_identity_pullback(ȳ)
                     # only the in-place part is incorrect
                     x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= 200 .* ȳ)
-                    return (NO_FIELDS, x̄_ret)
+                    return (NoTangent(), x̄_ret)
                 end
                 return my_identity(x), my_identity_pullback
             end
@@ -106,7 +106,7 @@ end
         @testset "check inferred" begin
             ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable), x) = (x, Δx)
             function ChainRulesCore.rrule(::typeof(f_inferrable), x)
-                f_inferrable_pullback(Δy) = (NO_FIELDS, Δy)
+                f_inferrable_pullback(Δy) = (NoTangent(), Δy)
                 return x, f_inferrable_pullback
             end
 
@@ -123,7 +123,7 @@ end
                 return (x, x > 0 ? Float64(Δx) : Float32(Δx))
             end
             function ChainRulesCore.rrule(::typeof(f_noninferrable_frule), x)
-                f_noninferrable_frule_pullback(Δy) = (NO_FIELDS, Δy)
+                f_noninferrable_frule_pullback(Δy) = (NoTangent(), Δy)
                 return x, f_noninferrable_frule_pullback
             end
 
@@ -144,10 +144,10 @@ end
             ChainRulesCore.frule((_, Δx), ::typeof(f_noninferrable_rrule), x) = (x, Δx)
             function ChainRulesCore.rrule(::typeof(f_noninferrable_rrule), x)
                 if x > 0
-                    f_noninferrable_rrule_pullback(Δy) = (NO_FIELDS, Δy)
+                    f_noninferrable_rrule_pullback(Δy) = (NoTangent(), Δy)
                     return x, f_noninferrable_rrule_pullback
                 else
-                    return x, _ -> (NO_FIELDS, Δy) # this is not hit by the used point
+                    return x, _ -> (NoTangent(), Δy) # this is not hit by the used point
                 end
             end
 
@@ -167,7 +167,7 @@ end
         @testset "check not inferred in pullback" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_pullback), x)
                 function f_noninferrable_pullback_pullback(Δy)
-                    return (NO_FIELDS, x > 0 ? Float64(Δy) : Float32(Δy))
+                    return (NoTangent(), x > 0 ? Float64(Δy) : Float32(Δy))
                 end
                 return x, f_noninferrable_pullback_pullback
             end
@@ -182,7 +182,7 @@ end
             function ChainRulesCore.rrule(::typeof(f_noninferrable_thunk), x, y)
                 function f_noninferrable_thunk_pullback(Δz)
                     ∂x = @thunk(x > 0 ? Float64(Δz) : Float32(Δz))
-                    return (NO_FIELDS, ∂x, Δz)
+                    return (NoTangent(), ∂x, Δz)
                 end
                 return x + y, f_noninferrable_thunk_pullback
             end
@@ -198,7 +198,7 @@ end
                 return (x > 0 ? Float64(x) : Float32(x), x > 0 ? Float64(Δx) : Float32(Δx))
             end
             function ChainRulesCore.rrule(::typeof(f_inferrable_pullback_only), x)
-                f_inferrable_pullback_only_pullback(Δy) = (NO_FIELDS, oftype(x, Δy))
+                f_inferrable_pullback_only_pullback(Δy) = (NoTangent(), oftype(x, Δy))
                 return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
             end
             test_frule(f_inferrable_pullback_only, 2.0; check_inferred=true)
@@ -212,7 +212,7 @@ end
         # define rrule using ChainRulesCore's v0.9.0 convention, conjugating the derivative
         # in the rrule
         function ChainRulesCore.rrule(::typeof(sinconj), x)
-            sinconj_pullback(ΔΩ) = (NO_FIELDS, conj(cos(x)) * ΔΩ)
+            sinconj_pullback(ΔΩ) = (NoTangent(), conj(cos(x)) * ΔΩ)
             return sin(x), sinconj_pullback
         end
 
@@ -225,7 +225,7 @@ end
         ChainRulesCore.frule((_, dx, dy), ::typeof(fst), x, y) = (x, dx)
         function ChainRulesCore.rrule(::typeof(fst), x, y)
             function fst_pullback(Δx)
-                return (NO_FIELDS, Δx, ZeroTangent())
+                return (NoTangent(), Δx, ZeroTangent())
             end
             return x, fst_pullback
         end
@@ -242,7 +242,7 @@ end
     @testset "single input, multiple output" begin
         simo(x) = (x, 2x)
         function ChainRulesCore.rrule(simo, x)
-            simo_pullback((a, b)) = (NO_FIELDS, a .+ 2 .* b)
+            simo_pullback((a, b)) = (NoTangent(), a .+ 2 .* b)
             return simo(x), simo_pullback
         end
         function ChainRulesCore.frule((_, ẋ), simo, x)
@@ -264,7 +264,7 @@ end
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
         function ChainRulesCore.rrule(::typeof(first), x::Tuple)
             function first_pullback(Δx)
-                return (NO_FIELDS, Tangent{typeof(x)}(Δx, falses(length(x) - 1)...))
+                return (NoTangent(), Tangent{typeof(x)}(Δx, falses(length(x) - 1)...))
             end
             return first(x), first_pullback
         end
@@ -294,7 +294,7 @@ end
         ChainRulesCore.frule((_, Δx, _), ::typeof(fsymtest), x, s) = (x, Δx)
         function ChainRulesCore.rrule(::typeof(fsymtest), x, s)
             function fsymtest_pullback(Δx)
-                return NO_FIELDS, Δx, NoTangent()
+                return NoTangent(), Δx, NoTangent()
             end
             return x, fsymtest_pullback
         end
@@ -314,7 +314,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(futestkws), x; err=true)
             function futestkws_pullback(Δx)
-                return (NO_FIELDS, Δx)
+                return (NoTangent(), Δx)
             end
             return futestkws(x; err=err), futestkws_pullback
         end
@@ -348,7 +348,7 @@ end
         end
         function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err=true)
             function fbtestkws_pullback(Δx)
-                return (NO_FIELDS, Δx, ZeroTangent())
+                return (NoTangent(), Δx, ZeroTangent())
             end
             return fbtestkws(x, y; err=err), fbtestkws_pullback
         end
@@ -381,7 +381,7 @@ end
 
         function ChainRulesCore.rrule(::typeof(primalapprox), x)
             function primalapprox_pullback(Δx)
-                return (NO_FIELDS, Δx)
+                return (NoTangent(), Δx)
             end
             return x + sqrt(eps(x)), primalapprox_pullback
         end
@@ -391,21 +391,21 @@ end
     end
 
     @testset "frule with mutation" begin
-        function ChainRulesCore.frule((_, ẋ), ::typeof(finplace!), x; y=[1])
+        function ChainRulesCore.frule((_, ẋ), ::typeof(finplace!), x; y=[1])
             y[1] *= 2
             x .*= y[1]
-            ẋ .*= 2 # hardcoded to match y defined below
-            return x, ẋ
+            ẋ .*= 2 # hardcoded to match y defined below
+            return x, ẋ
         end
 
         # these pass in tangents explictly so that we can check them after
         x = randn(3)
-        ẋ = [4.0, 5.0, 6.0]
-        xcopy, ẋcopy = copy(x), copy(ẋ)
+        ẋ = [4.0, 5.0, 6.0]
+        xcopy, ẋcopy = copy(x), copy(ẋ)
         y = [1, 2]
-        test_frule(finplace!, x ⊢ ẋ; fkwargs=(y=y,))
+        test_frule(finplace!, x ⊢ ẋ; fkwargs=(y=y,))
         @test x == xcopy
-        @test ẋ == ẋcopy
+        @test ẋ == ẋcopy
         @test y == [1, 2]
     end
 
@@ -450,7 +450,7 @@ end
                 ∂iter = TestIterator(
                     ∂data, Base.IteratorSize(iter), Base.IteratorEltype(iter)
                 )
-                return (NO_FIELDS, ∂iter)
+                return (NoTangent(), ∂iter)
             end
             return iterfun(iter), iterfun_pullback
         end
@@ -471,7 +471,7 @@ end
             end
             function ChainRulesCore.rrule(::typeof(my_identity1), x)
                 function identity_pullback(ȳ)
-                    return (NO_FIELDS, ȳ)
+                    return (NoTangent(), ȳ)
                 end
                 return 2.5 * x, identity_pullback
             end
@@ -487,7 +487,7 @@ end
             end
             function ChainRulesCore.rrule(::typeof(my_identity2), x)
                 function identity_pullback(ȳ)
-                    return (NO_FIELDS, 31.8 * ȳ)
+                    return (NoTangent(), 31.8 * ȳ)
                 end
                 return x, identity_pullback
             end
@@ -505,7 +505,7 @@ end
 
         rev_trouble((x, y)) = y
         function ChainRulesCore.rrule(::typeof(rev_trouble), (x, y)::P) where {P}
-            rev_trouble_pullback(ȳ) = (NO_FIELDS, Tangent{P}(ZeroTangent(), ȳ))
+            rev_trouble_pullback(ȳ) = (NoTangent(), Tangent{P}(ZeroTangent(), ȳ))
             return y, rev_trouble_pullback
         end
         test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int,Float64}}(ZeroTangent(), 1.0))
@@ -517,7 +517,7 @@ end
             function foo_pullback(Δy)
                 da = zeros(size(a))
                 da[i] = Δy
-                return NO_FIELDS, da, ZeroTangent()
+                return NoTangent(), da, ZeroTangent()
             end
             return foo(a, i), foo_pullback
         end
