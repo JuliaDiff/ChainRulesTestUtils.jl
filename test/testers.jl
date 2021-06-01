@@ -1,7 +1,7 @@
 # For some reason if these aren't defined here, then they are interpreted as closures
-futestkws(x; err = true) = err ? error("futestkws_err") : x
+futestkws(x; err=true) = err ? error("futestkws_err") : x
 
-fbtestkws(x, y; err = true) = err ? error("fbtestkws_err") : x
+fbtestkws(x, y; err=true) = err ? error("fbtestkws_err") : x
 
 sinconj(x) = sin(x)
 
@@ -14,7 +14,7 @@ f_noninferrable_pullback(x) = x
 f_noninferrable_thunk(x, y) = x + y
 f_inferrable_pullback_only(x) = x > 0 ? Float64(x) : Float32(x)
 
-function finplace!(x; y = [1])
+function finplace!(x; y=[1])
     y[1] = 2
     x .*= y[1]
     return x
@@ -30,7 +30,7 @@ end
         @testset "Ensure incorrect rules caught" begin
             alt_double(x) = 2x
             @scalar_rule(alt_double(x), 3)  # this is wrong, on purpose
-            @test fails(()->test_scalar(alt_double, 2.1))
+            @test fails(() -> test_scalar(alt_double, 2.1))
         end
     end
 
@@ -58,12 +58,14 @@ end
         @testset "Correct definitions" begin
             local inplace_used
             function ChainRulesCore.frule((_, ẋ), ::typeof(identity), x::Array)
-                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> (inplace_used=true; ȧ .+= ẋ))
+                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> (inplace_used = true; ȧ .+= ẋ))
                 return identity(x), ẏ
             end
             function ChainRulesCore.rrule(::typeof(identity), x::Array)
                 function identity_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> (inplace_used=true; ā .+= ȳ))
+                    x̄_ret = InplaceableThunk(
+                        @thunk(ȳ), ā -> (inplace_used = true; ā .+= ȳ)
+                    )
                     return (NoTangent(), x̄_ret)
                 end
                 return identity(x), identity_pullback
@@ -94,8 +96,8 @@ end
                 end
                 return my_identity(x), my_identity_pullback
             end
-            @test fails(()->test_frule(my_identity, randn(4)))
-            @test fails(()->test_rrule(my_identity, randn(4)))
+            @test fails(() -> test_frule(my_identity, randn(4)))
+            @test fails(() -> test_rrule(my_identity, randn(4)))
         end
     end
 
@@ -107,12 +109,12 @@ end
                 return x, f_inferrable_pullback
             end
 
-            test_frule(f_inferrable, 2.0; check_inferred = false)
+            test_frule(f_inferrable, 2.0; check_inferred=false)
             test_frule(f_inferrable, 2.0)
-            test_rrule(f_inferrable, 2.0; check_inferred = false)
+            test_rrule(f_inferrable, 2.0; check_inferred=false)
             test_rrule(f_inferrable, 2.0)
             test_scalar(f_inferrable, 2.0)
-            test_scalar(f_inferrable, 2.0; check_inferred = false)
+            test_scalar(f_inferrable, 2.0; check_inferred=false)
         end
 
         @testset "check not inferred in frule" begin
@@ -124,16 +126,16 @@ end
                 return x, f_noninferrable_frule_pullback
             end
 
-            test_frule(f_noninferrable_frule, 2.0; check_inferred = false)
+            test_frule(f_noninferrable_frule, 2.0; check_inferred=false)
             @test errors(
-                ()->test_frule(f_noninferrable_frule, 2.0),
-                "does not match inferred return type"
+                () -> test_frule(f_noninferrable_frule, 2.0),
+                "does not match inferred return type",
             )
 
-            test_scalar(f_noninferrable_frule, 2.0; check_inferred = false)
+            test_scalar(f_noninferrable_frule, 2.0; check_inferred=false)
             @test errors(
-                ()->test_scalar(f_noninferrable_frule, 2.0),
-                "does not match inferred return type"
+                () -> test_scalar(f_noninferrable_frule, 2.0),
+                "does not match inferred return type",
             )
         end
 
@@ -148,28 +150,30 @@ end
                 end
             end
 
-            test_rrule(f_noninferrable_rrule, 2.0; check_inferred = false)
+            test_rrule(f_noninferrable_rrule, 2.0; check_inferred=false)
             @test errors(
-                ()->test_rrule(f_noninferrable_rrule, 2.0),
-                "does not match inferred return type"
+                () -> test_rrule(f_noninferrable_rrule, 2.0),
+                "does not match inferred return type",
             )
 
-            test_scalar(f_noninferrable_rrule, 2.0; check_inferred = false)
+            test_scalar(f_noninferrable_rrule, 2.0; check_inferred=false)
             @test errors(
-                ()->test_scalar(f_noninferrable_rrule, 2.0),
-                "does not match inferred return type"
+                () -> test_scalar(f_noninferrable_rrule, 2.0),
+                "does not match inferred return type",
             )
         end
 
         @testset "check not inferred in pullback" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_pullback), x)
-                f_noninferrable_pullback_pullback(Δy) = (NoTangent(), x > 0 ? Float64(Δy) : Float32(Δy))
+                function f_noninferrable_pullback_pullback(Δy)
+                    return (NoTangent(), x > 0 ? Float64(Δy) : Float32(Δy))
+                end
                 return x, f_noninferrable_pullback_pullback
             end
-            test_rrule(f_noninferrable_pullback, 2.0; check_inferred = false)
+            test_rrule(f_noninferrable_pullback, 2.0; check_inferred=false)
             @test errors(
-                ()->test_rrule(f_noninferrable_pullback, 2.0),
-                "does not match inferred return type"
+                () -> test_rrule(f_noninferrable_pullback, 2.0),
+                "does not match inferred return type",
             )
         end
 
@@ -181,10 +185,10 @@ end
                 end
                 return x + y, f_noninferrable_thunk_pullback
             end
-            test_rrule(f_noninferrable_thunk, 2.0, 3.0; check_inferred = false)
+            test_rrule(f_noninferrable_thunk, 2.0, 3.0; check_inferred=false)
             @test errors(
-                ()->test_rrule(f_noninferrable_thunk, 2.0, 3.0),
-                "does not match inferred return type"
+                () -> test_rrule(f_noninferrable_thunk, 2.0, 3.0),
+                "does not match inferred return type",
             )
         end
 
@@ -196,8 +200,8 @@ end
                 f_inferrable_pullback_only_pullback(Δy) = (NoTangent(), oftype(x, Δy))
                 return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
             end
-            test_frule(f_inferrable_pullback_only, 2.0; check_inferred = true)
-            test_rrule(f_inferrable_pullback_only, 2.0; check_inferred = true)
+            test_frule(f_inferrable_pullback_only, 2.0; check_inferred=true)
+            test_rrule(f_inferrable_pullback_only, 2.0; check_inferred=true)
         end
     end
 
@@ -255,12 +259,11 @@ end
         end
     end
 
-
     @testset "tuple input: first" begin
         ChainRulesCore.frule((_, dx), ::typeof(first), xs::Tuple) = (first(xs), first(dx))
         function ChainRulesCore.rrule(::typeof(first), x::Tuple)
             function first_pullback(Δx)
-                return (NoTangent(), Tangent{typeof(x)}(Δx, falses(length(x)-1)...))
+                return (NoTangent(), Tangent{typeof(x)}(Δx, falses(length(x) - 1)...))
             end
             return first(x), first_pullback
         end
@@ -271,8 +274,8 @@ end
             test_frule(first, Tuple(randn(4)))
         end
         @testset "test_rrule" begin
-            test_rrule(first, (2.0, 3.0); check_inferred = false)
-            test_rrule(first, Tuple(randn(4)); check_inferred = false)
+            test_rrule(first, (2.0, 3.0); check_inferred=false)
+            test_rrule(first, Tuple(randn(4)); check_inferred=false)
         end
     end
 
@@ -306,19 +309,19 @@ end
     end
 
     @testset "unary with kwargs: futestkws(x; err)" begin
-        function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err = true)
-            return futestkws(x; err = err), ẋ
+        function ChainRulesCore.frule((_, ẋ), ::typeof(futestkws), x; err=true)
+            return futestkws(x; err=err), ẋ
         end
-        function ChainRulesCore.rrule(::typeof(futestkws), x; err = true)
+        function ChainRulesCore.rrule(::typeof(futestkws), x; err=true)
             function futestkws_pullback(Δx)
                 return (NoTangent(), Δx)
             end
-            return futestkws(x; err = err), futestkws_pullback
+            return futestkws(x; err=err), futestkws_pullback
         end
 
         # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException futestkws(randn())
-        @test errors(()->test_scalar(futestkws, randn()), "futestkws_err")
+        @test errors(() -> test_scalar(futestkws, randn()), "futestkws_err")
         @test_throws ErrorException frule((nothing, randn()), futestkws, randn())
         @test_throws ErrorException rrule(futestkws, randn())
 
@@ -327,45 +330,49 @@ end
         @test_throws ErrorException rrule(futestkws, randn(4))
 
         @testset "scalar_test" begin
-            test_scalar(futestkws, 2.5; fkwargs=(; err = false))
+            test_scalar(futestkws, 2.5; fkwargs=(; err=false))
         end
         @testset "test_frule" begin
-            test_frule(futestkws, 2.5; fkwargs=(; err = false))
-            test_frule(futestkws, 2.5; fkwargs=(; err = false))
+            test_frule(futestkws, 2.5; fkwargs=(; err=false))
+            test_frule(futestkws, 2.5; fkwargs=(; err=false))
         end
         @testset "test_rrule" begin
-            test_rrule(futestkws, 2.5; fkwargs=(; err = false))
-            test_rrule(futestkws, 2.5; fkwargs=(; err = false))
+            test_rrule(futestkws, 2.5; fkwargs=(; err=false))
+            test_rrule(futestkws, 2.5; fkwargs=(; err=false))
         end
     end
 
     @testset "binary with kwargs: fbtestkws(x, y; err)" begin
-        function ChainRulesCore.frule((_, ẋ, _), ::typeof(fbtestkws), x, y; err = true)
-            return fbtestkws(x, y; err = err), ẋ
+        function ChainRulesCore.frule((_, ẋ, _), ::typeof(fbtestkws), x, y; err=true)
+            return fbtestkws(x, y; err=err), ẋ
         end
-        function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err = true)
+        function ChainRulesCore.rrule(::typeof(fbtestkws), x, y; err=true)
             function fbtestkws_pullback(Δx)
                 return (NoTangent(), Δx, ZeroTangent())
             end
-            return fbtestkws(x, y; err = err), fbtestkws_pullback
+            return fbtestkws(x, y; err=err), fbtestkws_pullback
         end
 
         # we defined these functions at top of file to throw errors unless we pass `err=false`
         @test_throws ErrorException fbtestkws(randn(), randn())
-        @test_throws ErrorException frule((nothing, randn(), nothing), fbtestkws, randn(), randn())
+        @test_throws ErrorException frule(
+            (nothing, randn(), nothing), fbtestkws, randn(), randn()
+        )
         @test_throws ErrorException rrule(fbtestkws, randn(), randn())
 
         @test_throws ErrorException fbtestkws(randn(4), randn(4))
-        @test_throws ErrorException frule((nothing, randn(4), nothing), fbtestkws, randn(4), randn(4))
+        @test_throws ErrorException frule(
+            (nothing, randn(4), nothing), fbtestkws, randn(4), randn(4)
+        )
         @test_throws ErrorException rrule(fbtestkws, randn(4), randn(4))
 
         @testset "test_frule" begin
-            test_frule(fbtestkws, 2.5, 3.0; fkwargs=(; err = false))
-            test_frule(fbtestkws, randn(4), randn(4); fkwargs=(; err = false))
+            test_frule(fbtestkws, 2.5, 3.0; fkwargs=(; err=false))
+            test_frule(fbtestkws, randn(4), randn(4); fkwargs=(; err=false))
         end
         @testset "test_rrule" begin
-            test_rrule(fbtestkws, 2.5, 3.0; fkwargs=(; err = false))
-            test_rrule(fbtestkws, randn(4), randn(4); fkwargs=(; err = false))
+            test_rrule(fbtestkws, 2.5, 3.0; fkwargs=(; err=false))
+            test_rrule(fbtestkws, randn(4), randn(4); fkwargs=(; err=false))
         end
     end
 
@@ -379,26 +386,26 @@ end
             return x + sqrt(eps(x)), primalapprox_pullback
         end
 
-        test_frule(primalapprox, 2.5; atol = 1e-6)
-        test_rrule(primalapprox, 2.5; atol = 1e-6)
+        test_frule(primalapprox, 2.5; atol=1e-6)
+        test_rrule(primalapprox, 2.5; atol=1e-6)
     end
 
     @testset "frule with mutation" begin
-        function ChainRulesCore.frule((_, ẋ), ::typeof(finplace!), x; y = [1])
+        function ChainRulesCore.frule((_, ẋ), ::typeof(finplace!), x; y=[1])
             y[1] *= 2
             x .*= y[1]
-            ẋ .*= 2 # hardcoded to match y defined below
-            return x, ẋ
+            ẋ .*= 2 # hardcoded to match y defined below
+            return x, ẋ
         end
 
         # these pass in tangents explictly so that we can check them after
         x = randn(3)
-        ẋ = [4.0, 5.0, 6.0]
-        xcopy, ẋcopy = copy(x), copy(ẋ)
+        ẋ = [4.0, 5.0, 6.0]
+        xcopy, ẋcopy = copy(x), copy(ẋ)
         y = [1, 2]
-        test_frule(finplace!, x⊢ẋ; fkwargs=(y = y,))
+        test_frule(finplace!, x ⊢ ẋ; fkwargs=(y=y,))
         @test x == xcopy
-        @test ẋ == ẋcopy
+        @test ẋ == ẋcopy
         @test y == [1, 2]
     end
 
@@ -441,9 +448,7 @@ end
                 data = iter.data
                 ∂data = (2 * Δs) .* conj.(data)
                 ∂iter = TestIterator(
-                    ∂data,
-                    Base.IteratorSize(iter),
-                    Base.IteratorEltype(iter),
+                    ∂data, Base.IteratorSize(iter), Base.IteratorEltype(iter)
                 )
                 return (NoTangent(), ∂iter)
             end
@@ -471,8 +476,8 @@ end
                 return 2.5 * x, identity_pullback
             end
 
-            @test fails(()->test_frule(my_identity1, 2.2))
-            @test fails(()->test_rrule(my_identity1, 2.2))
+            @test fails(() -> test_frule(my_identity1, 2.2))
+            @test fails(() -> test_rrule(my_identity1, 2.2))
         end
 
         @testset "derivative wrong" begin
@@ -487,24 +492,23 @@ end
                 return x, identity_pullback
             end
 
-            @test fails(()->test_frule(my_identity2, 2.2))
-            @test fails(()->test_rrule(my_identity2, 2.2))
+            @test fails(() -> test_frule(my_identity2, 2.2))
+            @test fails(() -> test_rrule(my_identity2, 2.2))
         end
     end
 
-
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
-        forwards_trouble(x) = (1, 2.0*x)
+        forwards_trouble(x) = (1, 2.0 * x)
         @scalar_rule(forwards_trouble(v), ZeroTangent(), 2.0)
         test_frule(forwards_trouble, 2.5)
 
-        rev_trouble((x,y)) = y
-        function ChainRulesCore.rrule(::typeof(rev_trouble), (x,y)::P) where P
+        rev_trouble((x, y)) = y
+        function ChainRulesCore.rrule(::typeof(rev_trouble), (x, y)::P) where {P}
             rev_trouble_pullback(ȳ) = (NoTangent(), Tangent{P}(ZeroTangent(), ȳ))
             return y, rev_trouble_pullback
         end
-        test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int, Float64}}(ZeroTangent(), 1.0))
+        test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int,Float64}}(ZeroTangent(), 1.0))
     end
 
     @testset "error message about incorrectly using ZeroTangent()" begin

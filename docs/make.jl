@@ -1,10 +1,9 @@
 using ChainRulesTestUtils
 using Documenter
 
-
-makedocs(
+makedocs(;
     modules=[ChainRulesTestUtils],
-    format=Documenter.HTML(prettyurls=false, assets=["assets/chainrules.css"]),
+    format=Documenter.HTML(; prettyurls=false, assets=["assets/chainrules.css"]),
     sitename="ChainRulesTestUtils",
     authors="JuliaDiff contributors",
     strict=true,
@@ -12,7 +11,4 @@ makedocs(
 )
 
 const repo = "github.com/JuliaDiff/ChainRulesTestUtils.jl.git"
-deploydocs(
-    repo=repo,
-    push_preview=true,
-)
+deploydocs(; repo=repo, push_preview=true)

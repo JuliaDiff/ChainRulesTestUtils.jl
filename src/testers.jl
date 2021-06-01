@@ -60,12 +60,11 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
             Δv = one(Ω) * im
             @testset "with cotangent $Δv" begin
                 # check ∂v_∂x and (if z is complex) ∂v_∂y via reverse mode
-                test_rrule(f, z ⊢ Δx; output_tangent=Δv,  rule_test_kwargs...)
+                test_rrule(f, z ⊢ Δx; output_tangent=Δv, rule_test_kwargs...)
             end
         end
     end  # top-level testset
 end
-
 
 """
     test_frule(f, inputs...; kwargs...)
@@ -87,12 +86,15 @@ end
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(
-    f, inputs...;
+    f,
+    inputs...;
     output_tangent=Auto(),
     fdm=_fdm,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
-    rtol::Real=1e-9, atol::Real=1e-9, kwargs...
+    rtol::Real=1e-9,
+    atol::Real=1e-9,
+    kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
@@ -114,12 +116,12 @@ function test_frule(
         check_equal(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        ẋs_is_ignored = isa.(ẋs, Union{Nothing, NoTangent})
+        ẋs_is_ignored = isa.(ẋs, Union{Nothing,NoTangent})
         if any(ẋs .== nothing)
             Base.depwarn(
                 "test_frule(f, k ⊢ nothing) is deprecated, use " *
                 "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_frule
+                :test_frule,
             )
         end
 
@@ -131,8 +133,6 @@ function test_frule(
         _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
     end  # top-level testset
 end
-
-
 
 """
     test_rrule(f, inputs...; kwargs...)
@@ -154,12 +154,15 @@ end
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(
-    f, inputs...;
+    f,
+    inputs...;
     output_tangent=Auto(),
     fdm=_fdm,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
-    rtol::Real=1e-9, atol::Real=1e-9, kwargs...
+    rtol::Real=1e-9,
+    atol::Real=1e-9,
+    kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
@@ -191,22 +194,22 @@ function test_rrule(
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing, NoTangent})
+        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing,NoTangent})
         if any(accumulated_x̄ .== nothing)
             Base.depwarn(
                 "test_rrule(f, k ⊢ nothing) is deprecated, use " *
                 "test_rrule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_rrule
+                :test_rrule,
             )
         end
 
         x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ isa Union{Nothing, NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
+            if accumulated_x̄ isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
                 x̄_ad isa ZeroTangent && error(
                     "The pullback in the rrule for $f function should use NoTangent()" *
-                    " rather than ZeroTangent() for non-perturbable arguments."
+                    " rather than ZeroTangent() for non-perturbable arguments.",
                 )
                 @test x̄_ad isa NoTangent  # we said it wasn't differentiable.
             else
@@ -224,8 +227,8 @@ end
 
 function check_thunking_is_appropriate(x̄s)
     @testset "Don't thunk only non_zero argument" begin
-        num_zeros = count(x->x isa AbstractZero, x̄s)
-        num_thunks = count(x->x isa Thunk, x̄s)
+        num_zeros = count(x -> x isa AbstractZero, x̄s)
+        num_thunks = count(x -> x isa Thunk, x̄s)
         if num_zeros + num_thunks == length(x̄s)
             @test num_thunks !== 1
         end
@@ -235,12 +238,10 @@ end
 function _ensure_not_running_on_functor(f, name)
     # if x itself is a Type, then it is a constructor, thus not a functor.
     # This also catchs UnionAll constructors which have a `:var` and `:body` fields
-    f isa Type && return
+    f isa Type && return nothing
 
     if fieldcount(typeof(f)) > 0
-        throw(ArgumentError(
-            "$name cannot be used on closures/functors (such as $f)"
-        ))
+        throw(ArgumentError("$name cannot be used on closures/functors (such as $f)"))
     end
 end
 
