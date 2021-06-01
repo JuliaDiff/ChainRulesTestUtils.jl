@@ -17,9 +17,12 @@ export TestIterator
 export check_equal, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
 export ⊢
 
+
 include("generate_tangent.jl")
 include("data_generation.jl")
 include("iterator.jl")
+
+include("output_control.jl")
 include("check_result.jl")
 
 include("finite_difference_calls.jl")
