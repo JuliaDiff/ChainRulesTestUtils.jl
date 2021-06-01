@@ -32,7 +32,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
                 # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
                 _, real_tangent = frule((ZeroTangent(), real(Δx)), f, z; fkwargs...)
                 _, embedded_tangent = frule((ZeroTangent(), Δx), f, z; fkwargs...)
-                check_equal(real_tangent, embedded_tangent; isapprox_kwargs...)
+                test_approx(real_tangent, embedded_tangent; isapprox_kwargs...)
             end
         end
         if z isa Complex
@@ -53,7 +53,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
                 _, back = rrule(f, z)
                 _, real_cotangent = back(real(Δu))
                 _, embedded_cotangent = back(Δu)
-                check_equal(real_cotangent, embedded_cotangent; isapprox_kwargs...)
+                test_approx(real_cotangent, embedded_cotangent; isapprox_kwargs...)
             end
         end
         if Ω isa Complex
@@ -113,7 +113,7 @@ function test_frule(
         res isa Tuple || error("The frule should return (y, ∂y), not $res.")
         Ω_ad, dΩ_ad = res
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
-        check_equal(Ω_ad, Ω; isapprox_kwargs...)
+        test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
         ẋs_is_ignored = isa.(ẋs, Union{Nothing,NoTangent})
@@ -127,10 +127,10 @@ function test_frule(
 
         # Correctness testing via finite differencing.
         dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
-        check_equal(dΩ_ad, dΩ_fd; isapprox_kwargs...)
+        test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
-        _check_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
+        _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
     end  # top-level testset
 end
 
@@ -181,7 +181,7 @@ function test_rrule(
         res === nothing && throw(MethodError(rrule, typeof((f, xs...))))
         y_ad, pullback = res
         y = f(xs...; fkwargs...)
-        check_equal(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+        test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
@@ -216,8 +216,8 @@ function test_rrule(
                 x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
 
                 # The main test of the actual deriviative being correct:
-                check_equal(x̄_ad, x̄_fd; isapprox_kwargs...)
-                _check_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
+                test_approx(x̄_ad, x̄_fd; isapprox_kwargs...)
+                _test_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
             end
         end
 
