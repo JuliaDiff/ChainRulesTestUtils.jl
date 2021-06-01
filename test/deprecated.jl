@@ -241,4 +241,8 @@ end
             )
         end
     end
+
+    @testset "check_equal" begin
+        @test check_equal == test_approx
+    end
 end
