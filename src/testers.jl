@@ -245,6 +245,17 @@ function _ensure_not_running_on_functor(f, name)
 end
 
 """
+    @maybe_inferred f(...)
+
+Like `@inferred`, but does not check the return type if tests are run as part of PkgEval or
+if the environment variable `CHAINRULES_TEST_INFERRED` is set to `false`.
+"""
+macro maybe_inferred(ex)
+    inferred = Expr(:macrocall, GlobalRef(Test, Symbol("@inferred")), __source__, ex)
+    return :(TEST_INFERRED[] ? $(esc(inferred)) : $(esc(ex)))
+end
+
+"""
     _test_inferred(f, args...; kwargs...)
 
 Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
@@ -252,9 +263,9 @@ knowing how many `kwargs` there are.
 """
 function _test_inferred(f, args...; kwargs...)
     if isempty(kwargs)
-        @inferred f(args...)
+        @maybe_inferred f(args...)
     else
-        @inferred f(args...; kwargs...)
+        @maybe_inferred f(args...; kwargs...)
     end
 end
 

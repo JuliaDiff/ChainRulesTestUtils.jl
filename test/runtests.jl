@@ -5,6 +5,9 @@ using LinearAlgebra
 using Random
 using Test
 
+# in these meta tests, we always want to use `@inferred`
+ChainRulesTestUtils.TEST_INFERRED[] = true
+
 @testset "ChainRulesTestUtils.jl" begin
     include("meta_testing_tools.jl")
     include("iterator.jl")
