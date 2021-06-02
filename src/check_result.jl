@@ -24,6 +24,13 @@ function test_approx(
     @test_msg msg isapprox(actual, expected; kwargs...)
 end
 
+# Comparing eigen factoriztions is tricky, because the order and normalization of eigen 
+# vectors is not unique. Therefore we just calculate the original matrix and compare that
+# instead.
+function test_approx(actual::Eigen, expected::Eigen, msg=""; kwargs...)
+    return test_approx(Matrix(actual), Matrix(expected), msg; kwargs...)
+end
+
 for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
     @eval function test_approx(actual::$T1, expected::$T2, msg=""; kwargs...)
         return test_approx(unthunk(actual), unthunk(expected), msg; kwargs...)

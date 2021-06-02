@@ -75,6 +75,8 @@ end
                 FakeNaturalDiffWithIsApprox(1.4),
                 Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
             )
+
+            test_approx(eigen([1 0; 0 3]), eigen([1 1e-9; 1e-8 3]))
         end
         @testset "negative case" begin
             @test fails(() -> test_approx(1.0, 2.0))
@@ -90,6 +92,8 @@ end
             @test fails(() -> test_approx(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
 
             @test fails(() -> test_approx(@not_implemented("a"), @not_implemented("b")))
+
+            @test fails(() -> test_approx(eigen([1 0; 0 3]), eigen([1 1e-9; 1e-8 4])))
         end
         @testset "type negative" begin
             @test fails() do  # these have different primals so should not be equal
