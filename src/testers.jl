@@ -158,6 +158,7 @@ function test_rrule(
     inputs...;
     output_tangent=Auto(),
     fdm=_fdm,
+    rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -175,10 +176,10 @@ function test_rrule(
         xs = primal.(xx̄s)
         accumulated_x̄ = tangent.(xx̄s)
         if check_inferred && _is_inferrable(f, xs...; fkwargs...)
-            _test_inferred(rrule, f, xs...; fkwargs...)
+            _test_inferred(rrule_f, f, xs...; fkwargs...)
         end
-        res = rrule(f, xs...; fkwargs...)
-        res === nothing && throw(MethodError(rrule, typeof((f, xs...))))
+        res = rrule_f(f, xs...; fkwargs...)
+        res === nothing && throw(MethodError(rrule_f, typeof((f, xs...))))
         y_ad, pullback = res
         y = f(xs...; fkwargs...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
