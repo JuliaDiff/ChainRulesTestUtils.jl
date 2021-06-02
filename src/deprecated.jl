@@ -1,5 +1,4 @@
 # TODO remove these in version 0.7
-# We are silently deprecating them as there is no alternative we are providing
 
 function Base.isapprox(a, b::Union{AbstractZero,AbstractThunk}; kwargs...)
     Base.depwarn(
