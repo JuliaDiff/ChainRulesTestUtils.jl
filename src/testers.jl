@@ -80,6 +80,8 @@ end
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+   - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
+     `frule`). Used for testing gradients from AD systems.
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
@@ -90,6 +92,7 @@ function test_frule(
     inputs...;
     output_tangent=Auto(),
     fdm=_fdm,
+    frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -106,10 +109,10 @@ function test_frule(
         xs = primal.(xẋs)
         ẋs = tangent.(xẋs)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, (NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+            _test_inferred(frule_f, (NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         end
-        res = frule((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
-        res === nothing && throw(MethodError(frule, typeof((f, xs...))))
+        res = frule_f((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+        res === nothing && throw(MethodError(frule_f, typeof((f, xs...))))
         res isa Tuple || error("The frule should return (y, ∂y), not $res.")
         Ω_ad, dΩ_ad = res
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
@@ -138,7 +141,7 @@ end
     test_rrule(f, inputs...; kwargs...)
 
 # Arguments
-- `f`: Function to which rule should be applied.
+- `f`: Function to which the rrule should be applied.
 - `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
@@ -148,6 +151,8 @@ end
  - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+ - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
+   Used for testing gradients from AD systems.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
