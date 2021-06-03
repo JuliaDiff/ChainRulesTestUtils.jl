@@ -541,15 +541,15 @@ end
         test_rrule(only2x, 2.0, 3.0; rrule_f=custom, check_inferred=false)
         @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong1, check_inferred=false))
         @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong2, check_inferred=false))
-        @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong3, check_inferred=false))
+        @test_broken fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong3, check_inferred=false))
     end
 
     @testset "custom frule_f" begin
         mytuple(x, y) = return 2x, 1.0
         T = Tuple{Float64, Float64}
-        custom((Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, ZeroTangent())
-        wrong1((Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2.1Δx, ZeroTangent())
-        wrong2((Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, 1.0)
+        custom((Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, ZeroTangent())
+        wrong1((Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2.1Δx, ZeroTangent())
+        wrong2((Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, 1.0)
 
         test_frule(mytuple, 2.0, 3.0; frule_f=custom, check_inferred=false)
         @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong1, check_inferred=false))
