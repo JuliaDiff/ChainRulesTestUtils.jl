@@ -110,8 +110,8 @@ function test_frule(
         end
         res = frule((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule, typeof((f, xs...))))
-        res isa Tuple || error("The frule should return (y, ∂y), not $res.")
-        @test_msg "frule should return (y, ∂y), not $res" length(res) == 2
+        msg = "The frule should return (y, ∂y), not $res."
+        @test_msg msg res isa Tuple && length(res) == 2
         Ω_ad, dΩ_ad = res
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
