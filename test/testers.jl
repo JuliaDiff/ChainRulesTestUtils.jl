@@ -501,12 +501,10 @@ end
 
             function ChainRulesCore.frule((_, ẋ, ẏ), ::typeof(foo), x, y)
                 return foo(x, y), ẋ + 2ẏ, NoTangent() # extra derivative
-                #return foo(x, y), ẋ + 2ẏ # correct expression
             end
 
             function ChainRulesCore.rrule(::typeof(foo), x, y)
                 foo_pullback(dz) = NoTangent(), dz # missing derivative
-                #foo_pullback(dz) = NoTangent(), dz, 2dz # correct expression
                 return foo(x,y), foo_pullback
             end
 

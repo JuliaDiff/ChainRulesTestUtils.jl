@@ -67,11 +67,11 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    test_frule(f, inputs...; kwargs...)
+    test_frule(f, args..; kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
-- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
+- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
    Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
@@ -87,7 +87,7 @@ end
 """
 function test_frule(
     f,
-    inputs...;
+    args...;
     output_tangent=Auto(),
     fdm=_fdm,
     check_inferred::Bool=true,
@@ -99,10 +99,10 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_frule: $f on $(_string_typeof(inputs))" begin
+    @testset "test_frule: $f on $(_string_typeof(args))" begin
         _ensure_not_running_on_functor(f, "test_frule")
 
-        xẋs = auto_primal_and_tangent.(inputs)
+        xẋs = auto_primal_and_tangent.(args)
         xs = primal.(xẋs)
         ẋs = tangent.(xẋs)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
@@ -110,8 +110,7 @@ function test_frule(
         end
         res = frule((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule, typeof((f, xs...))))
-        msg = "The frule should return (y, ∂y), not $res."
-        @test_msg msg res isa Tuple && length(res) == 2
+        @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
@@ -136,11 +135,11 @@ function test_frule(
 end
 
 """
-    test_rrule(f, inputs...; kwargs...)
+    test_rrule(f, args...; kwargs...)
 
 # Arguments
 - `f`: Function to which rule should be applied.
-- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
+- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
     Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
@@ -156,7 +155,7 @@ end
 """
 function test_rrule(
     f,
-    inputs...;
+    args...;
     output_tangent=Auto(),
     fdm=_fdm,
     check_inferred::Bool=true,
@@ -168,11 +167,11 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_rrule: $f on $(_string_typeof(inputs))" begin
+    @testset "test_rrule: $f on $(_string_typeof(args))" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
         # Check correctness of evaluation.
-        xx̄s = auto_primal_and_tangent.(inputs)
+        xx̄s = auto_primal_and_tangent.(args)
         xs = primal.(xx̄s)
         accumulated_x̄ = tangent.(xx̄s)
         if check_inferred && _is_inferrable(f, xs...; fkwargs...)
@@ -192,9 +191,8 @@ function test_rrule(
         ∂self = ∂s[1]
         x̄s_ad = ∂s[2:end]
         @test ∂self === NoTangent()  # No internal fields
-        msg = "The pullback must return `(∂self, ∂args...)`, where `length(∂args) == " *
-            "length(args)`, and `args` are the arguments of the primal function."
-        @test_msg msg length(x̄s_ad) == length(inputs)
+        msg = "The pullback should return 1 cotangent for each primal input."
+        @test_msg msg length(x̄s_ad) == length(args)
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
