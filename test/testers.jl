@@ -495,6 +495,24 @@ end
             @test fails(() -> test_frule(my_identity2, 2.2))
             @test fails(() -> test_rrule(my_identity2, 2.2))
         end
+
+        @testset "wrong number of outputs #167" begin
+            foo(x, y) = x + 2y
+
+            function ChainRulesCore.frule((_, ẋ, ẏ), ::typeof(foo), x, y)
+                return foo(x, y), ẋ + 2ẏ, NoTangent() # extra derivative
+                #return foo(x, y), ẋ + 2ẏ # correct expression
+            end
+
+            function ChainRulesCore.rrule(::typeof(foo), x, y)
+                foo_pullback(dz) = NoTangent(), dz # missing derivative
+                #foo_pullback(dz) = NoTangent(), dz, 2dz # correct expression
+                return foo(x,y), foo_pullback
+            end
+
+            @test fails(() -> test_frule(foo, 2.1, 2.1))
+            @test fails(() -> test_rrule(foo, 21.0, 32.0))
+        end
     end
 
     @testset "Tuple primal that is not equal to differential backing" begin
