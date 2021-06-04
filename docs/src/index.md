@@ -60,7 +60,7 @@ julia> using ChainRulesTestUtils;
 
 julia> test_frule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total
-test_frule: two2three on Float64,Float64 |    6      6
+test_frule: two2three on Float64,Float64 |    5      5
 ```
 
 ### Testing the `rrule`
@@ -71,7 +71,7 @@ The call will test the `rrule` for function `f` at the point `x`, and similarly 
 ```jldoctest ex; output = false
 julia> test_rrule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total
-test_rrule: two2three on Float64,Float64 |    7      7
+test_rrule: two2three on Float64,Float64 |    6      6
 ```
 
 ## Scalar example
@@ -98,11 +98,11 @@ call.
 ```jldoctest ex; output = false
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total
-test_scalar: relu at 0.5 |    9      9
+test_scalar: relu at 0.5 |    7      7
 
 julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total
-test_scalar: relu at -0.5 |    9      9
+test_scalar: relu at -0.5 |    7      7
 ```
 
 ## Specifying Tangents
