@@ -67,14 +67,14 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    test_frule(f, inputs...; kwargs...)
+    test_frule(f, args..; kwargs...)
 
 # Arguments
 - `f`: Function for which the `frule` should be tested.
-- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
+- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
+   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
@@ -89,7 +89,7 @@ end
 """
 function test_frule(
     f,
-    inputs...;
+    args...;
     output_tangent=Auto(),
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
@@ -102,25 +102,25 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_frule: $f on $(_string_typeof(inputs))" begin
+    @testset "test_frule: $f on $(_string_typeof(args))" begin
         _ensure_not_running_on_functor(f, "test_frule")
 
-        xẋs = auto_primal_and_tangent.(inputs)
-        xs = primal.(xẋs)
-        ẋs = tangent.(xẋs)
+        xẋs = auto_primal_and_tangent.(args)
+        xs = primal.(xẋs)
+        ẋs = tangent.(xẋs)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
             _test_inferred(frule_f, (NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         end
         res = frule_f((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule_f, typeof((f, xs...))))
-        res isa Tuple || error("The frule should return (y, ∂y), not $res.")
+        @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
         Ω = f(deepcopy(xs)...; deepcopy(fkwargs)...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        ẋs_is_ignored = isa.(ẋs, Union{Nothing,NoTangent})
-        if any(ẋs .== nothing)
+        ẋs_is_ignored = isa.(ẋs, Union{Nothing,NoTangent})
+        if any(ẋs .== nothing)
             Base.depwarn(
                 "test_frule(f, k ⊢ nothing) is deprecated, use " *
                 "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
@@ -129,7 +129,7 @@ function test_frule(
         end
 
         # Correctness testing via finite differencing.
-        dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
+        dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
@@ -138,11 +138,11 @@ function test_frule(
 end
 
 """
-    test_rrule(f, inputs...; kwargs...)
+    test_rrule(f, args...; kwargs...)
 
 # Arguments
 - `f`: Function to which the rrule should be applied.
-- `inputs` either the primal inputs `x`, or primals and their tangents: `x ⊢ ẋ`
+- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
     Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
@@ -160,7 +160,7 @@ end
 """
 function test_rrule(
     f,
-    inputs...;
+    args...;
     output_tangent=Auto(),
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
@@ -173,11 +173,11 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
-    @testset "test_rrule: $f on $(_string_typeof(inputs))" begin
+    @testset "test_rrule: $f on $(_string_typeof(args))" begin
         _ensure_not_running_on_functor(f, "test_rrule")
 
         # Check correctness of evaluation.
-        xx̄s = auto_primal_and_tangent.(inputs)
+        xx̄s = auto_primal_and_tangent.(args)
         xs = primal.(xx̄s)
         accumulated_x̄ = tangent.(xx̄s)
         if check_inferred && _is_inferrable(f, xs...; fkwargs...)
@@ -189,14 +189,16 @@ function test_rrule(
         y = f(xs...; fkwargs...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
-        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
+        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
-        check_inferred && _test_inferred(pullback, ȳ)
-        ∂s = pullback(ȳ)
+        check_inferred && _test_inferred(pullback, ȳ)
+        ∂s = pullback(ȳ)
         ∂s isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
         ∂self = ∂s[1]
         x̄s_ad = ∂s[2:end]
         @test ∂self === NoTangent()  # No internal fields
+        msg = "The pullback should return 1 cotangent for each primal input."
+        @test_msg msg length(x̄s_ad) == length(args)
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
@@ -209,7 +211,7 @@ function test_rrule(
             )
         end
 
-        x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
+        x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
         for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
             if accumulated_x̄ isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
