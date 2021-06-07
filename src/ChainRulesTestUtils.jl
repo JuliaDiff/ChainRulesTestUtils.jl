@@ -20,8 +20,11 @@ export ⊢
 export @maybe_inferred
 
 function __init__()
-    TEST_INFERRED[] = !parse(Bool, get(ENV, "JULIA_PKGEVAL", "false")) &&
-        parse(Bool, get(ENV, "CHAINRULES_TEST_INFERRED", "true"))
+    TEST_INFERRED[] = if haskey(ENV, "CHAINRULES_TEST_INFERRED")
+        parse(Bool, "CHAINRULES_TEST_INFERRED")
+    else
+        !parse(Bool, get(ENV, "JULIA_PKGEVAL", "false"))
+    end
 
     !TEST_INFERRED[] && @warn "inference tests have been disabled"
 end
