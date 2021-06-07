@@ -170,8 +170,8 @@ This can be disabled on a per-rule basis using the `check_inferred` keyword argu
 ```jldoctest ex
 julia> test_rrule(abs, 1.; check_inferred=false)
 Test Summary:              | Pass  Total
-test_rrule: abs on Float64 |    4      4
-Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 4, false, false)
+test_rrule: abs on Float64 |    5      5
+Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
 ```
 
 This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
