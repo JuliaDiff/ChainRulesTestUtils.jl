@@ -147,6 +147,36 @@ Test Failed at REPL[52]:1
 ERROR: There was an error during testing
 ```
 which should have passed the test.
+
+## Inference tests
+
+By default, all functions for testing rules check whether the output type (as well as that of the pullback for `rrule`s) can be completely inferred, such that everything is type stable:
+
+```jldoctest ex
+julia> function ChainRulesCore.rrule(::typeof(abs), x)
+           abs_pullback(Δ) = (NoTangent(), x >= 0 ? Δ : big(-1.0) * Δ)
+           return abs(x), abs_pullback
+       end
+
+julia> test_rrule(abs, 1.)
+test_rrule: abs on Float64: Error During Test at /home/runner/work/ChainRulesTestUtils.jl/ChainRulesTestUtils.jl/src/testers.jl:170
+  Got exception outside of a @test
+  return type Tuple{ChainRulesCore.NoTangent, Float64} does not match inferred return type Tuple{ChainRulesCore.NoTangent, Union{Float64, BigFloat}}
+[...]
+```
+
+This can be disabled on a per-rule basis using the `check_inferred` keyword argument:
+
+```jldoctest ex
+julia> test_rrule(abs, 1.; check_inferred=false)
+Test Summary:              | Pass  Total
+test_rrule: abs on Float64 |    5      5
+Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
+```
+
+This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
+ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl)and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
+
 # API Documentation
 
 ```@autodocs
