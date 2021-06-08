@@ -246,16 +246,6 @@ function check_thunking_is_appropriate(x̄s)
     end
 end
 
-function _ensure_not_running_on_functor(f, name)
-    # if x itself is a Type, then it is a constructor, thus not a functor.
-    # This also catchs UnionAll constructors which have a `:var` and `:body` fields
-    f isa Type && return nothing
-
-    if fieldcount(typeof(f)) > 0
-        throw(ArgumentError("$name cannot be used on closures/functors (such as $f)"))
-    end
-end
-
 """
     _test_inferred(f, args...; kwargs...)
 
