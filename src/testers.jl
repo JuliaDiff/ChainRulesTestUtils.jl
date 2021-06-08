@@ -206,9 +206,17 @@ function test_rrule(
             )
         end
 
-        fd_cotangents = _make_j′vp_call(fdm, (f, xs...) -> f(xs...; fkwargs...), ȳ, (f, xs...), is_ignored)
+        fd_cotangents = _make_j′vp_call(
+            fdm,
+            (f, xs...) -> f(xs...; fkwargs...),
+            ȳ,
+            (f, xs...),
+            is_ignored
+        )
 
-        for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(accum_cotangents, ad_cotangents, fd_cotangents)
+        for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
+            accum_cotangents, ad_cotangents, fd_cotangents
+        )
             if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
                 ad_cotangent isa ZeroTangent && error(
@@ -219,7 +227,7 @@ function test_rrule(
             else
                 ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 
-                # The main test of the actual deriviative being correct:
+                # The main test of the actual derivative being correct:
                 test_approx(ad_cotangent, fd_cotangent; isapprox_kwargs...)
                 _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
