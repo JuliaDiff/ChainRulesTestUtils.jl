@@ -105,6 +105,29 @@ Test Summary:             | Pass  Total
 test_scalar: relu at -0.5 |    9      9
 ```
 
+## Testing constructors and functors (callable objects)
+
+Testing constructor and functors works as you would expect. For struct `Foo`
+```julia
+struct Foo
+    a::Float64
+end
+(f::Foo)(x) = return f.a + x
+Base.length(::Foo) = 1
+Base.iterate(f::Foo) = iterate(f.a)
+Base.iterate(f::Foo, state) = iterate(f.a, state)
+```
+the `f/rrule`s can be tested by
+```julia
+test_rrule(Foo, rand()) # constructor
+
+foo = Foo(rand())
+test_rrule(foo, rand()) # functor
+
+# it is also possible to provide tangents for `foo` explicitly
+test_frule(foo ⊢ Tangent{Foo}(;a=rand()), rand())
+```
+
 ## Specifying Tangents
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.

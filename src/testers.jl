@@ -70,7 +70,7 @@ end
     test_frule(f, args..; kwargs...)
 
 # Arguments
-- `f`: Function for which the `frule` should be tested.
+- `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
@@ -149,8 +149,8 @@ end
     test_rrule(f, args...; kwargs...)
 
 # Arguments
-- `f`: Function to which rule should be applied.
-- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
+- `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
+- `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
     Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
