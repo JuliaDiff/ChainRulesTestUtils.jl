@@ -24,7 +24,7 @@ end
 struct Foo
     a::Float64
 end
-(f::Foo)(x, y) = return f.a + x + y
+(f::Foo)(x) = return f.a + x
 Base.length(::Foo) = 1
 Base.iterate(f::Foo) = iterate(f.a)
 Base.iterate(f::Foo, state) = iterate(f.a, state)
@@ -37,20 +37,20 @@ function ChainRulesCore.rrule(::Type{Foo}, a)
     end
     return foo, Foo_pullback
 end
-function ChainRulesCore.frule((_, Δy), ::Type{Foo}, y)
-    return Foo(y), Foo(Δy)
+function ChainRulesCore.frule((_, Δa), ::Type{Foo}, a)
+    return Foo(a), Foo(Δa)
 end
 
 # functor
-function ChainRulesCore.rrule(f::Foo, x, y)
-    y = f(x, y)
+function ChainRulesCore.rrule(f::Foo, x)
+    y = f(x)
     function Foo_pullback(Δy)
-        return Tangent{Foo}(;a=Δy), Δy, Δy
+        return Tangent{Foo}(;a=Δy), Δy
     end
     return y, Foo_pullback
 end
-function ChainRulesCore.frule((Δf, Δx, Δy), f::Foo, x, y)
-    return f(x, y), Δf.a + Δx + Δy
+function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
+    return f(x), Δf.a + Δx
 end
 
 @testset "testers.jl" begin
@@ -547,12 +547,15 @@ end
 
     @testset "structs" begin
         @testset "constructor" begin
-            test_rrule(Foo, 1.1)
+            test_frule(Foo, rand())
+            test_rrule(Foo, rand())
         end
 
-        foo = Foo(2.1)
+        foo = Foo(rand())
         @testset "functor" begin
-            test_rrule(foo, 2.1, 3.2)
+            test_frule(foo, rand())
+            test_rrule(foo, rand())
+            test_scalar(foo, rand())
         end
     end
 

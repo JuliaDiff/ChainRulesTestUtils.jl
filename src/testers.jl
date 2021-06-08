@@ -18,7 +18,6 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     @testset "test_scalar: $f at $z" begin
-        _ensure_not_running_on_functor(f, "test_scalar")
         # z = x + im * y
         # Ω = u(x, y) + im * v(x, y)
         Ω = f(z; fkwargs...)
@@ -30,8 +29,9 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
             test_frule(f, z ⊢ Δx; rule_test_kwargs...)
             if z isa Complex
                 # check that same tangent is produced for tangent 1.0 and 1.0 + 0.0im
-                _, real_tangent = frule((ZeroTangent(), real(Δx)), f, z; fkwargs...)
-                _, embedded_tangent = frule((ZeroTangent(), Δx), f, z; fkwargs...)
+                ḟ = rand_tangent(f)
+                _, real_tangent = frule((ḟ, real(Δx)), f, z; fkwargs...)
+                _, embedded_tangent = frule((ḟ, Δx), f, z; fkwargs...)
                 test_approx(real_tangent, embedded_tangent; isapprox_kwargs...)
             end
         end
