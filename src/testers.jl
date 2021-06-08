@@ -104,7 +104,7 @@ function test_frule(
         xs = primal.(xẋs)
         tangents = (rand_tangent(f), tangent.(xẋs)...)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, (deepcopy(tangents)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+            _test_inferred(frule, (deepcopy(tangents)...,), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         end
         res = frule(deepcopy(tangents), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule, typeof((f, xs...))))
