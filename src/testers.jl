@@ -130,14 +130,7 @@ function test_frule(
         end
 
         # Correctness testing via finite differencing.
-        dΩ_fd = _make_jvp_call(
-            fdm,
-            (f, xs...) -> call_on_copy(f, xs...),
-            Ω,
-            primals,
-            tangents,
-            is_ignored
-        )
+        dΩ_fd = _make_jvp_call(fdm, call_on_copy, Ω, primals, tangents, is_ignored)
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
@@ -178,12 +171,14 @@ function test_rrule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
+    # and define helper closure over fkwargs
+    call(f, xs...) = f(xs...; fkwargs...)
+
     @testset "test_rrule: $f on $(_string_typeof(args))" begin
 
         # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
         primals = primal.(primals_and_tangents)
-        func, xs = Iterators.peel(primals)
         accum_cotangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(primals...; fkwargs...)
@@ -192,7 +187,7 @@ function test_rrule(
         res = rrule(primals...; fkwargs...)
         res === nothing && throw(MethodError(rrule, typeof((primals...))))
         y_ad, pullback = res
-        y = func(xs...; fkwargs...)
+        y = call(primals...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
@@ -214,13 +209,7 @@ function test_rrule(
             )
         end
 
-        fd_cotangents = _make_j′vp_call(
-            fdm,
-            (f, xs...) -> f(xs...; fkwargs...),
-            ȳ,
-            primals,
-            is_ignored
-        )
+        fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
 
         for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
             accum_cotangents, ad_cotangents, fd_cotangents
