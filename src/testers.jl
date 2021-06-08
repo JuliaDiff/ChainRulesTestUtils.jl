@@ -150,7 +150,7 @@ end
     Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
 
 # Keyword Arguments
- - `output_tangent` the seed to propagate backward for testing (techncally a cotangent).
+ - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
