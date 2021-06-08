@@ -99,21 +99,24 @@ function test_frule(
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
+    # and define a helper closure
+    call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...)
+
     @testset "test_frule: $f on $(_string_typeof(args))" begin
 
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
-        func, xs = Iterators.peel(primal.(primals_and_tangents))
+        primals = primal.(primals_and_tangents)
         tangents = tangent.(primals_and_tangents)
 
-        if check_inferred && _is_inferrable(func, deepcopy(xs)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, (deepcopy(tangents)...,), func, deepcopy(xs)...; deepcopy(fkwargs)...)
+        if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
+            _test_inferred(frule, deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        res = frule(deepcopy(tangents), func, deepcopy(xs)...; deepcopy(fkwargs)...)
-        res === nothing && throw(MethodError(frule, typeof((func, xs...))))
+        res = frule(deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        res === nothing && throw(MethodError(frule, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
-        Ω = func(deepcopy(xs)...; deepcopy(fkwargs)...)
+        Ω = call_on_copy(primals...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
@@ -129,9 +132,9 @@ function test_frule(
         # Correctness testing via finite differencing.
         dΩ_fd = _make_jvp_call(
             fdm,
-            (f, xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...),
+            (f, xs...) -> call_on_copy(f, xs...),
             Ω,
-            (func, xs...),
+            primals,
             tangents,
             is_ignored
         )
@@ -179,14 +182,15 @@ function test_rrule(
 
         # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
-        func, xs = Iterators.peel(primal.(primals_and_tangents))
+        primals = primal.(primals_and_tangents)
+        func, xs = Iterators.peel(primals)
         accum_cotangents = tangent.(primals_and_tangents)
 
-        if check_inferred && _is_inferrable(func, xs...; fkwargs...)
-            _test_inferred(rrule, func, xs...; fkwargs...)
+        if check_inferred && _is_inferrable(primals...; fkwargs...)
+            _test_inferred(rrule, primals...; fkwargs...)
         end
-        res = rrule(func, xs...; fkwargs...)
-        res === nothing && throw(MethodError(rrule, typeof((func, xs...))))
+        res = rrule(primals...; fkwargs...)
+        res === nothing && throw(MethodError(rrule, typeof((primals...))))
         y_ad, pullback = res
         y = func(xs...; fkwargs...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
@@ -214,7 +218,7 @@ function test_rrule(
             fdm,
             (f, xs...) -> f(xs...; fkwargs...),
             ȳ,
-            (func, xs...),
+            primals,
             is_ignored
         )
 
