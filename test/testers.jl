@@ -551,7 +551,7 @@ end
         f_noninferrable(x) = Ref{Real}(x)[]
 
         @test @maybe_inferred(identity(1)) == 1
-        errors("not inferrable") do
+       @test errors("not inferrable") do
             @maybe_inferred f_noninferrable(1)
         end
         @test @maybe_inferred(Real, f_noninferrable(1)) == 1
