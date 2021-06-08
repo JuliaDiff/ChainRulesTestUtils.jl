@@ -25,6 +25,9 @@ struct Foo
     a::Float64
 end
 (f::Foo)(x, y) = return f.a + x + y
+Base.length(::Foo) = 1
+Base.iterate(f::Foo) = iterate(f.a)
+Base.iterate(f::Foo, state) = iterate(f.a, state)
 
 # constructor
 function ChainRulesCore.rrule(::Type{Foo}, a)
@@ -34,6 +37,9 @@ function ChainRulesCore.rrule(::Type{Foo}, a)
     end
     return foo, Foo_pullback
 end
+function ChainRulesCore.frule((_, Δy), ::Type{Foo}, y)
+    return Foo(y), Foo(Δy)
+end
 
 # functor
 function ChainRulesCore.rrule(f::Foo, x, y)
@@ -42,6 +48,9 @@ function ChainRulesCore.rrule(f::Foo, x, y)
         return Tangent{Foo}(;a=Δy), Δy, Δy
     end
     return y, Foo_pullback
+end
+function ChainRulesCore.frule((Δf, Δx, Δy), f::Foo, x, y)
+    return f(x, y), Δf.a + Δx + Δy
 end
 
 @testset "testers.jl" begin

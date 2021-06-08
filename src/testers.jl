@@ -100,15 +100,13 @@ function test_frule(
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     @testset "test_frule: $f on $(_string_typeof(args))" begin
-        _ensure_not_running_on_functor(f, "test_frule")
-
         xẋs = auto_primal_and_tangent.(args)
         xs = primal.(xẋs)
-        ẋs = tangent.(xẋs)
+        tangents = (rand_tangent(f), tangent.(xẋs)...)
         if check_inferred && _is_inferrable(f, deepcopy(xs)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, (NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+            _test_inferred(frule, (deepcopy(tangents)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         end
-        res = frule((NoTangent(), deepcopy(ẋs)...), f, deepcopy(xs)...; deepcopy(fkwargs)...)
+        res = frule(deepcopy(tangents), f, deepcopy(xs)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule, typeof((f, xs...))))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
@@ -116,8 +114,8 @@ function test_frule(
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        ẋs_is_ignored = isa.(ẋs, Union{Nothing,NoTangent})
-        if any(ẋs .== nothing)
+        is_ignored = isa.(tangents, Union{Nothing,NoTangent})
+        if any(tangents .== nothing)
             Base.depwarn(
                 "test_frule(f, k ⊢ nothing) is deprecated, use " *
                 "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
@@ -126,7 +124,14 @@ function test_frule(
         end
 
         # Correctness testing via finite differencing.
-        dΩ_fd = _make_jvp_call(fdm, (xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...), Ω, xs, ẋs, ẋs_is_ignored)
+        dΩ_fd = _make_jvp_call(
+            fdm,
+            (f, xs...) -> f(deepcopy(xs)...; deepcopy(fkwargs)...),
+            Ω,
+            (f, xs...),
+            tangents,
+            is_ignored
+        )
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
