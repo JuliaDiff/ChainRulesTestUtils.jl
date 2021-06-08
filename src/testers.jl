@@ -224,7 +224,7 @@ function test_rrule(
             if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
                 ad_cotangent isa ZeroTangent && error(
-                    "The pullback in the rrule for $func function should use NoTangent()" *
+                    "The pullback in the rrule should use NoTangent()" *
                     " rather than ZeroTangent() for non-perturbable arguments.",
                 )
                 @test ad_cotangent isa NoTangent  # we said it wasn't differentiable.
