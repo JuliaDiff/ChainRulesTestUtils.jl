@@ -168,12 +168,11 @@ function test_rrule(
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
 
     @testset "test_rrule: $f on $(_string_typeof(args))" begin
-        _ensure_not_running_on_functor(f, "test_rrule")
 
         # Check correctness of evaluation.
         xx̄s = auto_primal_and_tangent.(args)
         xs = primal.(xx̄s)
-        accumulated_x̄ = tangent.(xx̄s)
+        accum_cotangents = (rand_tangent(f), tangent.(xx̄s)...)
         if check_inferred && _is_inferrable(f, xs...; fkwargs...)
             _test_inferred(rrule, f, xs...; fkwargs...)
         end
@@ -186,18 +185,15 @@ function test_rrule(
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
         check_inferred && _test_inferred(pullback, ȳ)
-        ∂s = pullback(ȳ)
-        ∂s isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
-        ∂self = ∂s[1]
-        x̄s_ad = ∂s[2:end]
-        @test ∂self === NoTangent()  # No internal fields
-        msg = "The pullback should return 1 cotangent for each primal input."
-        @test_msg msg length(x̄s_ad) == length(args)
+        ad_cotangents = pullback(ȳ)
+        ad_cotangents isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
+        msg = "The pullback should return 1 cotangent for the primal and each primal input."
+        @test_msg msg length(ad_cotangents) == 1 + length(args)
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        x̄s_is_dne = isa.(accumulated_x̄, Union{Nothing,NoTangent})
-        if any(accumulated_x̄ .== nothing)
+        is_ignored = isa.(accum_cotangents, Union{Nothing, NoTangent})
+        if any(accum_cotangents .== nothing)
             Base.depwarn(
                 "test_rrule(f, k ⊢ nothing) is deprecated, use " *
                 "test_rrule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
@@ -205,25 +201,26 @@ function test_rrule(
             )
         end
 
-        x̄s_fd = _make_j′vp_call(fdm, (xs...) -> f(xs...; fkwargs...), ȳ, xs, x̄s_is_dne)
-        for (accumulated_x̄, x̄_ad, x̄_fd) in zip(accumulated_x̄, x̄s_ad, x̄s_fd)
-            if accumulated_x̄ isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
-                @assert x̄_fd === nothing  # this is how `_make_j′vp_call` works
-                x̄_ad isa ZeroTangent && error(
+        fd_cotangents = _make_j′vp_call(fdm, (f, xs...) -> f(xs...; fkwargs...), ȳ, (f, xs...), is_ignored)
+
+        for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(accum_cotangents, ad_cotangents, fd_cotangents)
+            if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
+                @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
+                ad_cotangent isa ZeroTangent && error(
                     "The pullback in the rrule for $f function should use NoTangent()" *
                     " rather than ZeroTangent() for non-perturbable arguments.",
                 )
-                @test x̄_ad isa NoTangent  # we said it wasn't differentiable.
+                @test ad_cotangent isa NoTangent  # we said it wasn't differentiable.
             else
-                x̄_ad isa AbstractThunk && check_inferred && _test_inferred(unthunk, x̄_ad)
+                ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 
                 # The main test of the actual deriviative being correct:
-                test_approx(x̄_ad, x̄_fd; isapprox_kwargs...)
-                _test_add!!_behaviour(accumulated_x̄, x̄_ad; isapprox_kwargs...)
+                test_approx(ad_cotangent, fd_cotangent; isapprox_kwargs...)
+                _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
         end
 
-        check_thunking_is_appropriate(x̄s_ad)
+        check_thunking_is_appropriate(ad_cotangents)
     end  # top-level testset
 end
 

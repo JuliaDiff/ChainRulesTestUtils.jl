@@ -21,6 +21,29 @@ function finplace!(x; y=[1])
     return x
 end
 
+struct Foo
+    a::Float64
+end
+(f::Foo)(x, y) = return f.a + x + y
+
+# constructor
+function ChainRulesCore.rrule(::Type{Foo}, a)
+    foo = Foo(a)
+    function Foo_pullback(Δfoo)
+        return NoTangent(), Δfoo.a
+    end
+    return foo, Foo_pullback
+end
+
+# functor
+function ChainRulesCore.rrule(f::Foo, x, y)
+    y = f(x, y)
+    function Foo_pullback(Δy)
+        return Tangent{Foo}(;a=Δy), Δy, Δy
+    end
+    return y, Foo_pullback
+end
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -510,6 +533,17 @@ end
 
             @test fails(() -> test_frule(foo, 2.1, 2.1))
             @test fails(() -> test_rrule(foo, 21.0, 32.0))
+        end
+    end
+
+    @testset "structs" begin
+        @testset "constructor" begin
+            test_rrule(Foo, 1.1)
+        end
+
+        foo = Foo(2.1)
+        @testset "functor" begin
+            test_rrule(foo, 2.1, 3.2)
         end
     end
 
