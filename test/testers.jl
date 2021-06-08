@@ -552,10 +552,16 @@ end
         end
 
         foo = Foo(rand())
+        tfoo = Tangent{Foo}(;a=rand())
         @testset "functor" begin
             test_frule(foo, rand())
             test_rrule(foo, rand())
             test_scalar(foo, rand())
+
+            test_frule(foo ⊢ Foo(rand()), rand())
+            test_frule(foo ⊢ tfoo, rand())
+            test_rrule(foo ⊢ Foo(rand()), rand())
+            test_rrule(foo ⊢ tfoo, rand())
         end
     end
 

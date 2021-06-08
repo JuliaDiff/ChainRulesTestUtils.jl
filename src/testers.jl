@@ -188,7 +188,7 @@ function test_rrule(
         res = rrule(func, xs...; fkwargs...)
         res === nothing && throw(MethodError(rrule, typeof((func, xs...))))
         y_ad, pullback = res
-        y = f(xs...; fkwargs...)
+        y = func(xs...; fkwargs...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
