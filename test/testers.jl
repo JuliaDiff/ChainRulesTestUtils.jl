@@ -598,4 +598,22 @@ end
         test_frule(f_notimplemented, randn(), randn())
         test_rrule(f_notimplemented, randn(), randn())
     end
+
+    @testset "@maybe_inferred" begin
+        f_noninferrable(x) = Ref{Real}(x)[]
+
+        @test @maybe_inferred(identity(1)) == 1
+        @test errors("return type $Int does not match inferred return type Real") do
+            @maybe_inferred f_noninferrable(1)
+        end
+        @test @maybe_inferred(Real, f_noninferrable(1)) == 1
+
+        ChainRulesTestUtils.TEST_INFERRED[] = false
+
+        @test @maybe_inferred(identity(1)) == 1
+        @test @maybe_inferred(f_noninferrable(1)) == 1
+        @test @maybe_inferred(Real, f_noninferrable(1)) == 1
+
+        ChainRulesTestUtils.TEST_INFERRED[] = true
+    end
 end
