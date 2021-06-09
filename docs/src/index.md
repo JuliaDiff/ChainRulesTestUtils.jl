@@ -175,7 +175,7 @@ which should have passed the test.
 
 By default, all functions for testing rules check whether the output type (as well as that of the pullback for `rrule`s) can be completely inferred, such that everything is type stable:
 
-```jldoctest ex
+```julia
 julia> function ChainRulesCore.rrule(::typeof(abs), x)
            abs_pullback(Δ) = (NoTangent(), x >= 0 ? Δ : big(-1.0) * Δ)
            return abs(x), abs_pullback
@@ -190,7 +190,7 @@ test_rrule: abs on Float64: Error During Test at /home/runner/work/ChainRulesTes
 
 This can be disabled on a per-rule basis using the `check_inferred` keyword argument:
 
-```jldoctest ex
+```julia
 julia> test_rrule(abs, 1.; check_inferred=false)
 Test Summary:              | Pass  Total
 test_rrule: abs on Float64 |    5      5
