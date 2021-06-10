@@ -624,6 +624,31 @@ end
         @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong2, check_inferred=false))
     end
 
+    @testset "custom_config" begin
+        abstract type MySpecialTrait end
+        struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
+
+        has_config(x) = 2x
+        function ChainRulesCore.rrule(::MySpecialConfig, ::typeof(has_config), x)
+            has_config_pullback(ȳ) = return (NoTangent(), 2ȳ)
+            return has_config(x), has_config_pullback
+        end
+
+        has_trait(x) = 2x
+        function ChainRulesCore.rrule(::RuleConfig{<:MySpecialTrait}, ::typeof(has_trait), x)
+            has_trait_pullback(ȳ) = return (NoTangent(), 2ȳ)
+            return has_trait(x), has_trait_pullback
+        end
+
+        # it works if the special config is provided
+        test_rrule(MySpecialConfig(), has_config, rand())
+        test_rrule(MySpecialConfig(), has_trait, rand())
+
+        # but it doesn't work for the default config
+        errors(() -> test_rrule(has_config, rand()), "no method matching rrule")
+        errors(() -> test_rrule(has_trait, rand()), "no method matching rrule")
+    end
+
     @testset "@maybe_inferred" begin
         f_noninferrable(x) = Ref{Real}(x)[]
 
