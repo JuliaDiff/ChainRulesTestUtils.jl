@@ -21,6 +21,38 @@ function finplace!(x; y=[1])
     return x
 end
 
+struct Foo
+    a::Float64
+end
+(f::Foo)(x) = return f.a + x
+Base.length(::Foo) = 1
+Base.iterate(f::Foo) = iterate(f.a)
+Base.iterate(f::Foo, state) = iterate(f.a, state)
+
+# constructor
+function ChainRulesCore.rrule(::Type{Foo}, a)
+    foo = Foo(a)
+    function Foo_pullback(Δfoo)
+        return NoTangent(), Δfoo.a
+    end
+    return foo, Foo_pullback
+end
+function ChainRulesCore.frule((_, Δa), ::Type{Foo}, a)
+    return Foo(a), Foo(Δa)
+end
+
+# functor
+function ChainRulesCore.rrule(f::Foo, x)
+    y = f(x)
+    function Foo_pullback(Δy)
+        return Tangent{Foo}(;a=Δy), Δy
+    end
+    return y, Foo_pullback
+end
+function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
+    return f(x), Δf.a + Δx
+end
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -513,6 +545,26 @@ end
         end
     end
 
+    @testset "structs" begin
+        @testset "constructor" begin
+            test_frule(Foo, rand())
+            test_rrule(Foo, rand())
+        end
+
+        foo = Foo(rand())
+        tfoo = Tangent{Foo}(;a=rand())
+        @testset "functor" begin
+            test_frule(foo, rand())
+            test_rrule(foo, rand())
+            test_scalar(foo, rand())
+
+            test_frule(foo ⊢ Foo(rand()), rand())
+            test_frule(foo ⊢ tfoo, rand())
+            test_rrule(foo ⊢ Foo(rand()), rand())
+            test_rrule(foo ⊢ tfoo, rand())
+        end
+    end
+
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
         forwards_trouble(x) = (1, 2.0 * x)
@@ -570,5 +622,23 @@ end
         test_frule(mytuple, 2.0, 3.0; frule_f=custom, check_inferred=false)
         @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong1, check_inferred=false))
         @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong2, check_inferred=false))
+    end
+
+    @testset "@maybe_inferred" begin
+        f_noninferrable(x) = Ref{Real}(x)[]
+
+        @test @maybe_inferred(identity(1)) == 1
+        @test errors("return type $Int does not match inferred return type Real") do
+            @maybe_inferred f_noninferrable(1)
+        end
+        @test @maybe_inferred(Real, f_noninferrable(1)) == 1
+
+        ChainRulesTestUtils.TEST_INFERRED[] = false
+
+        @test @maybe_inferred(identity(1)) == 1
+        @test @maybe_inferred(f_noninferrable(1)) == 1
+        @test @maybe_inferred(Real, f_noninferrable(1)) == 1
+
+        ChainRulesTestUtils.TEST_INFERRED[] = true
     end
 end

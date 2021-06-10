@@ -105,6 +105,29 @@ Test Summary:             | Pass  Total
 test_scalar: relu at -0.5 |    9      9
 ```
 
+## Testing constructors and functors (callable objects)
+
+Testing constructor and functors works as you would expect. For struct `Foo`
+```julia
+struct Foo
+    a::Float64
+end
+(f::Foo)(x) = return f.a + x
+Base.length(::Foo) = 1
+Base.iterate(f::Foo) = iterate(f.a)
+Base.iterate(f::Foo, state) = iterate(f.a, state)
+```
+the `f/rrule`s can be tested by
+```julia
+test_rrule(Foo, rand()) # constructor
+
+foo = Foo(rand())
+test_rrule(foo, rand()) # functor
+
+# it is also possible to provide tangents for `foo` explicitly
+test_frule(foo ⊢ Tangent{Foo}(;a=rand()), rand())
+```
+
 ## Specifying Tangents
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
@@ -187,3 +210,32 @@ Test Failed at REPL[52]:1
 ERROR: There was an error during testing
 ```
 which should have passed the test.
+
+## Inference tests
+
+By default, all functions for testing rules check whether the output type (as well as that of the pullback for `rrule`s) can be completely inferred, such that everything is type stable:
+
+```julia
+julia> function ChainRulesCore.rrule(::typeof(abs), x)
+           abs_pullback(Δ) = (NoTangent(), x >= 0 ? Δ : big(-1.0) * Δ)
+           return abs(x), abs_pullback
+       end
+
+julia> test_rrule(abs, 1.)
+test_rrule: abs on Float64: Error During Test at /home/runner/work/ChainRulesTestUtils.jl/ChainRulesTestUtils.jl/src/testers.jl:170
+  Got exception outside of a @test
+  return type Tuple{ChainRulesCore.NoTangent, Float64} does not match inferred return type Tuple{ChainRulesCore.NoTangent, Union{Float64, BigFloat}}
+[...]
+```
+
+This can be disabled on a per-rule basis using the `check_inferred` keyword argument:
+
+```julia
+julia> test_rrule(abs, 1.; check_inferred=false)
+Test Summary:              | Pass  Total
+test_rrule: abs on Float64 |    5      5
+Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
+```
+
+This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
+ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl)and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
