@@ -607,7 +607,7 @@ end
         wrong3(::typeof(only2x), x, y) = only2x(x, y), Δ -> (NoTangent(), 2Δ)
 
         test_rrule(only2x, 2.0, 3.0; rrule_f=custom, check_inferred=false)
-        @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong1, check_inferred=false))
+        @test errors(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong1, check_inferred=false))
         @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong2, check_inferred=false))
         @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong3, check_inferred=false))
     end
