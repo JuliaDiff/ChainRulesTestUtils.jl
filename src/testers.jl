@@ -67,9 +67,10 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    test_frule(f, args..; kwargs...)
+    test_frule([config::RuleConfig,] f, args..; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
@@ -87,7 +88,13 @@ end
    - `fkwargs` are passed to `f` as keyword arguments.
    - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_frule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_frule(config, args...; kwargs...)
+end
+
 function test_frule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
@@ -112,10 +119,10 @@ function test_frule(
         tangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
-            _test_inferred(frule_f, deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+            _test_inferred(frule_f, deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        res = frule_f(deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        res = frule_f(deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         res === nothing && throw(MethodError(frule_f, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
@@ -142,9 +149,10 @@ function test_frule(
 end
 
 """
-    test_rrule(f, args...; kwargs...)
+    test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
@@ -162,7 +170,13 @@ end
  - `fkwargs` are passed to `f` as keyword arguments.
  - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_rrule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_rrule(config, args...; kwargs...)
+end
+
 function test_rrule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
@@ -188,9 +202,9 @@ function test_rrule(
         accum_cotangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(primals...; fkwargs...)
-            _test_inferred(rrule_f, primals...; fkwargs...)
+            _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
-        res = rrule_f(primals...; fkwargs...)
+        res = rrule_f(config, primals...; fkwargs...)
         res === nothing && throw(MethodError(rrule_f, typeof((primals...))))
         y_ad, pullback = res
         y = call(primals...)
