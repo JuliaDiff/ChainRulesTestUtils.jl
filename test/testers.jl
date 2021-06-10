@@ -565,7 +565,24 @@ end
         end
     end
 
-    @testset "Testing other_tangents" begin
+    @testset "Testing other tangents frule" begin
+        others_work(x) = 2x
+        function ChainRulesCore.frule((Δd, Δx), ::typeof(others_work), x)
+            return others_work(x), 2Δx
+        end
+
+        others_nowork(x) = 2x
+        function ChainRulesCore.frule((Δd, Δx), ::typeof(others_nowork), x)
+            return others_nowork(x), error("nope")
+        end
+
+        test_frule(others_work, rand(); tangent_transforms=[identity, x -> @thunk(x)])
+        @test errors("nope") do
+            test_frule(others_nowork, 2.3; cotangent_transforms=[x -> @thunk(x)])
+        end
+    end
+
+    @testset "Testing other_tangents rrule" begin
         others_work(x) = 2x
         function ChainRulesCore.rrule(::typeof(others_work), x)
             y = others_work(x)
@@ -576,18 +593,19 @@ end
         others_nowork(x) = [x, x]
         function ChainRulesCore.rrule(::typeof(others_nowork), x)
             y = others_nowork(x)
-            others_nowork_pullback(ȳ) = return (NoTangent(), error("no thunks please"))
+            others_nowork_pullback(ȳ) = return (NoTangent(), error("nope"))
             return y, others_nowork_pullback
         end
 
         test_rrule(others_work, 2.3; cotangent_transforms=[x -> @thunk(x)])
         # Fix after https://github.com/JuliaDiff/ChainRulesCore.jl/pull/306 is done
         # by projecting the ȳ inside test_rrule when computing the finite differences
+        # Should be: test test_rrule(others_work, 2.3; cotangent_transforms=[_ -> ZeroTangent()])
         @test_broken !errors("dimension") do
             test_rrule(others_work, 2.3; cotangent_transforms=[_ -> ZeroTangent()])
         end
 
-        @test errors("no thunks please") do
+        @test errors("nope") do
             test_rrule(others_nowork, 2.3; cotangent_transforms=[x -> @thunk(x)])
         end
     end

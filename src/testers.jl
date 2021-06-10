@@ -110,8 +110,8 @@ function test_frule(
         primals = primal.(primals_and_tangents)
         tangents = tangent.(primals_and_tangents)
 
-        for tangent_transform in tangent_transforms
-            these_tangents = tangent_transform.(tangents)
+        @testset "for ȧrgs $(_string_typeof(tsf.(tangents)))" for tsf in tangent_transforms
+            these_tangents = tsf.(tangents)
 
             if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
                 _test_inferred(frule, deepcopy(these_tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
