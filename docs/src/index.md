@@ -147,8 +147,10 @@ Inserting inappropriate zeros can thus hide errors.
 
 ## Testing AD systems
 
-The gradients computed by AD systems can be tested using `test_rrule` by providing an `rrule_f`/`frule_f` keyword argument.
+The gradients computed by AD systems can be also be tested using `test_rrule`.
+To do that, one needs to provide an `rrule_f`/`frule_f` keyword argument, as well as the `RuleConfig` used by the AD system.
 `rrule_f` is a function that wraps the gradient computation by an AD system in the same API as the `rrule`.
+`RuleConfig` is an object that determines which sets of rules are defined for an AD system.
 For example, let's say we have a complicated function
 
 ```julia
@@ -179,9 +181,10 @@ end
 custom2cr(differential) = ...
 cr2custom(differential) = ...
 ```
-Secondly, we use the `test_rrule` function to test the gradients
+Secondly, we use the `test_rrule` function to test the gradients using the config used by the AD system
 ```julia
-test_rrule(complicated, 2.3, 6.1; rrule_f=ad_rrule)
+config = MyAD.CustomRuleConfig()
+test_rrule(config, complicated, 2.3, 6.1; rrule_f=ad_rrule)
 ```
 by specifying the `ad_rrule` as the `rrule_f` keyword argument.
 
