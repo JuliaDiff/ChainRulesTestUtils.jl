@@ -36,6 +36,7 @@ include("iterator.jl")
 include("output_control.jl")
 include("check_result.jl")
 
+include("rule_config.jl")
 include("finite_difference_calls.jl")
 include("testers.jl")
 
