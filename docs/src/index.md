@@ -145,6 +145,24 @@ In particular, when specifying the input tangents to [`test_frule`](@ref) and th
 As these tangents are used to seed the derivative computation.
 Inserting inappropriate zeros can thus hide errors.
 
+## Testing higher order functions
+
+Higher order functions, such as `map`, take a function (or a functor) `f` as an argument.
+`f/rrule`s for these functions call back into AD to compute the `f/rrule` of `f`.
+To test these functions, we use a dummy AD system, which simply calls the appropriate rule for `f` directly.
+For this reason, when testing `map(f, collection)`, the rules for `f` need to be defined.
+The `RuleConfig` for this dummy AD system is the default one, and does not need to be provided.
+```julia
+test_rrule(map, x->2x [1, 2, 3.]) # fails, because there is no rrule for x->2x
+
+mydouble(x) = 2x
+function ChainRulesCore.rrule(::typeof(mydouble), x)
+    mydouble_pullback(ȳ) = (NoTangent(), ȳ)
+    return mydouble(x), mydouble_pullback
+end
+test_rrule(map, mydouble, [1, 2, 3.]) # works
+```
+
 ## Testing AD systems
 
 The gradients computed by AD systems can be also be tested using `test_rrule`.
