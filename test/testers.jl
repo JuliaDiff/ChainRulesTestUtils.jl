@@ -565,6 +565,33 @@ end
         end
     end
 
+    @testset "Testing other_tangents" begin
+        others_work(x) = 2x
+        function ChainRulesCore.rrule(::typeof(others_work), x)
+            y = others_work(x)
+            others_work_pullback(ȳ) = return (NoTangent(), 2ȳ)
+            return y, others_work_pullback
+        end
+
+        others_nowork(x) = [x, x]
+        function ChainRulesCore.rrule(::typeof(others_nowork), x)
+            y = others_nowork(x)
+            others_nowork_pullback(ȳ) = return (NoTangent(), error("no thunks please"))
+            return y, others_nowork_pullback
+        end
+
+        test_rrule(others_work, 2.3; cotangent_transforms=[x -> @thunk(x)])
+        # Fix after https://github.com/JuliaDiff/ChainRulesCore.jl/pull/306 is done
+        # by projecting the ȳ inside test_rrule when computing the finite differences
+        @test_broken !errors("dimension") do
+            test_rrule(others_work, 2.3; cotangent_transforms=[_ -> ZeroTangent()])
+        end
+
+        @test errors("no thunks please") do
+            test_rrule(others_nowork, 2.3; cotangent_transforms=[x -> @thunk(x)])
+        end
+    end
+
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
         forwards_trouble(x) = (1, 2.0 * x)

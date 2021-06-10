@@ -79,6 +79,8 @@ end
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
+   - `tangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[]`: a vector of functions that transform
+     the passed argument tangents into multiple tangents that should be tested.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
@@ -89,6 +91,7 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
+    tangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[],
     fdm=_fdm,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
@@ -103,38 +106,41 @@ function test_frule(
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...)
 
     @testset "test_frule: $f on $(_string_typeof(args))" begin
-
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
         primals = primal.(primals_and_tangents)
         tangents = tangent.(primals_and_tangents)
 
-        if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        for tangent_transform in tangent_transforms
+            these_tangents = tangent_transform.(tangents)
+
+            if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
+                _test_inferred(frule, deepcopy(these_tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+            end
+
+            res = frule(deepcopy(these_tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+            res === nothing && throw(MethodError(frule, typeof(primals)))
+            @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
+            Ω_ad, dΩ_ad = res
+            Ω = call_on_copy(primals...)
+            test_approx(Ω_ad, Ω; isapprox_kwargs...)
+
+            # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
+            is_ignored = isa.(these_tangents, Union{Nothing,NoTangent})
+            if any(these_tangents .== nothing)
+                Base.depwarn(
+                    "test_frule(f, k ⊢ nothing) is deprecated, use " *
+                    "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
+                    :test_frule,
+                )
+            end
+
+            # Correctness testing via finite differencing.
+            dΩ_fd = _make_jvp_call(fdm, call_on_copy, Ω, primals, these_tangents, is_ignored)
+            test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
+
+            acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
+            _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
         end
-
-        res = frule(deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
-        res === nothing && throw(MethodError(frule, typeof(primals)))
-        @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
-        Ω_ad, dΩ_ad = res
-        Ω = call_on_copy(primals...)
-        test_approx(Ω_ad, Ω; isapprox_kwargs...)
-
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        is_ignored = isa.(tangents, Union{Nothing,NoTangent})
-        if any(tangents .== nothing)
-            Base.depwarn(
-                "test_frule(f, k ⊢ nothing) is deprecated, use " *
-                "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_frule,
-            )
-        end
-
-        # Correctness testing via finite differencing.
-        dΩ_fd = _make_jvp_call(fdm, call_on_copy, Ω, primals, tangents, is_ignored)
-        test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
-
-        acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
-        _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
     end  # top-level testset
 end
 
@@ -151,6 +157,8 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
+ - `cotangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[]`: a vector of functions that transform
+   the passed tangent into multiple tangents that should be tested.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
@@ -161,6 +169,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
+    cotangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[],
     fdm=_fdm,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
@@ -175,8 +184,6 @@ function test_rrule(
     call(f, xs...) = f(xs...; fkwargs...)
 
     @testset "test_rrule: $f on $(_string_typeof(args))" begin
-
-        # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
         primals = primal.(primals_and_tangents)
         accum_cotangents = tangent.(primals_and_tangents)
@@ -184,6 +191,7 @@ function test_rrule(
         if check_inferred && _is_inferrable(primals...; fkwargs...)
             _test_inferred(rrule, primals...; fkwargs...)
         end
+
         res = rrule(primals...; fkwargs...)
         res === nothing && throw(MethodError(rrule, typeof((primals...))))
         y_ad, pullback = res
@@ -191,12 +199,6 @@ function test_rrule(
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
-
-        check_inferred && _test_inferred(pullback, ȳ)
-        ad_cotangents = pullback(ȳ)
-        ad_cotangents isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
-        msg = "The pullback should return 1 cotangent for the primal and each primal input."
-        @test_msg msg length(ad_cotangents) == 1 + length(args)
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
@@ -209,7 +211,28 @@ function test_rrule(
             )
         end
 
-        fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
+        # loop over the possible cotangents
+        for cotangent_transform in cotangent_transforms
+            new_ȳ = cotangent_transform(ȳ)
+            fd_cotangents = _make_j′vp_call(fdm, call, new_ȳ, primals, is_ignored)
+
+            _test_cotangents(
+                primals, pullback, new_ȳ, fd_cotangents, accum_cotangents;
+                check_inferred=check_inferred, isapprox_kwargs...
+            )
+        end
+    end  # top-level testset
+end
+
+function _test_cotangents(primals, pullback, ȳ, fd_cotangents, accum_cotangents; check_inferred, isapprox_kwargs...)
+
+    @testset "ȳ=$(_string_typeof(ȳ))" begin
+        check_inferred && _test_inferred(pullback, ȳ)
+
+        ad_cotangents = pullback(ȳ)
+        ad_cotangents isa Tuple || error("The pullback must return (∂self, ∂args...), not $ad_cotangents.")
+        msg = "The pullback should return 1 cotangent for the primal and each primal input."
+        @test_msg msg length(ad_cotangents) == length(primals)
 
         for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
             accum_cotangents, ad_cotangents, fd_cotangents
@@ -231,7 +254,7 @@ function test_rrule(
         end
 
         check_thunking_is_appropriate(ad_cotangents)
-    end  # top-level testset
+    end
 end
 
 function check_thunking_is_appropriate(x̄s)
