@@ -205,7 +205,7 @@ function test_rrule(
             _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
         res = rrule_f(config, primals...; fkwargs...)
-        res === nothing && throw(MethodError(rrule_f, typeof((primals...))))
+        res === nothing && throw(MethodError(rrule_f, typeof(primals)))
         y_ad, pullback = res
         y = call(primals...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
