@@ -80,6 +80,10 @@ end
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
+   - `tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[]`: a vector of functions that
+      transform the passed argument tangents into multiple tangents that should be tested.
+      Note that the alternative tangents are only passed through the frule, and are not
+      tested for correctness via finite differencing.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
    - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
      `frule`). Used for testing gradients from AD systems.
@@ -98,6 +102,7 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
+    tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[],
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
@@ -122,7 +127,12 @@ function test_frule(
             _test_inferred(frule_f, deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        res = frule_f(deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        # test that rules work for other tangents
+        for tangent_transform in tangent_transforms
+            call_on_copy(frule_f, config, tangent_transform.(tangents), primals...)
+        end
+
+        res = call_on_copy(frule_f, config, tangents, primals...)
         res === nothing && throw(MethodError(frule_f, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
@@ -162,6 +172,10 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
+ - `tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[]`: a vector of functions that
+    transform the passed argument tangents into multiple tangents that should be tested.
+    Note that the alternative tangents are only passed through the frule, and are not
+    tested for correctness via finite differencing.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
    Used for testing gradients from AD systems.
@@ -180,6 +194,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
+    tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[],
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
@@ -211,6 +226,11 @@ function test_rrule(
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
+
+        # test other tangents don't error when passed to the pullback
+        for tangent_transform in tangent_transforms
+            pullback(tangent_transform(ȳ))
+        end
 
         check_inferred && _test_inferred(pullback, ȳ)
         ad_cotangents = pullback(ȳ)
