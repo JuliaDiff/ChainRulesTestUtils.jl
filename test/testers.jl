@@ -53,6 +53,11 @@ function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
     return f(x), Δf.a + Δx
 end
 
+# testing configs
+abstract type MySpecialTrait end
+struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
+
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -625,9 +630,6 @@ end
     end
 
     @testset "custom_config" begin
-        abstract type MySpecialTrait end
-        struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
-
         has_config(x) = 2x
         function ChainRulesCore.rrule(::MySpecialConfig, ::typeof(has_config), x)
             has_config_pullback(ȳ) = return (NoTangent(), 2ȳ)
