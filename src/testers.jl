@@ -67,14 +67,15 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    test_frule(f, args..; kwargs...)
+    test_frule([config::RuleConfig,] f, args..; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
+   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
@@ -82,17 +83,26 @@ end
    - `tangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[]`: a vector of functions that transform
      the passed argument tangents into multiple tangents that should be tested.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+   - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
+     `frule`). Used for testing gradients from AD systems.
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
    - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_frule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_frule(config, args...; kwargs...)
+end
+
 function test_frule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
     tangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[],
     fdm=_fdm,
+    frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -114,11 +124,16 @@ function test_frule(
             these_tangents = tsf.(tangents)
 
             if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
-                _test_inferred(frule, deepcopy(these_tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+                _test_inferred(
+                    frule_f, deepcopy(config), deepcopy(these_tangents), deepcopy(primals)...;
+                    deepcopy(fkwargs)...
+                )
             end
-
-            res = frule(deepcopy(these_tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
-            res === nothing && throw(MethodError(frule, typeof(primals)))
+            res = frule_f(
+                deepcopy(config), deepcopy(these_tangents), deepcopy(primals)...;
+                deepcopy(fkwargs)...
+            )
+            res === nothing && throw(MethodError(frule_f, typeof(primals)))
             @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
             Ω_ad, dΩ_ad = res
             Ω = call_on_copy(primals...)
@@ -145,9 +160,10 @@ function test_frule(
 end
 
 """
-    test_rrule(f, args...; kwargs...)
+    test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
@@ -160,17 +176,26 @@ end
  - `cotangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[]`: a vector of functions that transform
    the passed tangent into multiple tangents that should be tested.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+ - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
+   Used for testing gradients from AD systems.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
  - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_rrule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_rrule(config, args...; kwargs...)
+end
+
 function test_rrule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
     cotangent_transforms=TRANSFORMS_TO_TEST_TANGENTS[],
     fdm=_fdm,
+    rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -189,16 +214,15 @@ function test_rrule(
         accum_cotangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(primals...; fkwargs...)
-            _test_inferred(rrule, primals...; fkwargs...)
+            _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
-
-        res = rrule(primals...; fkwargs...)
-        res === nothing && throw(MethodError(rrule, typeof((primals...))))
+        res = rrule_f(config, primals...; fkwargs...)
+        res === nothing && throw(MethodError(rrule_f, typeof(primals)))
         y_ad, pullback = res
         y = call(primals...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
-        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
+        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
@@ -252,18 +276,7 @@ function _test_cotangents(primals, pullback, ȳ, fd_cotangents, accum_cotangent
                 _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
         end
-
-        check_thunking_is_appropriate(ad_cotangents)
-    end
-end
-
-function check_thunking_is_appropriate(x̄s)
-    num_zeros = count(x -> x isa AbstractZero, x̄s)
-    num_thunks = count(x -> x isa Thunk, x̄s)
-    if num_zeros + num_thunks == length(x̄s)
-        # num_thunks can be either 0, or greater than 1.
-        @test_msg "Should not thunk only non_zero argument" num_thunks != 1
-    end
+    end  # top-level testset
 end
 
 """

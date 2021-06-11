@@ -6,6 +6,10 @@ makedocs(;
     format=Documenter.HTML(; prettyurls=false, assets=["assets/chainrules.css"]),
     sitename="ChainRulesTestUtils",
     authors="JuliaDiff contributors",
+    pages=[
+        "ChainRulesTestUtils" => "index.md",
+        "API" => "api.md",
+    ],
     strict=true,
     checkdocs=:exports,
 )

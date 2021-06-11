@@ -30,8 +30,8 @@ for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, Abs
     end
 end
 
-test_approx(::ZeroTangent, x, msg=""; kwargs...) = test_approx(zero(x), x, msg; kwargs...)
-test_approx(x, ::ZeroTangent, msg=""; kwargs...) = test_approx(x, zero(x), msg; kwargs...)
+test_approx(::AbstractZero, x, msg=""; kwargs...) = test_approx(zero(x), x, msg; kwargs...)
+test_approx(x, ::AbstractZero, msg=""; kwargs...) = test_approx(x, zero(x), msg; kwargs...)
 test_approx(x::ZeroTangent, y::ZeroTangent, msg=""; kwargs...) = @test true
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113

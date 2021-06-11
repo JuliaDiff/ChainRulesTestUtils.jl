@@ -145,6 +145,67 @@ In particular, when specifying the input tangents to [`test_frule`](@ref) and th
 As these tangents are used to seed the derivative computation.
 Inserting inappropriate zeros can thus hide errors.
 
+## Testing higher order functions
+
+Higher order functions, such as `map`, take a function (or a functor) `f` as an argument.
+`f/rrule`s for these functions call back into AD to compute the `f/rrule` of `f`.
+To test these functions, we use a dummy AD system, which simply calls the appropriate rule for `f` directly.
+For this reason, when testing `map(f, collection)`, the rules for `f` need to be defined.
+The `RuleConfig` for this dummy AD system is the default one, and does not need to be provided.
+```julia
+test_rrule(map, x->2x [1, 2, 3.]) # fails, because there is no rrule for x->2x
+
+mydouble(x) = 2x
+function ChainRulesCore.rrule(::typeof(mydouble), x)
+    mydouble_pullback(ȳ) = (NoTangent(), ȳ)
+    return mydouble(x), mydouble_pullback
+end
+test_rrule(map, mydouble, [1, 2, 3.]) # works
+```
+
+## Testing AD systems
+
+The gradients computed by AD systems can be also be tested using `test_rrule`.
+To do that, one needs to provide an `rrule_f`/`frule_f` keyword argument, as well as the `RuleConfig` used by the AD system.
+`rrule_f` is a function that wraps the gradient computation by an AD system in the same API as the `rrule`.
+`RuleConfig` is an object that determines which sets of rules are defined for an AD system.
+For example, let's say we have a complicated function
+
+```julia
+function complicated(x, y)
+    return do(x + y) + some(x) * hard(y) + maths(x * y)
+end
+```
+
+that we do not know an `rrule` for, and we want to check whether the gradients provided by the AD system are correct.
+
+Firstly, we need to define an `rrule`-like function which wraps the gradients computed by AD.
+
+Let's say the AD package uses some custom differential types and does not provide a gradient w.r.t. the function itself.
+In order to make the pullback compatible with the `rrule` API we need to add a `NoTangent()` to represent the differential w.r.t. the function itself.
+We also need to transform the `ChainRules` differential types to the custom types (`cr2custom`) before feeding the `Δ` to the AD-generated pullback, and back to `ChainRules` differential types when returning from the `rrule` (`custom2cr`).
+
+```julia
+function ad_rrule(f::Function, args...)
+    y, ad_pullback = ADSystem.pullback(f, args...)
+    function rrulelike_pullback(Δ)
+        diffs = custom2cr(ad_pullback(cr2custom(Δ)))
+        return NoTangent(), diffs...
+    end
+        
+    return y, rrulelike_pullback
+end
+
+custom2cr(differential) = ...
+cr2custom(differential) = ...
+```
+Secondly, we use the `test_rrule` function to test the gradients using the config used by the AD system
+```julia
+config = MyAD.CustomRuleConfig()
+test_rrule(config, complicated, 2.3, 6.1; rrule_f=ad_rrule)
+```
+by specifying the `ad_rrule` as the `rrule_f` keyword argument.
+
 ## Custom finite differencing
 
 If a package is using a custom finite differencing method of testing the `frule`s and `rrule`s, `test_approx` function provides a convenient way of comparing [various types](https://www.juliadiff.org/ChainRulesCore.jl/dev/design/many_differentials.html#Design-Notes:-The-many-to-many-relationship-between-differential-types-and-primal-types.) of differentials.
@@ -199,10 +260,3 @@ Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
 
 This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
 ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl)and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
-
-# API Documentation
-
-```@autodocs
-Modules = [ChainRulesTestUtils]
-Private = false
-```
