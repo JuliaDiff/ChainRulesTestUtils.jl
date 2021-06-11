@@ -249,18 +249,7 @@ function test_rrule(
                 _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
         end
-
-        check_thunking_is_appropriate(ad_cotangents)
     end  # top-level testset
-end
-
-function check_thunking_is_appropriate(x̄s)
-    num_zeros = count(x -> x isa AbstractZero, x̄s)
-    num_thunks = count(x -> x isa Thunk, x̄s)
-    if num_zeros + num_thunks == length(x̄s)
-        # num_thunks can be either 0, or greater than 1.
-        @test_msg "Should not thunk only non_zero argument" num_thunks != 1
-    end
 end
 
 """
