@@ -570,6 +570,46 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         end
     end
 
+    @testset "tangent_transforms frule" begin
+         others_work(x) = 2x
+         function ChainRulesCore.frule((Δd, Δx), ::typeof(others_work), x)
+             return others_work(x), 2Δx
+         end
+
+         others_nowork(x) = 2x
+         function ChainRulesCore.frule((Δd, Δx), ::typeof(others_nowork), x)
+             return others_nowork(x), error("nope")
+         end
+
+         test_frule(others_work, rand(); tangent_transforms=[identity, x -> @thunk(x)])
+         @test errors("nope") do
+             test_frule(others_nowork, 2.3; tangent_transforms=[x -> @thunk(x)])
+         end
+     end
+
+     @testset "tangent_transforms rrule" begin
+         others_work(x) = 2x
+         function ChainRulesCore.rrule(::typeof(others_work), x)
+             y = others_work(x)
+             others_work_pullback(ȳ) = return (NoTangent(), 2ȳ)
+             return y, others_work_pullback
+         end
+
+         others_nowork(x) = [x, x]
+         function ChainRulesCore.rrule(::typeof(others_nowork), x)
+             y = others_nowork(x)
+             others_nowork_pullback(ȳ) = return (NoTangent(), error("nope"))
+             return y, others_nowork_pullback
+         end
+
+         test_rrule(others_work, 2.3; tangent_transforms=[_ -> ZeroTangent()])
+         test_rrule(others_work, 2.3; tangent_transforms=[x -> @thunk(x)])
+
+         @test errors("nope") do
+             test_rrule(others_nowork, 2.3; tangent_transforms=[x -> @thunk(x)])
+         end
+     end
+
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
         forwards_trouble(x) = (1, 2.0 * x)
