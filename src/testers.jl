@@ -67,29 +67,39 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
 end
 
 """
-    test_frule(f, args..; kwargs...)
+    test_frule([config::RuleConfig,] f, args..; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
-   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
+   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
+   Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
 
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+   - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
+     `frule`). Used for testing gradients from AD systems.
    - If `check_inferred=true`, then the inferrability of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
    - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_frule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_frule(config, args...; kwargs...)
+end
+
 function test_frule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
     fdm=_fdm,
+    frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -109,11 +119,11 @@ function test_frule(
         tangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(deepcopy(primals)...; deepcopy(fkwargs)...)
-            _test_inferred(frule, deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+            _test_inferred(frule_f, deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        res = frule(deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
-        res === nothing && throw(MethodError(frule, typeof(primals)))
+        res = frule_f(deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        res === nothing && throw(MethodError(frule_f, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
         Ω = call_on_copy(primals...)
@@ -139,9 +149,10 @@ function test_frule(
 end
 
 """
-    test_rrule(f, args...; kwargs...)
+    test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
 # Arguments
+- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
@@ -152,16 +163,25 @@ end
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
+ - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
+   Used for testing gradients from AD systems.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
  - All remaining keyword arguments are passed to `isapprox`.
 """
+function test_rrule(args...; kwargs...)
+    config = ChainRulesTestUtils.ADviaRuleConfig()
+    test_rrule(config, args...; kwargs...)
+end
+
 function test_rrule(
+    config::RuleConfig,
     f,
     args...;
     output_tangent=Auto(),
     fdm=_fdm,
+    rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
@@ -182,15 +202,15 @@ function test_rrule(
         accum_cotangents = tangent.(primals_and_tangents)
 
         if check_inferred && _is_inferrable(primals...; fkwargs...)
-            _test_inferred(rrule, primals...; fkwargs...)
+            _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
-        res = rrule(primals...; fkwargs...)
-        res === nothing && throw(MethodError(rrule, typeof((primals...))))
+        res = rrule_f(config, primals...; fkwargs...)
+        res === nothing && throw(MethodError(rrule_f, typeof(primals)))
         y_ad, pullback = res
         y = call(primals...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
 
-        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
+        ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
         check_inferred && _test_inferred(pullback, ȳ)
         ad_cotangents = pullback(ȳ)
