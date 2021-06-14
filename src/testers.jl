@@ -80,7 +80,7 @@ end
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
-   - `tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[]`: a vector of functions that
+   - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
       transform the passed argument tangents into multiple tangents that should be tested.
       Note that the alternative tangents are only passed through the frule, and are not
       tested for correctness via finite differencing.
@@ -102,7 +102,7 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[],
+    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
@@ -172,7 +172,7 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
- - `tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[]`: a vector of functions that
+ - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
     transform the passed argument tangents into multiple tangents that should be tested.
     Note that the alternative tangents are only passed through the frule, and are not
     tested for correctness via finite differencing.
@@ -194,7 +194,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TEST_TANGENTS[],
+    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
