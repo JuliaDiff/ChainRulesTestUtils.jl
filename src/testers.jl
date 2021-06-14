@@ -129,11 +129,6 @@ function test_frule(
             _test_inferred(frule_f, deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        # test that rules work for other tangents
-        for tangent_transform in tangent_transforms
-            call_on_copy(frule_f, config, tangent_transform.(tangents), primals...)
-        end
-
         res = call_on_copy(frule_f, config, tangents, primals...)
         res === nothing && throw(MethodError(frule_f, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
@@ -156,16 +151,23 @@ function test_frule(
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
-        _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
+        _test_add!!_behaviour(acc, dΩ_ad; isapprox_kwargs...)
+
+        # test that rules work for other tangents
+        _test_frule_alt_tangents(
+            call_on_copy, frule_f, config, tangent_transforms, tangents, primals, acc;
+            isapprox_kwargs...
+        )
     end  # top-level testset
 end
 
 function _test_frule_alt_tangents(
-    call_on_copy, frule_f, config, tangent_transforms, tangents, primals
+    call, frule_f, config, tangent_transforms, tangents, primals, acc;
+    isapprox_kwargs...
 )
-    for tsf in tangent_transforms
-        msg = "`frule` shouldn't error on receiving $(tsf.(tangents)) tangents."
-        @test_msg msg call_on_copy(frule_f, config, tsf.(tangents), primals...) isa Any
+    @testset "ȧrgs = $(tsf.(tangents))" for tsf in tangent_transforms
+        _, dΩ = call(frule_f, config, tsf.(tangents), primals...)
+        _test_add!!_behaviour(acc, dΩ; isapprox_kwargs...)
     end
 end
 
@@ -240,9 +242,6 @@ function test_rrule(
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
-        # test other tangents don't error when passed to the pullback
-        _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ)
-
         check_inferred && _test_inferred(pullback, ȳ)
         ad_cotangents = pullback(ȳ)
         ad_cotangents isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
@@ -280,13 +279,21 @@ function test_rrule(
                 _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
         end
+
+        # test other tangents don't error when passed to the pullback
+        _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ, accum_cotangents)
     end  # top-level testset
 end
 
-function _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ)
-    for tsf in tangent_transforms
-        msg = "`rrule` pullback shouldn't error on receiving $(tsf(ȳ)) tangents."
-        @test_msg msg pullback(tsf(ȳ)) isa Any
+function _test_rrule_alt_tangents(
+    pullback, tangent_transforms, ȳ, accum_cotangents;
+    isapprox_kwargs...
+)
+    @testset "ȳ = $(tsf(ȳ))" for tsf in tangent_transforms
+        ad_cotangents = pullback(tsf(ȳ))
+        for (accum_cotangent, ad_cotangent) in zip(accum_cotangents, ad_cotangents)
+            _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
+        end
     end
 end
 
