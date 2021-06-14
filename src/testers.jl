@@ -81,9 +81,11 @@ end
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
    - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
-      transform the passed argument tangents into multiple tangents that should be tested.
-      Note that the alternative tangents are only passed through the frule, and are not
-      tested for correctness via finite differencing.
+      transform the passed argument tangents into alternative tangents that should be tested.
+      Note that the alternative tangents are only tested for not erroring when passed to
+      frule. Testing for correctness using finite differencing can be done using a
+      separate `test_frule` call, e.g. for testing a `ZeroTangent()` for correctness:
+      `test_frule(f, x ⊢ ZeroTangent(); tangent_transforms=[])`.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
    - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
      `frule`). Used for testing gradients from AD systems.
@@ -158,6 +160,15 @@ function test_frule(
     end  # top-level testset
 end
 
+function _test_frule_alt_tangents(
+    call_on_copy, frule_f, config, tangent_transforms, tangents, primals
+)
+    for tsf in tangent_transforms
+        msg = "`frule` shouldn't error on receiving $(tsf.(tangents)) tangents."
+        @test_msg msg call_on_copy(frule_f, config, tsf.(tangents), primals...) isa Any
+    end
+end
+
 """
     test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
@@ -172,10 +183,12 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
- - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
-    transform the passed argument tangents into multiple tangents that should be tested.
-    Note that the alternative tangents are only passed through the frule, and are not
-    tested for correctness via finite differencing.
+- `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
+   transform the passed `output_tangent` into alternative tangents that should be tested.
+   Note that the alternative tangents are only tested for not erroring when passed to
+   rrule. Testing for correctness using finite differencing can be done using a
+   separate `test_rrule` call, e.g. for testing a `ZeroTangent()` for correctness:
+   `test_rrule(f, args...; output_tangent=ZeroTangent(), tangent_transforms=[])`.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
    Used for testing gradients from AD systems.
@@ -228,9 +241,7 @@ function test_rrule(
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
         # test other tangents don't error when passed to the pullback
-        for tangent_transform in tangent_transforms
-            pullback(tangent_transform(ȳ))
-        end
+        _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ)
 
         check_inferred && _test_inferred(pullback, ȳ)
         ad_cotangents = pullback(ȳ)
@@ -270,6 +281,13 @@ function test_rrule(
             end
         end
     end  # top-level testset
+end
+
+function _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ)
+    for tsf in tangent_transforms
+        msg = "`rrule` pullback shouldn't error on receiving $(tsf(ȳ)) tangents."
+        @test_msg msg pullback(tsf(ȳ)) isa Any
+    end
 end
 
 """
