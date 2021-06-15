@@ -80,6 +80,12 @@ end
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
+   - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
+      transform the passed argument tangents into alternative tangents that should be tested.
+      Note that the alternative tangents are only tested for not erroring when passed to
+      frule. Testing for correctness using finite differencing can be done using a
+      separate `test_frule` call, e.g. for testing a `ZeroTangent()` for correctness:
+      `test_frule(f, x ⊢ ZeroTangent(); tangent_transforms=[])`.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
    - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
      `frule`). Used for testing gradients from AD systems.
@@ -98,6 +104,7 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
+    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
@@ -122,7 +129,7 @@ function test_frule(
             _test_inferred(frule_f, deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
         end
 
-        res = frule_f(deepcopy(config), deepcopy(tangents), deepcopy(primals)...; deepcopy(fkwargs)...)
+        res = call_on_copy(frule_f, config, tangents, primals...)
         res === nothing && throw(MethodError(frule_f, typeof(primals)))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
@@ -144,8 +151,24 @@ function test_frule(
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
-        _test_add!!_behaviour(acc, dΩ_ad; rtol=rtol, atol=atol, kwargs...)
+        _test_add!!_behaviour(acc, dΩ_ad; isapprox_kwargs...)
+
+        # test that rules work for other tangents
+        _test_frule_alt_tangents(
+            call_on_copy, frule_f, config, tangent_transforms, tangents, primals, acc;
+            isapprox_kwargs...
+        )
     end  # top-level testset
+end
+
+function _test_frule_alt_tangents(
+    call, frule_f, config, tangent_transforms, tangents, primals, acc;
+    isapprox_kwargs...
+)
+    @testset "ȧrgs = $(tsf.(tangents))" for tsf in tangent_transforms
+        _, dΩ = call(frule_f, config, tsf.(tangents), primals...)
+        _test_add!!_behaviour(acc, dΩ; isapprox_kwargs...)
+    end
 end
 
 """
@@ -162,6 +185,12 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
+- `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
+   transform the passed `output_tangent` into alternative tangents that should be tested.
+   Note that the alternative tangents are only tested for not erroring when passed to
+   rrule. Testing for correctness using finite differencing can be done using a
+   separate `test_rrule` call, e.g. for testing a `ZeroTangent()` for correctness:
+   `test_rrule(f, args...; output_tangent=ZeroTangent(), tangent_transforms=[])`.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
    Used for testing gradients from AD systems.
@@ -180,6 +209,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
+    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
@@ -249,7 +279,22 @@ function test_rrule(
                 _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
             end
         end
+
+        # test other tangents don't error when passed to the pullback
+        _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ, accum_cotangents)
     end  # top-level testset
+end
+
+function _test_rrule_alt_tangents(
+    pullback, tangent_transforms, ȳ, accum_cotangents;
+    isapprox_kwargs...
+)
+    @testset "ȳ = $(tsf(ȳ))" for tsf in tangent_transforms
+        ad_cotangents = pullback(tsf(ȳ))
+        for (accum_cotangent, ad_cotangent) in zip(accum_cotangents, ad_cotangents)
+            _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
+        end
+    end
 end
 
 """
