@@ -250,7 +250,7 @@ function test_rrule(
         )
         @test_msg(
             "The pullback should return 1 cotangent for the primal and each primal input.",
-            (ad_cotangents) == 1 + length(args)
+            length(ad_cotangents) == 1 + length(args)
         )
 
         # Correctness testing via finite differencing.
