@@ -14,12 +14,12 @@ jobs:
           version: ${{ matrix.julia-version }}
       - uses: actions/checkout@v1
       - name: Fix doctests
-	    shell: julia --project=docs/ {0}
-		run: |
-			using Pkg:Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-			using Documenter
-			using ChainRulesTestUtils
-			doctest(ChainRulesTestUtils, fix=true)
+        shell: julia --project=docs/ {0}
+        run: |
+          using Pkg:Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()
+          using Documenter
+          using ChainRulesTestUtils
+          doctest(ChainRulesTestUtils, fix=true)
       - uses: reviewdog/action-suggester@v1
         if: github.event_name == 'pull_request'
         with:
