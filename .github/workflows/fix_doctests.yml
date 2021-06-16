@@ -20,6 +20,8 @@ jobs:
           using Documenter
           using ChainRulesTestUtils
           doctest(ChainRulesTestUtils, fix=true)
+          # don't push changes to Manifest in suggestions, as it removes `path=..`
+          run(`git restore docs/Manifest.toml`)
       - uses: reviewdog/action-suggester@v1
         if: github.event_name == 'pull_request'
         with:
