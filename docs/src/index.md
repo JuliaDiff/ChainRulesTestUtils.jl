@@ -12,7 +12,7 @@ For information about ChainRules, including how to write rules, refer to the gen
 ## Canonical example
 
 Let's suppose a custom transformation has been defined
-```jldoctest ex; output = false
+```jldoctest ex
 function two2three(x1::Float64, x2::Float64)
     return 1.0, 2.0*x1, 3.0*x2
 end
@@ -21,7 +21,7 @@ end
 two2three (generic function with 1 method)
 ```
 along with the `frule`
-```jldoctest ex; output = false
+```jldoctest ex
 using ChainRulesCore
 
 function ChainRulesCore.frule((Δf, Δx1, Δx2), ::typeof(two2three), x1, x2)
@@ -33,7 +33,7 @@ end
 
 ```
 and `rrule`
-```jldoctest ex; output = false
+```jldoctest ex
 function ChainRulesCore.rrule(::typeof(two2three), x1, x2)
     y = two2three(x1, x2)
     function two2three_pullback(Ȳ)
@@ -55,12 +55,13 @@ They can be used for any type and number of inputs and outputs.
 The call will test the `frule` for function `f` at the point `x` in the domain.
 Keep this in mind when testing discontinuous rules for functions like [ReLU](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)), which should ideally be tested at both `x` being above and below zero.
 
-```jldoctest ex; output = false
+```jldoctest ex
 julia> using ChainRulesTestUtils;
 
 julia> test_frule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total
 test_frule: two2three on Float64,Float64 |    6      6
+
 ```
 
 ### Testing the `rrule`
@@ -68,16 +69,17 @@ test_frule: two2three on Float64,Float64 |    6      6
 [`test_rrule`](@ref) takes in the function `f`, and primal inputsr `x`.
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
-```jldoctest ex; output = false
+```jldoctest ex
 julia> test_rrule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total
-test_rrule: two2three on Float64,Float64 |    7      7
+test_rrule: two2three on Float64,Float64 |    8      8
+
 ```
 
 ## Scalar example
 
 For functions with a single argument and a single output, such as e.g. ReLU,
-```jldoctest ex; output = false
+```jldoctest ex
 function relu(x::Real)
     return max(0, x)
 end
@@ -86,7 +88,7 @@ end
 relu (generic function with 1 method)
 ```
 with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
-```jldoctest ex; output = false
+```jldoctest ex
 @scalar_rule relu(x::Real) x <= 0 ? zero(x) : one(x)
 
 # output
@@ -95,14 +97,16 @@ with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
 
 `test_scalar` function is provided to test both the `frule` and the `rrule` with a single
 call.
-```jldoctest ex; output = false
+```jldoctest ex
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total
-test_scalar: relu at 0.5 |    9      9
+test_scalar: relu at 0.5 |   10     10
+
 
 julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total
-test_scalar: relu at -0.5 |    9      9
+test_scalar: relu at -0.5 |   10     10
+
 ```
 
 ## Testing constructors and functors (callable objects)

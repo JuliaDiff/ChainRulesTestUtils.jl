@@ -244,9 +244,14 @@ function test_rrule(
 
         check_inferred && _test_inferred(pullback, ȳ)
         ad_cotangents = pullback(ȳ)
-        ad_cotangents isa Tuple || error("The pullback must return (∂self, ∂args...), not $∂s.")
-        msg = "The pullback should return 1 cotangent for the primal and each primal input."
-        @test_msg msg length(ad_cotangents) == 1 + length(args)
+        @test_msg(
+            "The pullback must return a Tuple (∂self, ∂args...)",
+            ad_cotangents isa Tuple
+        )
+        @test_msg(
+            "The pullback should return 1 cotangent for the primal and each primal input.",
+            length(ad_cotangents) == length(primals)
+        )
 
         # Correctness testing via finite differencing.
         # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113

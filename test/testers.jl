@@ -548,6 +548,15 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             @test fails(() -> test_frule(foo, 2.1, 2.1))
             @test fails(() -> test_rrule(foo, 21.0, 32.0))
         end
+
+        @testset "rrule not returning a tuple" begin
+            bar(x, y) = x + 3y
+            function ChainRulesCore.rrule(::typeof(bar), x, y)
+                bar_pullback(dy) = dy
+                return bar(x,y), bar_pullback
+            end
+            @test fails(() -> test_rrule(bar, 21.0, 32.0))
+        end
     end
 
     @testset "structs" begin
