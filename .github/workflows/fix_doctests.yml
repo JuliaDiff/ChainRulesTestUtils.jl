@@ -16,7 +16,7 @@ jobs:
       - name: Fix doctests
         shell: julia --project=docs/ {0}
         run: |
-          using Pkg:Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()
+          using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()
           using Documenter
           using ChainRulesTestUtils
           doctest(ChainRulesTestUtils, fix=true)
