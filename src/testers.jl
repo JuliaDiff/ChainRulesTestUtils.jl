@@ -165,7 +165,7 @@ function _test_frule_alt_tangents(
     call, frule_f, config, tangent_transforms, tangents, primals, acc;
     isapprox_kwargs...
 )
-    @testset "ȧrgs = $(tsf.(tangents))" for tsf in tangent_transforms
+    @testset "ȧrgs = $(_string_typeof(tsf.(tangents)))" for tsf in tangent_transforms
         _, dΩ = call(frule_f, config, tsf.(tangents), primals...)
         _test_add!!_behaviour(acc, dΩ; isapprox_kwargs...)
     end
@@ -289,7 +289,7 @@ function _test_rrule_alt_tangents(
     pullback, tangent_transforms, ȳ, accum_cotangents;
     isapprox_kwargs...
 )
-    @testset "ȳ = $(tsf(ȳ))" for tsf in tangent_transforms
+    @testset "ȳ = $(_string_typeof(tsf(ȳ)))" for tsf in tangent_transforms
         ad_cotangents = pullback(tsf(ȳ))
         for (accum_cotangent, ad_cotangent) in zip(accum_cotangents, ad_cotangents)
             _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
