@@ -136,17 +136,8 @@ function test_frule(
         Ω = call_on_copy(primals...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        is_ignored = isa.(tangents, Union{Nothing,NoTangent})
-        if any(tangents .== nothing)
-            Base.depwarn(
-                "test_frule(f, k ⊢ nothing) is deprecated, use " *
-                "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_frule,
-            )
-        end
-
         # Correctness testing via finite differencing.
+        is_ignored = isa.(tangents, NoTangent)
         dΩ_fd = _make_jvp_call(fdm, call_on_copy, Ω, primals, tangents, is_ignored)
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
@@ -254,22 +245,13 @@ function test_rrule(
         )
 
         # Correctness testing via finite differencing.
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        is_ignored = isa.(accum_cotangents, Union{Nothing, NoTangent})
-        if any(accum_cotangents .== nothing)
-            Base.depwarn(
-                "test_rrule(f, k ⊢ nothing) is deprecated, use " *
-                "test_rrule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_rrule,
-            )
-        end
-
+        is_ignored = isa.(accum_cotangents, NoTangent)
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
 
         for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
             accum_cotangents, ad_cotangents, fd_cotangents
         )
-            if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
+            if accum_cotangent isa NoTangent  # then we marked this argument as not differentiable
                 @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
                 ad_cotangent isa ZeroTangent && error(
                     "The pullback in the rrule should use NoTangent()" *
