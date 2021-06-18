@@ -15,6 +15,4 @@ ChainRulesTestUtils.TEST_INFERRED[] = true
     include("testers.jl")
     include("data_generation.jl")
     include("rand_tangent.jl")
-
-    include("deprecated.jl")
 end
