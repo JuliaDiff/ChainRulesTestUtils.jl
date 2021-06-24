@@ -104,7 +104,7 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
+    tangent_transforms=unique(TRANSFORMS_TO_ALT_TANGENTS),
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
@@ -209,7 +209,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
+    tangent_transforms=unique(TRANSFORMS_TO_ALT_TANGENTS),
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
