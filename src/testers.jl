@@ -316,7 +316,7 @@ end
 """
     _test_inferred(f, args...; kwargs...)
 
-Simple wrapper for `@inferred f(args...: kwargs...)`, avoiding the type-instability in not
+Simple wrapper for [`@maybe_inferred f(args...: kwargs...)`](@ref `@maybe_inferred`), avoiding the type-instability in not
 knowing how many `kwargs` there are.
 """
 function _test_inferred(f, args...; kwargs...)
