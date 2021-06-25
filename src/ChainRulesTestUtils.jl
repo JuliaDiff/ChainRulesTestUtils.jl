@@ -11,24 +11,14 @@ using Test
 
 import FiniteDifferences: rand_tangent
 
-const _fdm = central_fdm(5, 1; max_range=1e-2)
-const TEST_INFERRED = Ref(true)
-const TRANSFORMS_TO_ALT_TANGENTS = Function[] # e.g. [x -> @thunk(x), _ -> ZeroTangent(), x -> rebasis(x)]
-
 export TestIterator
 export test_approx, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
 export ⊢
 export @maybe_inferred
 
-function __init__()
-    TEST_INFERRED[] = if haskey(ENV, "CHAINRULES_TEST_INFERRED")
-        parse(Bool, "CHAINRULES_TEST_INFERRED")
-    else
-        !parse(Bool, get(ENV, "JULIA_PKGEVAL", "false"))
-    end
+__init__() = init_test_inferred_setting!()
 
-    !TEST_INFERRED[] && @warn "inference tests have been disabled"
-end
+include("global_config.jl")
 
 include("generate_tangent.jl")
 include("data_generation.jl")
