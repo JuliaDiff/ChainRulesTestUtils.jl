@@ -196,6 +196,8 @@ end
    Used for testing gradients from AD systems.
  - If `check_inferred=true`, then the inferrability of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
+ - test_types::Bool=true: test whether the cotangent types are appropriate for
+   representing the cotangent with respect to the primal.
  - `fkwargs` are passed to `f` as keyword arguments.
  - All remaining keyword arguments are passed to `isapprox`.
 """
@@ -213,6 +215,7 @@ function test_rrule(
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
+    test_types::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
     atol::Real=1e-9,
@@ -266,8 +269,8 @@ function test_rrule(
 
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
 
-        for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
-            accum_cotangents, ad_cotangents, fd_cotangents
+        for (primal, accum_cotangent, ad_cotangent, fd_cotangent) in zip(
+            primals, accum_cotangents, ad_cotangents, fd_cotangents
         )
             if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
                 @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
@@ -278,6 +281,13 @@ function test_rrule(
                 @test ad_cotangent isa NoTangent  # we said it wasn't differentiable.
             else
                 ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
+
+                # test types are appropriate 
+                if test_types
+                    unthunked = unthunk(ad_cotangent)
+                    msg = "$(typeof(unthunked)) is not an appropriate tangent type for primal type $(typeof(primal))"
+                    @test_msg msg _is_appropriate(primal, unthunked)
+                end
 
                 # The main test of the actual derivative being correct:
                 test_approx(ad_cotangent, fd_cotangent; isapprox_kwargs...)
@@ -301,6 +311,28 @@ function _test_rrule_alt_tangents(
         end
     end
 end
+
+"""
+    _is_appropriate(primal, tangent)
+""" # TODO add docstring
+_is_appropriate(primal, tangent) = false
+_is_appropriate(primal, ::AbstractZero) = true
+_is_appropriate(::T, ::T) where {T} = true
+function _is_appropriate(primal::P, tangent::Tangent{PT, T}) where {P, PT, T}
+    for fname in fieldnames(P)
+        _is_appropriate(getproperty(primal, fname), getproperty(tangent, fname)) || return false
+    end
+    return true
+end
+# special case SubArray
+_is_appropriate(::SubArray{T,N,P,I,L}, ::P) where {T,N,P,I,L} = true
+
+_is_appropriate(::PermutedDimsArray, ::Array) = true
+
+# (N, 1) matrix is ok for (N,) vector
+_is_appropriate(::Vector, ::Matrix) = true
+_is_appropriate(::Adjoint{T, V}, ::Adjoint{T, M}) where {T, V<:Vector, M<:Matrix} = true
+_is_appropriate(::Transpose{T, V}, ::Transpose{T, M}) where {T, V<:Vector, M<:Matrix} = true
 
 """
     @maybe_inferred [Type] f(...)
