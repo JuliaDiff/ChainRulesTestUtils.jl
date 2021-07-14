@@ -96,14 +96,15 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "Correct definitions" begin
             local inplace_used
             function ChainRulesCore.frule((_, ẋ), ::typeof(identity), x::Array)
-                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> (inplace_used = true; ȧ .+= ẋ))
+                ẏ = InplaceableThunk(ȧ -> (inplace_used = true; ȧ .+= ẋ), @thunk(ẋ))
                 return identity(x), ẏ
             end
             function ChainRulesCore.rrule(::typeof(identity), x::Array)
                 function identity_pullback(ȳ)
-                    x̄_ret = InplaceableThunk(
-                        @thunk(ȳ), ā -> (inplace_used = true; ā .+= ȳ)
-                    )
+                    x̄_ret = InplaceableThunk(@thunk(ȳ)) do ā
+                        inplace_used = true
+                        ā .+= ȳ
+                    end
                     return (NoTangent(), x̄_ret)
                 end
                 return identity(x), identity_pullback
@@ -122,14 +123,14 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             my_identity(value) = value  # we will define bad rules on this
             function ChainRulesCore.frule((_, ẋ), ::typeof(my_identity), x::Array)
                 # only the in-place part is incorrect
-                ẏ = InplaceableThunk(@thunk(ẋ), ȧ -> ȧ .+= 200 .* ẋ)
+                ẏ = InplaceableThunk(ȧ -> ȧ .+= 200 .* ẋ, @thunk(ẋ))
                 return my_identity(x), ẏ
             end
             function ChainRulesCore.rrule(::typeof(my_identity), x::Array)
                 x_dims = size(x)
                 function my_identity_pullback(ȳ)
                     # only the in-place part is incorrect
-                    x̄_ret = InplaceableThunk(@thunk(ȳ), ā -> ā .+= 200 .* ȳ)
+                    x̄_ret = InplaceableThunk(ā -> ā .+= 200 .* ȳ, @thunk(ȳ))
                     return (NoTangent(), x̄_ret)
                 end
                 return my_identity(x), my_identity_pullback

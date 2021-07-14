@@ -17,11 +17,11 @@ end
         check(11.0, ZeroTangent())
         check([10.0, 20.0], @thunk([2.0, 0.0]))
 
-        check(12.0, InplaceableThunk(@thunk(2.0), X̄ -> error("Should not have in-placed")))
+        check(12.0, InplaceableThunk(X̄ -> error("Should not have in-placed"), @thunk(2.0)))
 
-        check([10.0, 20.0], InplaceableThunk(@thunk([2.0, 0.0]), X̄ -> (X̄[1] += 2.0; X̄)))
+        check([10.0, 20.0], InplaceableThunk(X̄ -> (X̄[1] += 2.0; X̄), @thunk([2.0, 0.0])))
         @test fails() do
-            check([10.0, 20.0], InplaceableThunk(@thunk([2.0, 0.0]), X̄ -> (X̄[1] += 3.0; X̄)))
+            check([10.0, 20.0], InplaceableThunk(X̄ -> (X̄[1] += 3.0; X̄), @thunk([2.0, 0.0])))
         end
     end
 
