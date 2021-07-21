@@ -1,0 +1,29 @@
+name: fix_doctests
+on:
+  pull_request:
+jobs:
+  doctests:
+    name: Fix doctests (Julia ${{ matrix.julia-version }} - ${{ github.event_name }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        julia-version: [1.6]
+    steps:
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: actions/checkout@v1
+      - name: Fix doctests
+        shell: julia --project=docs/ {0}
+        run: |
+          using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()
+          using Documenter
+          using ChainRulesTestUtils
+          doctest(ChainRulesTestUtils, fix=true)
+          # don't push changes to Manifest in suggestions, as it removes `path=..`
+          run(`git restore docs/Manifest.toml`)
+      - uses: reviewdog/action-suggester@v1
+        if: github.event_name == 'pull_request'
+        with:
+          tool_name: Documenter (fix doctests)
+          fail_on_error: true
