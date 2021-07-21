@@ -9,8 +9,6 @@ using LinearAlgebra
 using Random
 using Test
 
-import FiniteDifferences: rand_tangent
-
 export TestIterator
 export test_approx, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
 export ⊢
