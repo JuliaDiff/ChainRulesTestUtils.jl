@@ -20,6 +20,7 @@ __init__() = init_test_inferred_setting!()
 
 include("global_config.jl")
 
+include("rand_tangent.jl")
 include("generate_tangent.jl")
 include("data_generation.jl")
 include("iterator.jl")
