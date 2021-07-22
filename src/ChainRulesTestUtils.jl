@@ -9,17 +9,16 @@ using LinearAlgebra
 using Random
 using Test
 
-import FiniteDifferences: rand_tangent
-
 export TestIterator
 export test_approx, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
-export ⊢
+export ⊢, rand_tangent
 export @maybe_inferred
 
 __init__() = init_test_inferred_setting!()
 
 include("global_config.jl")
 
+include("rand_tangent.jl")
 include("generate_tangent.jl")
 include("data_generation.jl")
 include("iterator.jl")
