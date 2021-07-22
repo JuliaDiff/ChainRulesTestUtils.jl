@@ -33,12 +33,12 @@ Base.iterate(f::Foo, state) = iterate(f.a, state)
 function ChainRulesCore.rrule(::Type{Foo}, a)
     foo = Foo(a)
     function Foo_pullback(Δfoo)
-        return NoTangent(), Δfoo.a
+        return NoTangent(), unthunk(Δfoo).a
     end
     return foo, Foo_pullback
 end
 function ChainRulesCore.frule((_, Δa), ::Type{Foo}, a)
-    return Foo(a), Foo(Δa)
+    return Foo(a), Foo(unthunk(Δa))
 end
 
 # functor
@@ -49,7 +49,8 @@ function ChainRulesCore.rrule(f::Foo, x)
     end
     return y, Foo_pullback
 end
-function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
+function ChainRulesCore.frule((Δf_, Δx), f::Foo, x)
+    Δf = unthunk(Δf_)
     return f(x), Δf.a + Δx
 end
 
@@ -158,7 +159,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
         @testset "check not inferred in frule" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_noninferrable_frule), x)
-                return (x, x > 0 ? Float64(Δx) : Float32(Δx))
+                return (x, x > 0 ? Float64(unthunk(Δx)) : Float32(unthunk(Δx)))
             end
             function ChainRulesCore.rrule(::typeof(f_noninferrable_frule), x)
                 f_noninferrable_frule_pullback(Δy) = (NoTangent(), Δy)
@@ -205,7 +206,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "check not inferred in pullback" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_pullback), x)
                 function f_noninferrable_pullback_pullback(Δy)
-                    return (NoTangent(), x > 0 ? Float64(Δy) : Float32(Δy))
+                    return (NoTangent(), (x > 0 ? Float64 : Float32)(unthunk(Δy)))
                 end
                 return x, f_noninferrable_pullback_pullback
             end
@@ -219,7 +220,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "check not inferred in thunk" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_thunk), x, y)
                 function f_noninferrable_thunk_pullback(Δz)
-                    ∂x = @thunk(x > 0 ? Float64(Δz) : Float32(Δz))
+                    ∂x = @thunk(x > 0 ? Float64(unthunk(Δz)) : Float32(unthunk(Δz)))
                     return (NoTangent(), ∂x, Δz)
                 end
                 return x + y, f_noninferrable_thunk_pullback
@@ -233,10 +234,13 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
         @testset "check non-inferrable primal still passes if pullback inferrable" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable_pullback_only), x)
-                return (x > 0 ? Float64(x) : Float32(x), x > 0 ? Float64(Δx) : Float32(Δx))
+                T  = x > 0 ? Float64 : Float32
+                return T(x), T(unthunk(Δx))
             end
             function ChainRulesCore.rrule(::typeof(f_inferrable_pullback_only), x)
-                f_inferrable_pullback_only_pullback(Δy) = (NoTangent(), oftype(x, Δy))
+                function f_inferrable_pullback_only_pullback(Δy)
+                    return NoTangent(), oftype(x, unthunk(Δy))
+                end
                 return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
             end
             test_frule(f_inferrable_pullback_only, 2.0; check_inferred=true)
@@ -441,7 +445,9 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         ẋ = [4.0, 5.0, 6.0]
         xcopy, ẋcopy = copy(x), copy(ẋ)
         y = [1, 2]
-        test_frule(finplace!, x ⊢ ẋ; fkwargs=(y=y,))
+        # Don't test tangent transforms, we do not support thunks for mutating frules
+        # TODO: Should we disable testing thunks for frules in general
+        test_frule(finplace!, x ⊢ ẋ; fkwargs=(y=y,), tangent_transforms=[])
         @test x == xcopy
         @test ẋ == ẋcopy
         @test y == [1, 2]
@@ -462,7 +468,8 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return s
         end
 
-        function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
+        function ChainRulesCore.frule((_, Δiter_), ::typeof(iterfun), iter)
+            Δiter = unthunk(Δiter_)
             iter_Δiter = zip(iter, Δiter)
             state = iterate(iter_Δiter)
             state === nothing && error()
