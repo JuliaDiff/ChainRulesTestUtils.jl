@@ -69,6 +69,7 @@ struct Bar
         (sin, NoTangent),
         # all fields NoTangent implies NoTangent
         (Pair(:a, "b"), NoTangent),
+        (CartesianIndex(2, 3), NoTangent),
 
         # LinearAlgebra types
         (
