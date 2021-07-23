@@ -29,18 +29,20 @@ end
 # multiply by 9 to give a bigger range of values tested: no so tightly clustered around 0.
 rand_tangent(rng::AbstractRNG, ::BigFloat) = round(big(9 * randn(rng)), sigdigits=5, base=2)
 
-rand_tangent(rng::AbstractRNG, x::StridedArray{T, 0}) where {T} = fill(rand_tangent(x[1]))
-rand_tangent(rng::AbstractRNG, x::StridedArray) = rand_tangent.(Ref(rng), x)
-rand_tangent(rng::AbstractRNG, x::Adjoint) = adjoint(rand_tangent(rng, parent(x)))
-rand_tangent(rng::AbstractRNG, x::Transpose) = transpose(rand_tangent(rng, parent(x)))
 
-function rand_tangent(rng::AbstractRNG, x::T) where {T<:Tuple}
-    return Tangent{T}(rand_tangent.(Ref(rng), x)...)
+rand_tangent(rng::AbstractRNG, x::Array{<:Any, 0}) = _compress_notangent(fill(rand_tangent(rng, x[])))
+rand_tangent(rng::AbstractRNG, x::Array) = _compress_notangent(rand_tangent.(Ref(rng), x))
+
+# All other AbstractArray's can be handled using the ProjectTo mechanics.
+# and follow the same requirements
+function rand_tangent(rng::AbstractRNG, x::AbstractArray)
+    return _compress_notangent(ProjectTo(x)(rand_tangent(rng, collect(x))))
 end
 
-function rand_tangent(rng::AbstractRNG, xs::T) where {T<:NamedTuple}
-    return Tangent{T}(; map(x -> rand_tangent(rng, x), xs)...)
-end
+# TODO: arguably ProjectTo should handle this for us for AbstactArrays
+# https://github.com/JuliaDiff/ChainRulesCore.jl/issues/410
+_compress_notangent(::AbstractArray{NoTangent}) = NoTangent()
+_compress_notangent(x) = x
 
 function rand_tangent(rng::AbstractRNG, x::T) where {T}
     if !isstructtype(T)
@@ -54,8 +56,12 @@ function rand_tangent(rng::AbstractRNG, x::T) where {T}
     if all(tangent isa NoTangent for tangent in tangents)
         # if none of my fields can be perturbed then I can't be perturbed
         return NoTangent()
+    end
+
+    if T <: Tuple
+        return Tangent{T}(tangents...)
     else
-        Tangent{T}(; NamedTuple{field_names}(tangents)...)
+        return Tangent{T}(; NamedTuple{field_names}(tangents)...)
     end
 end
 

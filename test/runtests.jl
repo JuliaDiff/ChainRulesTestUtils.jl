@@ -1,5 +1,6 @@
 using ChainRulesCore
 using ChainRulesTestUtils
+using ChainRulesTestUtils: rand_tangent
 using FiniteDifferences
 using LinearAlgebra
 using Random
