@@ -36,7 +36,7 @@ rand_tangent(rng::AbstractRNG, x::Array) = _compress_notangent(rand_tangent.(Ref
 # All other AbstractArray's can be handled using the ProjectTo mechanics.
 # and follow the same requirements
 function rand_tangent(rng::AbstractRNG, x::AbstractArray)
-    return _compress_notangent(ProjectTo(x)(rand_tangent(collect(x))))
+    return _compress_notangent(ProjectTo(x)(rand_tangent(rng, collect(x))))
 end
 
 # TODO: arguably ProjectTo should handle this for us for AbstactArrays
