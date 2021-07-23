@@ -38,7 +38,7 @@ function ChainRulesCore.rrule(::Type{Foo}, a)
     return foo, Foo_pullback
 end
 function ChainRulesCore.frule((_, Δa), ::Type{Foo}, a)
-    return Foo(a), Foo(unthunk(Δa))
+    return Foo(a), Foo(Δa)
 end
 
 # functor
