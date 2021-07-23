@@ -59,8 +59,7 @@ Keep this in mind when testing discontinuous rules for functions like [ReLU](htt
 julia> using ChainRulesTestUtils;
 
 julia> test_frule(two2three, 3.33, -7.77);
-Test Summary:                            | Pass  Total
-test_frule: two2three on Float64,Float64 |    6      6
+
 
 ```
 
@@ -71,8 +70,7 @@ The call will test the `rrule` for function `f` at the point `x`, and similarly 
 
 ```jldoctest ex
 julia> test_rrule(two2three, 3.33, -7.77);
-Test Summary:                            | Pass  Total
-test_rrule: two2three on Float64,Float64 |    8      8
+
 
 ```
 
@@ -99,13 +97,11 @@ with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
 call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
-Test Summary:            | Pass  Total
-test_scalar: relu at 0.5 |   10     10
+
 
 
 julia> test_scalar(relu, -0.5);
-Test Summary:             | Pass  Total
-test_scalar: relu at -0.5 |   10     10
+
 
 ```
 
