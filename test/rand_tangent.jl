@@ -39,18 +39,29 @@ struct Bar
         (randn(Complex{Float32}, 5, 4), Matrix{Complex{Float32}}),
         ([randn(5, 4), 4.0], Vector{Any}),
 
-        # Wrapper Arrays
-        (randn(5, 4)', Adjoint{Float64, Matrix{Float64}}),
-        (transpose(randn(5, 4)), Transpose{Float64, Matrix{Float64}}),
-
+        # Co-Arrays
+        (randn(5)', Adjoint{Float64, Vector{Float64}}),  # row-vector: special
+        (randn(5, 4)', Matrix{Float64}),                 # matrix: generic dense
+        
+        (transpose(randn(5)), Transpose{Float64, Vector{Float64}}),  # row-vector: special
+        (transpose(randn(5, 4)), Matrix{Float64}),                   # matrix: generic dense
+        
+        # AbstactArrays of non-perturbable types
+        (1:10, NoTangent),
+        (1:2:10, NoTangent),
+        ([false, true], NoTangent),
 
         # Tuples.
         ((4.0, ), Tangent{Tuple{Float64}}),
         ((5.0, randn(3)), Tangent{Tuple{Float64, Vector{Float64}}}),
+        ((false, true), NoTangent),
+        (Tuple{}(), NoTangent),
 
         # NamedTuples.
         ((a=4.0, ), Tangent{NamedTuple{(:a,), Tuple{Float64}}}),
         ((a=5.0, b=1), Tangent{NamedTuple{(:a, :b), Tuple{Float64, Int}}}),
+        ((a=false, b=true), NoTangent),
+        ((;), NoTangent),
 
         # structs.
         (Bar(5.0, 4, rand(rng, 3)), Tangent{Bar}),
@@ -58,25 +69,23 @@ struct Bar
         (sin, NoTangent),
         # all fields NoTangent implies NoTangent
         (Pair(:a, "b"), NoTangent),
-        (1:10, NoTangent),
-        (1:2:10, NoTangent),
 
-        # LinearAlgebra types (also just structs).
+        # LinearAlgebra types
         (
             UpperTriangular(randn(3, 3)),
-            Tangent{UpperTriangular{Float64, Matrix{Float64}}},
+            UpperTriangular{Float64, Matrix{Float64}},
         ),
         (
             Diagonal(randn(2)),
-            Tangent{Diagonal{Float64, Vector{Float64}}},
+            Diagonal{Float64, Vector{Float64}},
         ),
         (
             Symmetric(randn(2, 2)),
-            Tangent{Symmetric{Float64, Matrix{Float64}}},
+            Symmetric{Float64, Matrix{Float64}},
         ),
         (
             Hermitian(randn(ComplexF64, 1, 1)),
-            Tangent{Hermitian{ComplexF64, Matrix{ComplexF64}}},
+            Hermitian{ComplexF64, Matrix{ComplexF64}},
         ),
     ]
         @test rand_tangent(rng, x) isa T_tangent
@@ -96,6 +105,7 @@ struct Bar
 
     # Julia 1.6 changed to using Ryu printing algorithm and seems better at printing short
     VERSION > v"1.6" && @testset "niceness of printing" begin
+        rng = MersenneTwister()
         for i in 1:50
             @test length(string(rand_tangent(1.0))) <= 6
             @test length(string(rand_tangent(1.0 + 1.0im))) <= 12
@@ -104,3 +114,4 @@ struct Bar
         end
     end
 end
+
