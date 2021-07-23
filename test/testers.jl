@@ -49,8 +49,7 @@ function ChainRulesCore.rrule(f::Foo, x)
     end
     return y, Foo_pullback
 end
-function ChainRulesCore.frule((Δf_, Δx), f::Foo, x)
-    Δf = unthunk(Δf_)
+function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
     return f(x), Δf.a + Δx
 end
 
@@ -159,7 +158,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
         @testset "check not inferred in frule" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_noninferrable_frule), x)
-                return (x, x > 0 ? Float64(unthunk(Δx)) : Float32(unthunk(Δx)))
+                return (x, x > 0 ? Float64(Δx) : Float32(Δx))
             end
             function ChainRulesCore.rrule(::typeof(f_noninferrable_frule), x)
                 f_noninferrable_frule_pullback(Δy) = (NoTangent(), Δy)
@@ -235,7 +234,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "check non-inferrable primal still passes if pullback inferrable" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable_pullback_only), x)
                 T  = x > 0 ? Float64 : Float32
-                return T(x), T(unthunk(Δx))
+                return T(x), T(Δx)
             end
             function ChainRulesCore.rrule(::typeof(f_inferrable_pullback_only), x)
                 function f_inferrable_pullback_only_pullback(Δy)
@@ -468,8 +467,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return s
         end
 
-        function ChainRulesCore.frule((_, Δiter_), ::typeof(iterfun), iter)
-            Δiter = unthunk(Δiter_)
+        function ChainRulesCore.frule((_, Δiter), ::typeof(iterfun), iter)
             iter_Δiter = zip(iter, Δiter)
             state = iterate(iter_Δiter)
             state === nothing && error()
