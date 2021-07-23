@@ -598,6 +598,35 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int,Float64}}(ZeroTangent(), 1.0))
     end
 
+    @testset "check_thunked_output_tangent" begin
+        @testset "no method for thunk" begin
+            does_not_accept_thunk_id(x) = x
+            function ChainRulesCore.rrule(::typeof(does_not_accept_thunk_id), x)
+                does_not_accept_thunk_id_pullback(ȳ::AbstractArray) = (NoTangent() ,ȳ)
+                return does_not_accept_thunk_id(x), does_not_accept_thunk_id_pullback
+            end
+
+            test_rrule(
+                does_not_accept_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false
+            )
+            @test errors(r"MethodError.*Thunk") do 
+                test_rrule(does_not_accept_thunk_id, [1.0, 2.0])
+            end
+        end
+
+        @testset "Thunk wrong" begin
+            bad_thunk_id(x) = x
+            function ChainRulesCore.rrule(::typeof(bad_thunk_id), x)
+                bad_thunk_id_pullback(ȳ::AbstractArray) = (NoTangent(), ȳ)
+                bad_thunk_id_pullback(ȳ::AbstractThunk) = (NoTangent(), 2 * ȳ)
+                return bad_thunk_id(x), bad_thunk_id_pullback
+            end
+
+            test_rrule(bad_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false)
+            @test fails(()->test_rrule(bad_thunk_id, [1.0, 2.0]))
+        end
+    end
+
     @testset "error message about incorrectly using ZeroTangent()" begin
         foo(a, i) = a[i]
         function ChainRulesCore.rrule(::typeof(foo), a, i)

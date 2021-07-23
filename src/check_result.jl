@@ -143,7 +143,7 @@ function test_approx(actual::A, expected::E, msg=""; kwargs...) where {A,E}
         if (c_actual isa A) && (c_expected isa E)  # prevent stack-overflow
             throw(MethodError, test_approx, (actual, expected))
         end
-        test_approx(c_actual, c_expected; kwargs...)
+        test_approx(c_actual, c_expected, msg; kwargs...)
     end
 end
 

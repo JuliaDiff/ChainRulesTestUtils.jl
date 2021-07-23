@@ -241,7 +241,7 @@ function test_rrule(
         end
 
         if check_thunked_output_tangent
-            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk")
+            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:")
         end
     end  # top-level testset
 end
