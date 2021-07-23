@@ -72,7 +72,7 @@ The call will test the `rrule` for function `f` at the point `x`, and similarly 
 ```jldoctest ex
 julia> test_rrule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total
-test_rrule: two2three on Float64,Float64 |    8      8
+test_rrule: two2three on Float64,Float64 |    9      9
 
 ```
 
@@ -100,12 +100,12 @@ call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total
-test_scalar: relu at 0.5 |   10     10
+test_scalar: relu at 0.5 |   11     11
 
 
 julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total
-test_scalar: relu at -0.5 |   10     10
+test_scalar: relu at -0.5 |   11     11
 
 ```
 

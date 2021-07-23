@@ -29,6 +29,4 @@ include("check_result.jl")
 include("rule_config.jl")
 include("finite_difference_calls.jl")
 include("testers.jl")
-
-include("deprecated.jl")
 end # module

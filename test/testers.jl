@@ -33,7 +33,7 @@ Base.iterate(f::Foo, state) = iterate(f.a, state)
 function ChainRulesCore.rrule(::Type{Foo}, a)
     foo = Foo(a)
     function Foo_pullback(Δfoo)
-        return NoTangent(), Δfoo.a
+        return NoTangent(), unthunk(Δfoo).a
     end
     return foo, Foo_pullback
 end
@@ -205,7 +205,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "check not inferred in pullback" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_pullback), x)
                 function f_noninferrable_pullback_pullback(Δy)
-                    return (NoTangent(), x > 0 ? Float64(Δy) : Float32(Δy))
+                    return (NoTangent(), (x > 0 ? Float64 : Float32)(unthunk(Δy)))
                 end
                 return x, f_noninferrable_pullback_pullback
             end
@@ -219,7 +219,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @testset "check not inferred in thunk" begin
             function ChainRulesCore.rrule(::typeof(f_noninferrable_thunk), x, y)
                 function f_noninferrable_thunk_pullback(Δz)
-                    ∂x = @thunk(x > 0 ? Float64(Δz) : Float32(Δz))
+                    ∂x = @thunk(x > 0 ? Float64(unthunk(Δz)) : Float32(unthunk(Δz)))
                     return (NoTangent(), ∂x, Δz)
                 end
                 return x + y, f_noninferrable_thunk_pullback
@@ -233,10 +233,13 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
         @testset "check non-inferrable primal still passes if pullback inferrable" begin
             function ChainRulesCore.frule((_, Δx), ::typeof(f_inferrable_pullback_only), x)
-                return (x > 0 ? Float64(x) : Float32(x), x > 0 ? Float64(Δx) : Float32(Δx))
+                T  = x > 0 ? Float64 : Float32
+                return T(x), T(Δx)
             end
             function ChainRulesCore.rrule(::typeof(f_inferrable_pullback_only), x)
-                f_inferrable_pullback_only_pullback(Δy) = (NoTangent(), oftype(x, Δy))
+                function f_inferrable_pullback_only_pullback(Δy)
+                    return NoTangent(), oftype(x, unthunk(Δy))
+                end
                 return x > 0 ? Float64(x) : Float32(x), f_inferrable_pullback_only_pullback
             end
             test_frule(f_inferrable_pullback_only, 2.0; check_inferred=true)
@@ -580,45 +583,6 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         end
     end
 
-    @testset "tangent_transforms frule" begin
-         others_work(x) = 2x
-         function ChainRulesCore.frule((Δd, Δx), ::typeof(others_work), x)
-             return others_work(x), 2Δx
-         end
-
-         others_nowork(x) = 2x
-         function ChainRulesCore.frule((Δd, Δx), ::typeof(others_nowork), x)
-             return others_nowork(x), error("nope")
-         end
-
-         test_frule(others_work, rand(); tangent_transforms=[identity, x -> @thunk(x)])
-         @test errors("nope") do
-             test_frule(others_nowork, 2.3; tangent_transforms=[x -> @thunk(x)])
-         end
-     end
-
-     @testset "tangent_transforms rrule" begin
-         others_work(x) = 2x
-         function ChainRulesCore.rrule(::typeof(others_work), x)
-             y = others_work(x)
-             others_work_pullback(ȳ) = return (NoTangent(), 2ȳ)
-             return y, others_work_pullback
-         end
-
-         others_nowork(x) = [x, x]
-         function ChainRulesCore.rrule(::typeof(others_nowork), x)
-             y = others_nowork(x)
-             others_nowork_pullback(ȳ) = return (NoTangent(), error("nope"))
-             return y, others_nowork_pullback
-         end
-
-         test_rrule(others_work, 2.3; tangent_transforms=[_ -> ZeroTangent()])
-         test_rrule(others_work, 2.3; tangent_transforms=[x -> @thunk(x)])
-
-         @test errors("nope") do
-             test_rrule(others_nowork, 2.3; tangent_transforms=[x -> @thunk(x)])
-         end
-     end
 
     @testset "Tuple primal that is not equal to differential backing" begin
         # https://github.com/JuliaMath/SpecialFunctions.jl/issues/288
@@ -632,6 +596,35 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return y, rev_trouble_pullback
         end
         test_rrule(rev_trouble, (3, 3.0) ⊢ Tangent{Tuple{Int,Float64}}(ZeroTangent(), 1.0))
+    end
+
+    @testset "check_thunked_output_tangent" begin
+        @testset "no method for thunk" begin
+            does_not_accept_thunk_id(x) = x
+            function ChainRulesCore.rrule(::typeof(does_not_accept_thunk_id), x)
+                does_not_accept_thunk_id_pullback(ȳ::AbstractArray) = (NoTangent() ,ȳ)
+                return does_not_accept_thunk_id(x), does_not_accept_thunk_id_pullback
+            end
+
+            test_rrule(
+                does_not_accept_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false
+            )
+            @test errors(r"MethodError.*Thunk") do 
+                test_rrule(does_not_accept_thunk_id, [1.0, 2.0])
+            end
+        end
+
+        @testset "Thunk wrong" begin
+            bad_thunk_id(x) = x
+            function ChainRulesCore.rrule(::typeof(bad_thunk_id), x)
+                bad_thunk_id_pullback(ȳ::AbstractArray) = (NoTangent(), ȳ)
+                bad_thunk_id_pullback(ȳ::AbstractThunk) = (NoTangent(), 2 * ȳ)
+                return bad_thunk_id(x), bad_thunk_id_pullback
+            end
+
+            test_rrule(bad_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false)
+            @test fails(()->test_rrule(bad_thunk_id, [1.0, 2.0]))
+        end
     end
 
     @testset "error message about incorrectly using ZeroTangent()" begin

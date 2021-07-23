@@ -80,12 +80,6 @@ end
 # Keyword Arguments
    - `output_tangent` tangent to test accumulation of derivatives against
      should be a differential for the output of `f`. Is set automatically if not provided.
-   - `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
-      transform the passed argument tangents into alternative tangents that should be tested.
-      Note that the alternative tangents are only tested for not erroring when passed to
-      frule. Testing for correctness using finite differencing can be done using a
-      separate `test_frule` call, e.g. for testing a `ZeroTangent()` for correctness:
-      `test_frule(f, x ⊢ ZeroTangent(); tangent_transforms=[])`.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
    - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
      `frule`). Used for testing gradients from AD systems.
@@ -104,7 +98,6 @@ function test_frule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
     fdm=_fdm,
     frule_f=ChainRulesCore.frule,
     check_inferred::Bool=true,
@@ -136,39 +129,14 @@ function test_frule(
         Ω = call_on_copy(primals...)
         test_approx(Ω_ad, Ω; isapprox_kwargs...)
 
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        is_ignored = isa.(tangents, Union{Nothing,NoTangent})
-        if any(tangents .== nothing)
-            Base.depwarn(
-                "test_frule(f, k ⊢ nothing) is deprecated, use " *
-                "test_frule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_frule,
-            )
-        end
-
         # Correctness testing via finite differencing.
+        is_ignored = isa.(tangents, NoTangent)
         dΩ_fd = _make_jvp_call(fdm, call_on_copy, Ω, primals, tangents, is_ignored)
         test_approx(dΩ_ad, dΩ_fd; isapprox_kwargs...)
 
         acc = output_tangent isa Auto ? rand_tangent(Ω) : output_tangent
         _test_add!!_behaviour(acc, dΩ_ad; isapprox_kwargs...)
-
-        # test that rules work for other tangents
-        _test_frule_alt_tangents(
-            call_on_copy, frule_f, config, tangent_transforms, tangents, primals, acc;
-            isapprox_kwargs...
-        )
     end  # top-level testset
-end
-
-function _test_frule_alt_tangents(
-    call, frule_f, config, tangent_transforms, tangents, primals, acc;
-    isapprox_kwargs...
-)
-    @testset "ȧrgs = $(_string_typeof(tsf.(tangents)))" for tsf in tangent_transforms
-        _, dΩ = call(frule_f, config, tsf.(tangents), primals...)
-        _test_add!!_behaviour(acc, dΩ; isapprox_kwargs...)
-    end
 end
 
 """
@@ -185,12 +153,8 @@ end
 # Keyword Arguments
  - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
-- `tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS`: a vector of functions that
-   transform the passed `output_tangent` into alternative tangents that should be tested.
-   Note that the alternative tangents are only tested for not erroring when passed to
-   rrule. Testing for correctness using finite differencing can be done using a
-   separate `test_rrule` call, e.g. for testing a `ZeroTangent()` for correctness:
-   `test_rrule(f, args...; output_tangent=ZeroTangent(), tangent_transforms=[])`.
+- `check_thunked_output_tangent=true`: also checks that passing a thunked version of the 
+    output tangent to the pullback returns the same result.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
  - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
    Used for testing gradients from AD systems.
@@ -209,7 +173,7 @@ function test_rrule(
     f,
     args...;
     output_tangent=Auto(),
-    tangent_transforms=TRANSFORMS_TO_ALT_TANGENTS,
+    check_thunked_output_tangent=true,
     fdm=_fdm,
     rrule_f=ChainRulesCore.rrule,
     check_inferred::Bool=true,
@@ -254,22 +218,13 @@ function test_rrule(
         )
 
         # Correctness testing via finite differencing.
-        # TODO: remove Nothing when https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
-        is_ignored = isa.(accum_cotangents, Union{Nothing, NoTangent})
-        if any(accum_cotangents .== nothing)
-            Base.depwarn(
-                "test_rrule(f, k ⊢ nothing) is deprecated, use " *
-                "test_rrule(f, k ⊢ NoTangent()) instead for non-differentiable ks",
-                :test_rrule,
-            )
-        end
-
+        is_ignored = isa.(accum_cotangents, NoTangent)
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
 
         for (accum_cotangent, ad_cotangent, fd_cotangent) in zip(
             accum_cotangents, ad_cotangents, fd_cotangents
         )
-            if accum_cotangent isa Union{Nothing,NoTangent}  # then we marked this argument as not differentiable # TODO remove once #113
+            if accum_cotangent isa NoTangent  # then we marked this argument as not differentiable
                 @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
                 ad_cotangent isa ZeroTangent && error(
                     "The pullback in the rrule should use NoTangent()" *
@@ -285,21 +240,10 @@ function test_rrule(
             end
         end
 
-        # test other tangents don't error when passed to the pullback
-        _test_rrule_alt_tangents(pullback, tangent_transforms, ȳ, accum_cotangents)
-    end  # top-level testset
-end
-
-function _test_rrule_alt_tangents(
-    pullback, tangent_transforms, ȳ, accum_cotangents;
-    isapprox_kwargs...
-)
-    @testset "ȳ = $(_string_typeof(tsf(ȳ)))" for tsf in tangent_transforms
-        ad_cotangents = pullback(tsf(ȳ))
-        for (accum_cotangent, ad_cotangent) in zip(accum_cotangents, ad_cotangents)
-            _test_add!!_behaviour(accum_cotangent, ad_cotangent; isapprox_kwargs...)
+        if check_thunked_output_tangent
+            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:")
         end
-    end
+    end  # top-level testset
 end
 
 """
