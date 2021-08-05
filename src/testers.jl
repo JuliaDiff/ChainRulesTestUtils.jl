@@ -225,7 +225,7 @@ function test_rrule(
             accum_cotangents, ad_cotangents, fd_cotangents
         )
             if accum_cotangent isa NoTangent  # then we marked this argument as not differentiable
-                @assert fd_cotangent === nothing  # this is how `_make_j′vp_call` works
+                @assert fd_cotangent === NoTangent()
                 ad_cotangent isa ZeroTangent && error(
                     "The pullback in the rrule should use NoTangent()" *
                     " rather than ZeroTangent() for non-perturbable arguments.",
