@@ -19,7 +19,7 @@ function _make_jvp_call(fdm, f, y, xs, ẋs, ignores)
     f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
-    all(ignores) && return ntuple(_ -> nothing, length(xs))
+    all(ignores) && return ntuple(_ -> NoTangent(), length(xs))
     sigargs = zip(xs[.!ignores], ẋs[.!ignores])
     return _maybe_fix_to_composite(y, jvp(fdm, f2, sigargs...))
 end
@@ -35,7 +35,7 @@ Call `FiniteDifferences.j′vp`, with the option to ignore certain `xs`.
 - `ȳ`: The adjoint w.r.t. output of `f`.
 - `xs`: Inputs to `f`, such that `y = f(xs...)`.
 - `ignores`: Collection of `Bool`s, the same length as `xs`.
-  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === NoTangent()`.
 
 # Returns
 - `∂xs::Tuple`: Derivatives estimated by finite differencing.
@@ -44,7 +44,7 @@ function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
     f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
-    args = Any[nothing for _ in 1:length(xs)]
+    args = Any[NoTangent() for _ in 1:length(xs)]
     all(ignores) && return (args...,)
     sigargs = xs[.!ignores]
     arginds = (1:length(xs))[.!ignores]
@@ -66,7 +66,7 @@ Return a new version of `f`, `fnew`, that ignores some of the arguments `xs`.
 - `f`: The function to be wrapped.
 - `xs`: Inputs to `f`, such that `y = f(xs...)`.
 - `ignores`: Collection of `Bool`s, the same length as `xs`.
-  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === nothing`.
+  If `ignores[i] === true`, then `xs[i]` is ignored; `∂xs[i] === NoTangent()`.
 """
 function _wrap_function(f, xs, ignores)
     function fnew(sigargs...)
