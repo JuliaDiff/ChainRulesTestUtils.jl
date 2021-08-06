@@ -19,7 +19,7 @@ function _make_jvp_call(fdm, f, y, xs, ẋs, ignores)
     f2 = _wrap_function(f, xs, ignores)
 
     ignores = collect(ignores)
-    all(ignores) && return NoTangent()
+    all(ignores) && return ntuple(_ -> NoTangent(), length(xs))
     sigargs = zip(xs[.!ignores], ẋs[.!ignores])
     return _maybe_fix_to_composite(y, jvp(fdm, f2, sigargs...))
 end
@@ -45,7 +45,7 @@ function _make_j′vp_call(fdm, f, ȳ, xs, ignores)
 
     ignores = collect(ignores)
     args = Any[NoTangent() for _ in 1:length(xs)]
-    all(ignores) && return NoTangent()
+    all(ignores) && return (args...,)
     sigargs = xs[.!ignores]
     arginds = (1:length(xs))[.!ignores]
     fd = j′vp(fdm, f2, ȳ, sigargs...)
