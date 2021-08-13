@@ -1,5 +1,7 @@
 module ChainRulesTestUtils
 
+@nospecialize
+
 using ChainRulesCore
 using ChainRulesCore: frule, rrule
 using Compat: only
