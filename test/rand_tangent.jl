@@ -105,13 +105,13 @@ struct Bar
     end
 
     # Julia 1.6 changed to using Ryu printing algorithm and seems better at printing short
-    VERSION > v"1.6" && @testset "niceness of printing" begin
-        rng = MersenneTwister()
+    VERSION >= v"1.6" && @testset "niceness of printing" begin
+        rng = MersenneTwister(1)
         for i in 1:50
-            @test length(string(rand_tangent(1.0))) <= 6
-            @test length(string(rand_tangent(1.0 + 1.0im))) <= 12
-            @test length(string(rand_tangent(1f0))) <= 12
-            @test length(string(rand_tangent(big"1.0"))) <= 20
+            @test length(string(rand_tangent(rng, 1.0))) <= 6
+            @test length(string(rand_tangent(rng, 1.0 + 1.0im))) <= 12
+            @test length(string(rand_tangent(rng, 1f0))) <= 9
+            @test length(string(rand_tangent(rng, big"1.0"))) <= 9
         end
     end
 end

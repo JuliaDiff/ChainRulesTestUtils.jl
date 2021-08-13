@@ -17,7 +17,7 @@ rand_tangent(rng::AbstractRNG, x::Integer) = NoTangent()
 # while also not biasing the sample space too much
 function rand_tangent(rng::AbstractRNG, x::T) where {T<:Number}
     # multiply by 9 to give a bigger range of values tested: no so tightly clustered around 0.
-    return round(9 * randn(rng, T), sigdigits=5, base=2)
+    return round(9 * randn(rng, T), digits=5, base=2)
 end
 rand_tangent(rng::AbstractRNG, x::Float64) = rand(rng, -9:0.01:9)
 function rand_tangent(rng::AbstractRNG, x::ComplexF64)
@@ -27,7 +27,7 @@ end
 #BigFloat/MPFR is finicky about short numbers, this doesn't always work as well as it should
 
 # multiply by 9 to give a bigger range of values tested: no so tightly clustered around 0.
-rand_tangent(rng::AbstractRNG, ::BigFloat) = round(big(9 * randn(rng)), sigdigits=5, base=2)
+rand_tangent(rng::AbstractRNG, ::BigFloat) = round(big(9 * randn(rng)), digits=5, base=2)
 
 
 rand_tangent(rng::AbstractRNG, x::Array{<:Any, 0}) = _compress_notangent(fill(rand_tangent(rng, x[])))
