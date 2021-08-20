@@ -185,7 +185,7 @@ that we do not know an `rrule` for, and we want to check whether the gradients p
 
 To test gradients the AD system will need to overload `rrule_via_ad` function which wraps the gradients computed by AD.
 For some AD systems (e.g. Zygote) this already exists.
-If it does not exist, see "How to write `rrule_via_ad` function" section below.
+If it does not exist, see [How to write `rrule_via_ad` function](#How-to-write-rrule_via_ad-function) section below.
 
 We use the `test_rrule` function to test the gradients using the config used by the AD system
 ```julia
