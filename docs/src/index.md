@@ -183,9 +183,10 @@ end
 
 that we do not know an `rrule` for, and we want to check whether the gradients provided by the AD system are correct.
 
-To test gradients the AD system you need to provide a `rrule_f` function that acts like calling `rrule` but use AD rather than a defined rule.
+To test gradients computed by the AD system you need to provide a `rrule_f` function that acts like calling `rrule` but use AD rather than a defined rule.
 This has the exact same semantics as is required to overload `ChainRulesCore.rrule_via_ad`, thus almost all systems doing so should just overload that, and pass in that and the config, and then trigger `test_rrule(MyADConfig, f, xs; rrule_f = ChainRulesCore.rrule_via_ad)`.
-For some AD systems (e.g. Zygote) this already exists.
+See more info on `rrule_via_ad` and the rule configs in the [ChainRules documentation](https://juliadiff.org/ChainRulesCore.jl/stable/config.html).
+For some AD systems (e.g. Zygote) `rrule_via_ad` already exists.
 If it does not exist, see [How to write `rrule_via_ad` function](#How-to-write-rrule_via_ad-function) section below.
 
 We use the `test_rrule` function to test the gradients using the config used by the AD system
