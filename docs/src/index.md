@@ -183,15 +183,31 @@ end
 
 that we do not know an `rrule` for, and we want to check whether the gradients provided by the AD system are correct.
 
-Firstly, we need to define an `rrule`-like function which wraps the gradients computed by AD.
+To test gradients computed by the AD system you need to provide a `rrule_f` function that acts like calling `rrule` but use AD rather than a defined rule.
+This has the exact same semantics as is required to overload `ChainRulesCore.rrule_via_ad`, thus almost all systems doing so should just overload that, and pass in that and the config, and then trigger `test_rrule(MyADConfig, f, xs; rrule_f = ChainRulesCore.rrule_via_ad)`.
+See more info on `rrule_via_ad` and the rule configs in the [ChainRules documentation](https://juliadiff.org/ChainRulesCore.jl/stable/config.html).
+For some AD systems (e.g. Zygote) `rrule_via_ad` already exists.
+If it does not exist, see [How to write `rrule_via_ad` function](#How-to-write-rrule_via_ad-function) section below.
+
+We use the `test_rrule` function to test the gradients using the config used by the AD system
+```julia
+config = MyAD.CustomRuleConfig()
+test_rrule(config, complicated, 2.3, 6.1; rrule_f=rrule_via_ad)
+```
+by providing the rule config and specifying the `rrule_via_ad` as the `rrule_f` keyword argument.
+
+
+### How to write `rrule_via_ad` function
+
+`rrule_via_ad` will use the AD system to compute gradients and will package them in the `rrule`-like API.
 
 Let's say the AD package uses some custom differential types and does not provide a gradient w.r.t. the function itself.
 In order to make the pullback compatible with the `rrule` API we need to add a `NoTangent()` to represent the differential w.r.t. the function itself.
 We also need to transform the `ChainRules` differential types to the custom types (`cr2custom`) before feeding the `Δ` to the AD-generated pullback, and back to `ChainRules` differential types when returning from the `rrule` (`custom2cr`).
 
 ```julia
-function ad_rrule(f::Function, args...)
-    y, ad_pullback = ADSystem.pullback(f, args...)
+function rrule_via_ad(config::MyAD.CustomRuleConfig, f::Function, args...)
+    y, ad_pullback = MyAD.pullback(f, args...)
     function rrulelike_pullback(Δ)
         diffs = custom2cr(ad_pullback(cr2custom(Δ)))
         return NoTangent(), diffs...
@@ -203,12 +219,6 @@ end
 custom2cr(differential) = ...
 cr2custom(differential) = ...
 ```
-Secondly, we use the `test_rrule` function to test the gradients using the config used by the AD system
-```julia
-config = MyAD.CustomRuleConfig()
-test_rrule(config, complicated, 2.3, 6.1; rrule_f=ad_rrule)
-```
-by specifying the `ad_rrule` as the `rrule_f` keyword argument.
 
 ## Custom finite differencing
 
