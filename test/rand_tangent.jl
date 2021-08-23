@@ -88,6 +88,12 @@ struct Bar
             Hermitian(randn(ComplexF64, 1, 1)),
             Hermitian{ComplexF64, Matrix{ComplexF64}},
         ),
+        
+        # SparseArrays
+        (sprand(5, 4, 0.3), SparseMatrixCSC{Float64, Int64}),
+        (sprand(5, 4, 0.3)', SparseMatrixCSC{Float64, Int64}),
+        (sprand(ComplexF64, 5, 4, 0.3), SparseMatrixCSC{ComplexF64, Int64}),
+        (sprand(ComplexF64, 5, 4, 0.3)', SparseMatrixCSC{ComplexF64, Int64}),
     ]
         @test rand_tangent(rng, x) isa T_tangent
         @test rand_tangent(x) isa T_tangent

@@ -39,6 +39,9 @@ function rand_tangent(rng::AbstractRNG, x::AbstractArray)
     return _compress_notangent(ProjectTo(x)(rand_tangent(rng, collect(x))))
 end
 
+# adjoint sparse matrix keeps sparse
+rand_tangent(rng::AbstractRNG, x::Adjoint{T, <:SparseMatrixCSC}) where T = rand_tangent(rng, copy(x))
+
 # TODO: arguably ProjectTo should handle this for us for AbstactArrays
 # https://github.com/JuliaDiff/ChainRulesCore.jl/issues/410
 _compress_notangent(::AbstractArray{NoTangent}) = NoTangent()

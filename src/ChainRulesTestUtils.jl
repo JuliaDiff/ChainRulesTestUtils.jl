@@ -8,6 +8,7 @@ using Compat: only
 using FiniteDifferences
 using FiniteDifferences: to_vec
 using LinearAlgebra
+using SparseArrays
 using Random
 using Test
 
