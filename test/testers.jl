@@ -57,6 +57,15 @@ end
 abstract type MySpecialTrait end
 struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
+my_id(x) = x
+function ChainRulesCore.rrule(::typeof(my_id), x)
+    my_id_pb(ȳ) = (NoTangent(), ȳ)
+    function my_id_pb(ȳ::AbstractThunk)
+        precision = rand() > 0.5 ? Float64 : Float32
+        return (NoTangent(), precision(unthunk(ȳ)))
+    end
+    return x, my_id_pb
+end
 
 @testset "testers.jl" begin
     @testset "test_scalar" begin
@@ -710,5 +719,9 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @test @maybe_inferred(Real, f_noninferrable(1)) == 1
 
         ChainRulesTestUtils.TEST_INFERRED[] = true
+    end
+
+    @testset "inference of thunked cotangents" begin
+        @test errors(() -> test_rrule(my_id, 2.0))
     end
 end
