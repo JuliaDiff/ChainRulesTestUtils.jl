@@ -723,6 +723,6 @@ end
 
     @testset "inference of thunked cotangents" begin
         @test errors(() -> test_rrule(my_id, 2.0))
-        test_rrule(my_id, 2.0; check_inference=false)
+        test_rrule(my_id, 2.0; check_inferred=false)
     end
 end
