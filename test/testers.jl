@@ -57,16 +57,6 @@ end
 abstract type MySpecialTrait end
 struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
-my_id(x) = x
-function ChainRulesCore.rrule(::typeof(my_id), x)
-    my_id_pb(ȳ) = (NoTangent(), ȳ)
-    function my_id_pb(ȳ::AbstractThunk)
-        precision = rand() > 0.5 ? Float64 : Float32
-        return (NoTangent(), precision(unthunk(ȳ)))
-    end
-    return x, my_id_pb
-end
-
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -722,7 +712,18 @@ end
     end
 
     @testset "inference of thunked cotangents" begin
+        my_id(x) = x
+        function ChainRulesCore.rrule(::typeof(my_id), x)
+            my_id_pb(ȳ) = (NoTangent(), ȳ)
+            function my_id_pb(ȳ::AbstractThunk)
+                precision = rand() > 0.5 ? Float64 : Float32
+                return (NoTangent(), precision(unthunk(ȳ)))
+            end
+            return x, my_id_pb
+        end
+
         @test errors(() -> test_rrule(my_id, 2.0))
         test_rrule(my_id, 2.0; check_inferred=false)
+        test_rrule(my_id, 2.0; check_thunked_output_tangent=false)
     end
 end
