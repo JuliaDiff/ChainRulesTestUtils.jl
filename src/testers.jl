@@ -72,6 +72,7 @@ end
 # Arguments
 - `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
+  (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
    - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
@@ -145,6 +146,7 @@ end
 # Arguments
 - `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
 - `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
+  (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
     - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
     - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
