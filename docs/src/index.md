@@ -134,7 +134,7 @@ test_frule(foo ⊢ Tangent{Foo}(;a=rand()), rand())
 
 ## Specifying Tangents
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
-This is done by passing in `x ⊢ Δx`, where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
+This is done by passing in [`x ⊢ Δx`](@ref :⊢), where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
 If this is not done the tangent will be automatically generated via `FiniteDifferences.rand_tangent`.
 A special case of this is that if you specify it as `x ⊢ NoTangent()` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
@@ -273,4 +273,4 @@ Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
 ```
 
 This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
-ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl)and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
+ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl) and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
