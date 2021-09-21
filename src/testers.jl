@@ -317,7 +317,7 @@ function _test_cotangent(
     # this situation can occur if a cotangent is not implemented and
     # the default `rand_tangent` is `NoTangent`: e.g. due to having no fields
     # the `@test_broken` below should tell them that there is an easy implementation for
-    # for this case of `NoTangent()` (`@test_broken false` would be less useful!)
+    # this case of `NoTangent()` (`@test_broken false` would be less useful!)
     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
     @test_broken ad_cotangent isa NoTangent
 end
