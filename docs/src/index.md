@@ -135,7 +135,7 @@ test_frule(foo ⊢ Tangent{Foo}(;a=rand()), rand())
 ## Specifying Tangents
 [`test_frule`](@ref) and [`test_rrule`](@ref) allow you to specify the tangents used for testing.
 By default, tangents will be automatically generated via `FiniteDifferences.rand_tangent`.
-To explicitly specify a tangent, pass in [`x ⊢ Δx`](@ref `⊢`), where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
+To explicitly specify a tangent, pass in [`x ⊢ Δx`](@ref `:⊢`), where `x` is the primal and `Δx` is the tangent, in the place of the primal inputs.
 (You can enter `⊢` via `\vdash` + tab in the Julia REPL and supporting editors.)
 A special case of this is that if you specify it as `x ⊢ NoTangent()` then finite differencing will not be used on that input.
 Similarly, by setting the `output_tangent` keyword argument, you can specify the tangent for the primal output.
