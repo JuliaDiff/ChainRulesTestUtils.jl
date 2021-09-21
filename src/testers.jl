@@ -232,7 +232,9 @@ function test_rrule(
                 )
                 if ad_cotangent isa ChainRulesCore.NotImplemented
                     # this situation can occur if a cotangent is not implemented and
-                    # the default `rand_tangent` is `NoTangent`:
+                    # the default `rand_tangent` is `NoTangent`: e.g. due to having no fields
+                    # the `@test_broken` bellow should tell them that their is an easy
+                    # implementation for this case of `NoTangent()`
                     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
                     @test_broken ad_cotangent isa NoTangent
                 else
