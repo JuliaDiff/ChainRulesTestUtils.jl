@@ -230,7 +230,14 @@ function test_rrule(
                     "The pullback in the rrule should use NoTangent()" *
                     " rather than ZeroTangent() for non-perturbable arguments.",
                 )
-                @test ad_cotangent isa NoTangent  # we said it wasn't differentiable.
+                if ad_cotangent isa ChainRulesCore.NotImplemented
+                    # this situation can occur if a cotangent is not implemented and
+                    # the default `rand_tangent` is `NoTangent`:
+                    # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
+                    @test_broken ad_cotangent isa NoTangent
+                else
+                    @test ad_cotangent isa NoTangent  # we said it wasn't differentiable.
+                end
             else
                 ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 

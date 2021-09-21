@@ -644,6 +644,16 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @scalar_rule f_notimplemented(x, y) (@not_implemented(""), 1) (1, -1)
         test_frule(f_notimplemented, randn(), randn())
         test_rrule(f_notimplemented, randn(), randn())
+
+        f_notimplemented2(f, x) = 2 * f(x)
+        function ChainRulesCore.rrule(::typeof(f_notimplemented2), f::typeof(identity), x)
+            Ω = f_notimplemented2(f, x)
+            function f_notimplemented2_pullback(Ω̄)
+                return NoTangent(), @not_implemented("TODO: implement this!"), 2 * Ω̄
+            end
+            return Ω, f_notimplemented2_pullback
+        end
+        test_rrule(f_notimplemented2, identity, randn())
     end
 
     @testset "custom rrule_f" begin
