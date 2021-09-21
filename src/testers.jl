@@ -310,7 +310,7 @@ function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent; kwargs...)
 end
 function _test_cotangent(
     ::NoTangent,
-    ::ChainRulesCore.NotImplemented,
+    ad_cotangent::ChainRulesCore.NotImplemented,
     ::NoTangent;
     kwargs...,
 )
@@ -319,7 +319,7 @@ function _test_cotangent(
     # the `@test_broken` below should tell them that there is an easy
     # implementation for this case of `NoTangent()`
     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
-    @test_broken false
+    @test_broken ad_cotangent isa NoTangent
 end
 function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent; kwargs...)
     error("cotangent obtained with finite differencing has to be NoTangent()")
