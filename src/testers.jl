@@ -305,7 +305,7 @@ end
 function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent; kwargs...)
     error(
         "The pullback in the rrule should use NoTangent()" *
-        "rather than ZeroTangent() for non-perturbable arguments."
+        " rather than ZeroTangent() for non-perturbable arguments."
     )
 end
 function _test_cotangent(
