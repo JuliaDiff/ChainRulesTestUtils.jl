@@ -5,12 +5,14 @@ Given a function `f` with scalar input and scalar output, perform finite differe
 at input point `z` to confirm that there are correct `frule` and `rrule`s provided.
 
 # Arguments
-- `f`: Function for which the `frule` and `rrule` should be tested.
-- `z`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
+- `f`: function for which the `frule` and `rrule` should be tested.
+- `z`: input at which to evaluate `f` (should generally be set to an arbitrary point in the domain).
 
-`fkwargs` are passed to `f` as keyword arguments.
-If `check_inferred=true`, then the type-stability of the `frule` and `rrule` are checked.
-All remaining keyword arguments are passed to `isapprox`.
+# Keyword Arguments
+- `fdm`: the finite differencing method to use.
+- `fkwargs` are passed to `f` as keyword arguments.
+- If `check_inferred=true`, then the inferrability (type-stability) of the `frule` and `rrule` are checked.
+- All remaining keyword arguments are passed to `isapprox`.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
@@ -71,20 +73,20 @@ end
 
 # Arguments
 - `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
-- `f`: Function for which the `frule` should be tested. Can also provide `f ⊢ ḟ`.
+- `f`: function for which the `frule` should be tested. Its tangent can be provided using `f ⊢ ḟ`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
-- `args` either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
-   - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-   - `ẋ`: differential w.r.t. `x`, will be generated automatically if not provided
+- `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
+   - `x`: input at which to evaluate `f` (should generally be set to an arbitrary point in the domain).
+   - `ẋ`: differential w.r.t. `x`; will be generated automatically if not provided.
    Non-differentiable arguments, such as indices, should have `ẋ` set as `NoTangent()`.
 
 # Keyword Arguments
-   - `output_tangent` tangent to test accumulation of derivatives against
-     should be a differential for the output of `f`. Is set automatically if not provided.
+   - `output_tangent`: tangent against which to test accumulation of derivatives.
+     Should be a differential for the output of `f`. Is set automatically if not provided.
    - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
-   - `frule_f=frule`: Function with an `frule`-like API that is tested (defaults to
+   - `frule_f=frule`: function with an `frule`-like API that is tested (defaults to
      `frule`). Used for testing gradients from AD systems.
-   - If `check_inferred=true`, then the inferrability of the `frule` is checked,
+   - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
    - All remaining keyword arguments are passed to `isapprox`.
@@ -145,22 +147,22 @@ end
 
 # Arguments
 - `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
-- `f`: Function to which rule should be applied. Can also provide `f ⊢ f̄`.
+- `f`: function for which the `rrule` should be tested. Its tangent can be provided using `f ⊢ f̄`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
-- `args` either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
-    - `x`: input at which to evaluate `f` (should generally be set to an arbitary point in the domain).
-    - `x̄`: currently accumulated cotangent, will be generated automatically if not provided
+- `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
+    - `x`: input at which to evaluate `f` (should generally be set to an arbitrary point in the domain).
+    - `x̄`: currently accumulated cotangent; will be generated automatically if not provided.
     Non-differentiable arguments, such as indices, should have `x̄` set as `NoTangent()`.
 
 # Keyword Arguments
- - `output_tangent` the seed to propagate backward for testing (technically a cotangent).
+ - `output_tangent`: the seed to propagate backward for testing (technically a cotangent).
    should be a differential for the output of `f`. Is set automatically if not provided.
-- `check_thunked_output_tangent=true`: also checks that passing a thunked version of the 
+ - `check_thunked_output_tangent=true`: also checks that passing a thunked version of the 
     output tangent to the pullback returns the same result.
  - `fdm::FiniteDifferenceMethod`: the finite differencing method to use.
- - `rrule_f=rrule`: Function with an `rrule`-like API that is tested (defaults to `rrule`).
+ - `rrule_f=rrule`: function with an `rrule`-like API that is tested (defaults to `rrule`).
    Used for testing gradients from AD systems.
- - If `check_inferred=true`, then the inferrability of the `rrule` is checked
+ - If `check_inferred=true`, then the inferrability (type-stability) of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
  - All remaining keyword arguments are passed to `isapprox`.
