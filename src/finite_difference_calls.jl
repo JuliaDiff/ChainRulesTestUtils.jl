@@ -93,4 +93,9 @@ end
 # is not a natural differential, because it doesn't overload +, so make it a Tangent.
 _maybe_fix_to_composite(::P, x::Tuple) where {P} = Tangent{P}(x...)
 _maybe_fix_to_composite(::P, x::NamedTuple) where {P} = Tangent{P}(; x...)
+function _maybe_fix_to_composite(
+    y::AbstractArray, x::AbstractArray{<:Union{Tuple,NamedTuple}}
+)
+    return map(_maybe_fix_to_composite, y, x)
+end
 _maybe_fix_to_composite(::Any, x) = x
