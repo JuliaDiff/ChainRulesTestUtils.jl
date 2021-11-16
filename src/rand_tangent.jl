@@ -7,12 +7,6 @@ Rather it is an arbitary value, that is generated using the `rng`.
 """
 rand_tangent(x) = rand_tangent(Random.GLOBAL_RNG, x)
 
-rand_tangent(rng::AbstractRNG, x::Symbol) = NoTangent()
-rand_tangent(rng::AbstractRNG, x::AbstractChar) = NoTangent()
-rand_tangent(rng::AbstractRNG, x::AbstractString) = NoTangent()
-
-rand_tangent(rng::AbstractRNG, x::Integer) = NoTangent()
-
 # Try and make nice numbers with short decimal representations for good error messages
 # while also not biasing the sample space too much
 function rand_tangent(rng::AbstractRNG, x::T) where {T<:Number}
@@ -24,11 +18,9 @@ function rand_tangent(rng::AbstractRNG, x::ComplexF64)
     return ComplexF64(rand(rng, -9:0.1:9), rand(rng, -9:0.1:9))
 end
 
-#BigFloat/MPFR is finicky about short numbers, this doesn't always work as well as it should
-
+# BigFloat/MPFR is finicky about short numbers, this doesn't always work as well as it should
 # multiply by 9 to give a bigger range of values tested: no so tightly clustered around 0.
 rand_tangent(rng::AbstractRNG, ::BigFloat) = round(big(9 * randn(rng)), digits=5, base=2)
-
 
 rand_tangent(rng::AbstractRNG, x::Array{<:Any, 0}) = _compress_notangent(fill(rand_tangent(rng, x[])))
 rand_tangent(rng::AbstractRNG, x::Array) = _compress_notangent(rand_tangent.(Ref(rng), x))
@@ -65,5 +57,9 @@ function rand_tangent(rng::AbstractRNG, x::T) where {T}
     end
 end
 
+rand_tangent(rng::AbstractRNG, x::Symbol) = NoTangent()
+rand_tangent(rng::AbstractRNG, x::AbstractChar) = NoTangent()
+rand_tangent(rng::AbstractRNG, x::AbstractString) = NoTangent()
+rand_tangent(rng::AbstractRNG, x::Integer) = NoTangent()
 rand_tangent(rng::AbstractRNG, ::Type) = NoTangent()
 rand_tangent(rng::AbstractRNG, ::Module) = NoTangent()
