@@ -57,6 +57,14 @@ end
 abstract type MySpecialTrait end
 struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
+# Type-stable derivative for test below
+struct FVecOfTuplesPullback{T} end
+function (f::FVecOfTuplesPullback{T})(Δ) where {T}
+    ΔΩ_first, ΔΩ_last = unthunk(Δ)
+    Δx = map(z -> Tangent{T}(z, ΔΩ_last), ΔΩ_first)
+    return NoTangent(), Δx
+end
+
 @testset "testers.jl" begin
     @testset "test_scalar" begin
         @testset "Ensure correct rules succeed" begin
@@ -608,7 +616,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             test_rrule(
                 does_not_accept_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false
             )
-            @test errors(r"MethodError.*Thunk") do 
+            @test errors(r"MethodError.*Thunk") do
                 test_rrule(does_not_accept_thunk_id, [1.0, 2.0])
             end
         end
@@ -735,5 +743,34 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @test errors(() -> test_rrule(my_id, 2.0))
         test_rrule(my_id, 2.0; check_inferred=false)
         test_rrule(my_id, 2.0; check_thunked_output_tangent=false)
+    end
+
+    # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/pull/224
+    @testset "vectors of tuples" begin
+        function f_vec_of_tuples(x::AbstractVector{<:Tuple{<:Any,<:Any}})
+            return map(first, x), sum(last, x)
+        end
+        function ChainRulesCore.frule(
+            (_, Δx),
+            ::typeof(f_vec_of_tuples),
+            x::AbstractVector{<:Tuple{<:Any,<:Any}},
+        )
+            Ω = f_vec_of_tuples(x)
+            Ω̄ = Tangent{typeof(Ω)}(f_vec_of_tuples(map(ChainRulesCore.backing, Δx))...)
+            return Ω, Ω̄
+        end
+        function ChainRulesCore.rrule(
+            ::typeof(f_vec_of_tuples),
+            x::AbstractVector{<:Tuple{<:Any,<:Any}},
+        )
+            Ω = f_vec_of_tuples(x)
+            # We use a functor here to fix type inference
+            f_vec_of_tuples_pullback = FVecOfTuplesPullback{eltype(x)}()
+            return Ω, f_vec_of_tuples_pullback
+        end
+
+        x_tuples = [(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)]
+        test_frule(f_vec_of_tuples, x_tuples)
+        test_rrule(f_vec_of_tuples, x_tuples)
     end
 end
