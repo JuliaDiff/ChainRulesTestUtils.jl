@@ -15,6 +15,7 @@ export TestIterator
 export test_approx, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
 export ⊢, rand_tangent
 export @maybe_inferred
+export test_method_tables_sensibility
 
 __init__() = init_test_inferred_setting!()
 
@@ -31,4 +32,6 @@ include("check_result.jl")
 include("rule_config.jl")
 include("finite_difference_calls.jl")
 include("testers.jl")
+
+include("global_checks.jl")
 end # module
