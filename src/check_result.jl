@@ -142,8 +142,8 @@ function test_approx(actual::A, expected::E, msg=""; kwargs...) where {A,E}
     if _can_pass_early(actual, expected)
         @test true
     else
-        c_actual = collect(actual)
-        c_expected = collect(expected)
+        c_actual = collect(Broadcast.materialize(actual))
+        c_expected = collect(Broadcast.materialize(expected))
         if (c_actual isa A) && (c_expected isa E)  # prevent stack-overflow
             throw(MethodError, test_approx, (actual, expected))
         end
