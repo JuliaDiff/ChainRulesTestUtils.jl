@@ -8,17 +8,17 @@ _parameters(sig::DataType) = sig.parameters
 _parameters(sig::Union) = Base.uniontypes(sig)
 
 """
-    test_method_tables_sensibility()
+    test_method_tables()
 
 Checks that the method tables for `rrule` and `frule` are sensible.
 This in future may carry out a number of checks, but presently just checks to make sure that
-no rules have been added to the very general `DataType`, `Union` or `UnionAll` types.
-This is easy to do when writing rules for constructors.
-It happens if you writeg. `rrule(::typeof(Foo), x)` rather than `rrule(::Type{<:Foo}, x)`:
+no rules have been added to the very general `DataType`, `Union` or `UnionAll` types,
+which is easy to do accidentally when writing rules for constructors.
+It happens if you write e.g. `rrule(::typeof(Foo), x)` rather than `rrule(::Type{<:Foo}, x)`.
 This would then actually define `rrule(::DataType, x)`. (or `UnionAll` if `Foo`
 was parametric, or `Union` if `Foo` was a type alias for a `Union`)
 """
-function test_method_tables_sensibility()
+function test_method_tables()
     @testset "Sensible Constructors" begin
         # if someone wrote e.g. `rrule(::typeof(Foo), x)` rather than
         # `rrule(::Type{<:Foo}, x)` then that would actually define `rrule(::DataType, x)`
@@ -33,7 +33,7 @@ function test_method_tables_sensibility()
             end
             
             @test_msg(
-                "Bad constructor rrule. typeof(T) used rather than `Type{T}`. $method",
+                "Bad constructor rrule. `typeof(T)` used rather than `Type{T}`. $method",
                 function_type ∉ (DataType, UnionAll, Union)
             )
         end
@@ -48,7 +48,7 @@ function test_method_tables_sensibility()
             end
 
             @test_msg(
-                "Bad constructor frule. typeof(T) used rather than `Type{T}`. $method",
+                "Bad constructor frule. `typeof(T)` used rather than `Type{T}`. $method",
                 function_type ∉ (DataType, UnionAll, Union)
             )
         end
