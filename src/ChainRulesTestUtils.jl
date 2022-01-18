@@ -15,7 +15,7 @@ export TestIterator
 export test_approx, test_scalar, test_frule, test_rrule, generate_well_conditioned_matrix
 export ⊢, rand_tangent
 export @maybe_inferred
-export test_method_tables_sensibility
+export test_method_tables
 
 __init__() = init_test_inferred_setting!()
 
