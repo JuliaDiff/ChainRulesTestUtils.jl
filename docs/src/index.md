@@ -9,7 +9,13 @@ For information about ChainRules, including how to write rules, refer to the gen
 [![](https://img.shields.io/badge/docs-main-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/dev)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/stable)
 
-## Canonical example
+## Testing Method Table Sensibility
+A basic feature of ChainRulesTestUtils is it's ability to check that the method table for `rrule` and `frule` remains sensible.
+This searches the method table for methods that should not exist and when it fails tells you where they were defined.
+By calling [`test_method_tables_sensibility`](@ref) ChainRulesTestUtils will check for things such as having attracted a rule to `DataType` rather than attaching it to a constructor.
+Basically all packages using ChainRulesTestUtils can use [`test_method_tables_sensibility`](@ref), as it is independent of what rules you have written.
+
+## Canonical example of testing frule and rrule
 
 Let's suppose a custom transformation has been defined
 ```jldoctest ex
@@ -274,3 +280,4 @@ Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
 
 This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
 ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl) and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
+
