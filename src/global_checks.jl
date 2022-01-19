@@ -42,7 +42,7 @@ function test_method_tables()
             function_type = if method.sig <: Tuple{Any, RuleConfig, Any, Type, Vararg}
                 _parameters(method.sig)[4]
             elseif method.sig <: Tuple{Any, Any, Type, Vararg}
-                @show _parameters(method.sig)[3]
+                _parameters(method.sig)[3]
             else
                 nothing
             end
