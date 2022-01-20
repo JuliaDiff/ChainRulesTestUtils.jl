@@ -9,12 +9,6 @@ For information about ChainRules, including how to write rules, refer to the gen
 [![](https://img.shields.io/badge/docs-main-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/dev)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/stable)
 
-## Testing Method Table Sensibility
-A basic feature of ChainRulesTestUtils is its ability to check that the method tables for `rrule` and `frule` remain sensible.
-This searches the method tables for methods that should not exist and when it fails tells you where they were defined.
-By calling [`test_method_tables`](@ref) ChainRulesTestUtils will check for things such as having attracted a rule to `DataType` rather than attaching it to a constructor.
-Basically all packages using ChainRulesTestUtils can use [`test_method_tables`](@ref), as it is independent of what rules you have written.
-
 ## Canonical example of testing frule and rrule
 
 Let's suppose a custom transformation has been defined

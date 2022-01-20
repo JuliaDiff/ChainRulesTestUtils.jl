@@ -17,5 +17,5 @@ ChainRulesTestUtils.TEST_INFERRED[] = true
     include("data_generation.jl")
     include("rand_tangent.jl")
 
-    include("global_checks.jl")
+    include("method_checks.jl")
 end
