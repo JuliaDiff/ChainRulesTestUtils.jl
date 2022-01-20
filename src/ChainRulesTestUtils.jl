@@ -28,10 +28,10 @@ include("iterator.jl")
 
 include("output_control.jl")
 include("check_result.jl")
-include("method_checks.jl")
 
 include("rule_config.jl")
 include("finite_difference_calls.jl")
 include("testers.jl")
 
+include("global_checks.jl")
 end # module
