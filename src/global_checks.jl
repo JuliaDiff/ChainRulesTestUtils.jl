@@ -26,7 +26,8 @@ function test_method_signature(::typeof(rrule), method::Method)
         function_type = if method.sig <: Tuple{Any, RuleConfig, Type, Vararg}
             _parameters(method.sig)[3]
         elseif method.sig <: Tuple{Any, Type, Vararg}
-            _parameters(method.sig)else
+            _parameters(method.sig)[2]
+        else
             nothing
         end
         
@@ -71,7 +72,7 @@ function test_method_tables()
         # `rrule(::Type{<:Foo}, x)` then that would actually define `rrule(::DataType, x)`
         # which would be bad. This test checks for that and fails if such a method exists.
         for method in methods(rrule)
-            test_method_signature(method)
+            test_method_signature(rrule, method)
         end
         # frule
         for method in methods(frule)
