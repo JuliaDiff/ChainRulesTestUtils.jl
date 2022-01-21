@@ -22,37 +22,33 @@ was parametric, or `Union` if `Foo` was a type alias for a `Union`)
 function test_method_signature end
 
 function test_method_signature(::typeof(rrule), method::Method)
-    @testset "Sensible Constructors" begin
-        function_type = if method.sig <: Tuple{Any, RuleConfig, Type, Vararg}
-            _parameters(method.sig)[3]
-        elseif method.sig <: Tuple{Any, Type, Vararg}
-            _parameters(method.sig)[2]
-        else
-            nothing
-        end
-        
-        @test_msg(
-            "Bad constructor rrule. `typeof(T)` used rather than `Type{T}`. $method",
-            function_type ∉ (DataType, UnionAll, Union)
-        )
+    function_type = if method.sig <: Tuple{Any, RuleConfig, Type, Vararg}
+        _parameters(method.sig)[3]
+    elseif method.sig <: Tuple{Any, Type, Vararg}
+        _parameters(method.sig)[2]
+    else
+        nothing
     end
+
+    @test_msg(
+        "Bad constructor rrule. `typeof(T)` used rather than `Type{T}`. $method",
+        function_type ∉ (DataType, UnionAll, Union)
+    )
 end
 
 function test_method_signature(::typeof(frule), method::Method)
-    @testset "Sensible Constructors" begin
-        function_type = if method.sig <: Tuple{Any, RuleConfig, Any, Type, Vararg}
-            _parameters(method.sig)[4]
-        elseif method.sig <: Tuple{Any, Any, Type, Vararg}
-            _parameters(method.sig)[3]
-        else
-            nothing
-        end
-
-        @test_msg(
-            "Bad constructor frule. `typeof(T)` used rather than `Type{T}`. $method",
-            function_type ∉ (DataType, UnionAll, Union)
-        )
+    function_type = if method.sig <: Tuple{Any, RuleConfig, Any, Type, Vararg}
+        _parameters(method.sig)[4]
+    elseif method.sig <: Tuple{Any, Any, Type, Vararg}
+        _parameters(method.sig)[3]
+    else
+        nothing
     end
+
+    @test_msg(
+        "Bad constructor frule. `typeof(T)` used rather than `Type{T}`. $method",
+        function_type ∉ (DataType, UnionAll, Union)
+    )
 end
 
 """
