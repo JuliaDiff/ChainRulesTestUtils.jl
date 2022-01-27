@@ -24,6 +24,8 @@ rand_tangent(rng::AbstractRNG, ::BigFloat) = round(big(9 * randn(rng)), digits=5
 
 rand_tangent(rng::AbstractRNG, x::AbstractArray) = ProjectTo(x)(rand_tangent.(Ref(rng), x))
 
+rand_tangent(rng::AbstractRNG, x::Broadcast.Broadcasted) = rand_tangent(Broadcast.materialize(x))
+
 function rand_tangent(rng::AbstractRNG, x::T) where {T}
     if !isstructtype(T)
         throw(ArgumentError("Non-struct types are not supported by this fallback."))
