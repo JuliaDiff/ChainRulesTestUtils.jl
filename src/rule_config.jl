@@ -16,8 +16,8 @@ function ChainRulesCore.rrule_via_ad(config::ADviaRuleConfig, f, args...; kws...
 end
 
 # For testing this config uses finite differences to evaluate the frule and rrule
-struct ADviaFDConfig <: RuleConfig{Union{HasReverseMode, HasForwardsMode}}
-    fdm # TODO: add a default
+Base.@kwdef struct ADviaFDConfig <: RuleConfig{Union{HasReverseMode, HasForwardsMode}}
+    fdm = FiniteDifferences.central_fdm(5, 1)
 end
 
 function ChainRulesCore.frule_via_ad(config::ADviaFDConfig, ȧrgs, f, args...; kws...)

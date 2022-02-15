@@ -54,8 +54,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         poly(x) = x^2 + 3.2x
 
         x = 2.1
-        fdm = FiniteDifferences.central_fdm(5, 1)
-        config = ChainRulesTestUtils.ADviaFDConfig(fdm)
+        config = ChainRulesTestUtils.ADviaFDConfig()
 
         @testset "rrule" begin
             y, pb = rrule_via_ad(config, poly, x)
@@ -85,9 +84,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return outer(f, x), outer_pb
         end
 
-        fdm = FiniteDifferences.central_fdm(5, 1)
-        config = ChainRulesTestUtils.ADviaFDConfig(fdm)
-
+        config = ChainRulesTestUtils.ADviaFDConfig()
         test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
     end
 end
