@@ -49,4 +49,53 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         errors(() -> test_rrule(has_config, rand()), "no method matching rrule")
         errors(() -> test_rrule(has_trait, rand()), "no method matching rrule")
     end
+
+    @testset "ADviaFDConfig direct" begin
+        poly(x) = x^2 + 3.2x
+
+        x = 2.1
+        fdm = FiniteDifferences.central_fdm(5, 1)
+        config = ChainRulesTestUtils.ADviaFDConfig(fdm)
+
+        @testset "rrule" begin
+            y, pb = rrule_via_ad(config, poly, x)
+            @test y == poly(x)
+            test_approx(pb(1.0), (NoTangent(), (2*x + 3.2) * 1.0))
+            # and automatically
+            test_rrule(config, poly, rand(); rrule_f=rrule_via_ad, check_inferred=false)
+        end
+
+        @testset "frule" begin
+            ḟ, ẋ = (NoTangent(), rand())
+            Ω, ΔΩ = frule_via_ad(config, (ḟ, ẋ), poly, x)
+            @test Ω == poly(x)
+            test_approx(ΔΩ, (2*x + 3.2) * ẋ)
+            # and automatically
+            test_frule(config, poly, x; frule_f=frule_via_ad, check_inferred=false)
+        end
+    end
+
+    @testset "ADviaFDConfig in a rule" begin
+        inner(x, y) = x^2 + 2*y + 3
+        outer(f, x) = 2 * f(x, 3.2)
+
+        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, outer, f, x)
+            y = outer(f, x)
+            fx, pb_f = rrule_via_ad(config, f, x)
+
+            function outer_pb(ȳ)
+                ȳ_inner = 2 * ȳ
+                f̄, x̄ = pb_f(ȳ_inner)
+
+                return NoTangent(), f̄, x̄
+            end
+
+            return y, outer_pb
+        end
+
+        fdm = FiniteDifferences.central_fdm(5, 1)
+        config = ChainRulesTestUtils.ADviaFDConfig(fdm)
+
+        test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
+    end
 end
