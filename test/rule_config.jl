@@ -80,17 +80,9 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         outer(f, x) = 2 * f(x, 3.2)
 
         function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, outer, f, x)
-            y = outer(f, x)
             fx, pb_f = rrule_via_ad(config, f, x)
-
-            function outer_pb(ȳ)
-                ȳ_inner = 2 * ȳ
-                f̄, x̄ = pb_f(ȳ_inner)
-
-                return NoTangent(), f̄, x̄
-            end
-
-            return y, outer_pb
+            outer_pb(ȳ) = (NoTangent(), pb_f(2 * ȳ)...)
+            return outer(f, x), outer_pb
         end
 
         fdm = FiniteDifferences.central_fdm(5, 1)
