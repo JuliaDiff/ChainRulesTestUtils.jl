@@ -24,8 +24,7 @@ function ChainRulesCore.frule_via_ad(config::ADviaFDConfig, ȧrgs, f, args...; 
 
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(kws)...)
 
-    primals_and_tangents = auto_primal_and_tangent.((f, args...))
-    primals = primal.(primals_and_tangents)
+    primals = (f, args...)
     is_ignored = isa.(ȧrgs, NoTangent)
 
     Ω = call_on_copy(f, args...)
