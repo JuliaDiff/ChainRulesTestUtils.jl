@@ -54,7 +54,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         poly(x) = x^2 + 3.2x
 
         x = 2.1
-        config = ChainRulesTestUtils.ADviaFDConfig()
+        config = ChainRulesTestUtils.ADviaFDConfig(central_fdm(5, 1))
 
         @testset "rrule" begin
             y, pb = rrule_via_ad(config, poly, x)
@@ -98,7 +98,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return 2 * inner, 2 * inner_dot
         end
 
-        config = ChainRulesTestUtils.ADviaFDConfig()
+        config = ChainRulesTestUtils.ADviaFDConfig(central_fdm(5, 1))
         test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
         test_frule(config, outer, inner, rand(); frule_f=frule_via_ad, check_inferred=false)
     end
