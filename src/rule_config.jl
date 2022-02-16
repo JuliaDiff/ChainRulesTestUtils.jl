@@ -37,6 +37,7 @@ function ChainRulesCore.rrule_via_ad(config::ADviaFDConfig, f, args...; kws...)
 
     call(f, xs...) = f(xs...; kws...)
 
+    # this block is here just to work out which tangents should be ignored
     primals_and_tangents = auto_primal_and_tangent.((f, args...))
     primals = primal.(primals_and_tangents)
     accum_cotangents = tangent.(primals_and_tangents)
