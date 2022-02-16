@@ -72,6 +72,15 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             # and automatically
             test_frule(config, poly, x; frule_f=frule_via_ad, check_inferred=false)
         end
+
+        # more functions
+        simo(x) = (x, 2x, 3x)
+        miso(x, y, z) = x+y
+        test_rrule(config, simo, x; rrule_f=rrule_via_ad, check_inferred=false)
+        test_rrule(config, miso, x, 2x, "s"; rrule_f=rrule_via_ad, check_inferred=false)
+
+        test_frule(config, simo, x; frule_f=frule_via_ad, check_inferred=false)
+        test_frule(config, miso, x, x, "s"; frule_f=frule_via_ad, check_inferred=false)
     end
 
     @testset "ADviaFDConfig in a rule" begin
@@ -84,7 +93,13 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return outer(f, x), outer_pb
         end
 
+        function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (ȯuter, ḟ, ẋ), outer, f, x)
+            inner, inner_dot = frule_via_ad(config, f, x)
+            return 2 * inner, 2 * inner_dot
+        end
+
         config = ChainRulesTestUtils.ADviaFDConfig()
         test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
+        test_frule(config, outer, inner, rand(); frule_f=frule_via_ad, check_inferred=false)
     end
 end
