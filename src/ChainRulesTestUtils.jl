@@ -33,5 +33,6 @@ include("rule_config.jl")
 include("finite_difference_calls.jl")
 include("testers.jl")
 
+include("deprecated.jl")
 include("global_checks.jl")
 end # module

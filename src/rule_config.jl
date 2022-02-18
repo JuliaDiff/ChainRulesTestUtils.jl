@@ -1,27 +1,16 @@
-# For testing this config re-dispatches Xrule_via_ad to Xrule without config argument
-struct ADviaRuleConfig <: RuleConfig{Union{HasReverseMode, HasForwardsMode}} end
-
-function ChainRulesCore.frule_via_ad(config::ADviaRuleConfig, ȧrgs, f, args...; kws...)
-    ret = frule(config, ȧrgs, f, args...; kws...)
-    # we don't support actually doing AD: the rule has to exist. lets give helpfulish error
-    ret === nothing && throw(MethodError(frule, (ȧrgs, f, args...)))
-    return ret
-end
-
-function ChainRulesCore.rrule_via_ad(config::ADviaRuleConfig, f, args...; kws...)
-    ret = rrule(config, f, args...; kws...)
-    # we don't support actually doing AD: the rule has to exist. lets give helpfulish error
-    ret === nothing && throw(MethodError(rrule, (f, args...)))
-    return ret
-end
-
 # For testing this config uses finite differences to evaluate the frule and rrule
-struct ADviaFDConfig <: RuleConfig{Union{HasReverseMode, HasForwardsMode}}
+struct TestConfig <: RuleConfig{Union{HasReverseMode, HasForwardsMode}}
     fdm
 end
+TestConfig() = TestConfig(central_fdm(5, 1))
 
-function ChainRulesCore.frule_via_ad(config::ADviaFDConfig, ȧrgs, f, args...; kws...)
+function ChainRulesCore.frule_via_ad(config::TestConfig, ȧrgs, f, args...; kws...)
 
+    # try using a rule
+    ret = frule(config, ȧrgs, f, args...; kws...)
+    ret === nothing || return ret
+
+    # but if the rule doesn't exist, use finite differencing instead
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(kws)...)
 
     primals = (f, args...)
@@ -33,8 +22,13 @@ function ChainRulesCore.frule_via_ad(config::ADviaFDConfig, ȧrgs, f, args...; 
     return Ω, ΔΩ
 end
 
-function ChainRulesCore.rrule_via_ad(config::ADviaFDConfig, f, args...; kws...)
+function ChainRulesCore.rrule_via_ad(config::TestConfig, f, args...; kws...)
 
+    # try using a rule
+    ret = rrule(config, f, args...; kws...)
+    ret === nothing || return ret
+
+    # but if the rule doesn't exist, use finite differencing instead
     call(f, xs...) = f(xs...; kws...)
 
     # this block is here just to work out which tangents should be ignored

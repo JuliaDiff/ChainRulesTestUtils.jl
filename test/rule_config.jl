@@ -50,11 +50,11 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         errors(() -> test_rrule(has_trait, rand()), "no method matching rrule")
     end
 
-    @testset "ADviaFDConfig direct" begin
+    @testset "TestConfig direct" begin
         poly(x) = x^2 + 3.2x
 
         x = 2.1
-        config = ChainRulesTestUtils.ADviaFDConfig(central_fdm(5, 1))
+        config = ChainRulesTestUtils.TestConfig()
 
         @testset "rrule" begin
             y, pb = rrule_via_ad(config, poly, x)
@@ -83,22 +83,22 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         test_frule(config, miso, x, x, "s"; frule_f=frule_via_ad, check_inferred=false)
     end
 
-    @testset "ADviaFDConfig in a rule" begin
+    @testset "TestConfig in a rule" begin
         inner(x, y) = x^2 + 2*y + 3
         outer(f, x) = 2 * f(x, 3.2)
 
-        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, outer, f, x)
-            fx, pb_f = rrule_via_ad(config, f, x)
-            outer_pb(ȳ) = (NoTangent(), pb_f(2 * ȳ)...)
+        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(outer), f, x)
+            fx, pb_f = rrule_via_ad(config, f, x, 3.2)
+            outer_pb(ȳ) = (NoTangent(), pb_f(2 * ȳ)[1:2]...)
             return outer(f, x), outer_pb
         end
 
-        function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (ȯuter, ḟ, ẋ), outer, f, x)
-            inner, inner_dot = frule_via_ad(config, f, x)
+        function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (ȯuter, ḟ, ẋ), ::typeof(outer), f, x)
+            inner, inner_dot = frule_via_ad(config, (ḟ, ẋ, NoTangent()), f, x, 3.2)
             return 2 * inner, 2 * inner_dot
         end
 
-        config = ChainRulesTestUtils.ADviaFDConfig(central_fdm(5, 1))
+        config = ChainRulesTestUtils.TestConfig()
         test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
         test_frule(config, outer, inner, rand(); frule_f=frule_via_ad, check_inferred=false)
     end
