@@ -102,4 +102,13 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
         test_frule(config, outer, inner, rand(); frule_f=frule_via_ad, check_inferred=false)
     end
+
+    @testset "Catch incorrect rules" begin
+        myid(x) = x
+        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(myid), x)
+            wrong_pb(dy) = (NoTangent(), 8dy)
+            return x, wrong_pb
+        end
+        @test fails(() -> test_rrule(myid, 3.0; rrule_f=rrule_via_ad, check_inferred=false))
+    end
 end
