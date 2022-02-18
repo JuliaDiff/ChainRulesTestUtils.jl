@@ -92,8 +92,7 @@ end
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(args...; kwargs...)
-    config = ChainRulesTestUtils.TestConfig()
-    test_frule(config, args...; kwargs...)
+    test_frule(TestConfig(), args...; kwargs...)
 end
 
 function test_frule(
@@ -168,8 +167,7 @@ end
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(args...; kwargs...)
-    config = ChainRulesTestUtils.TestConfig()
-    test_rrule(config, args...; kwargs...)
+    test_rrule(TestConfig(), args...; kwargs...)
 end
 
 function test_rrule(
