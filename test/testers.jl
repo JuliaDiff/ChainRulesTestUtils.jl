@@ -285,11 +285,11 @@ end
 
     @testset "single input, multiple output" begin
         simo(x) = (x, 2x)
-        function ChainRulesCore.rrule(simo, x)
+        function ChainRulesCore.rrule(::typeof(simo), x)
             simo_pullback((a, b)) = (NoTangent(), a .+ 2 .* b)
             return simo(x), simo_pullback
         end
-        function ChainRulesCore.frule((_, ẋ), simo, x)
+        function ChainRulesCore.frule((_, ẋ), ::typeof(simo), x)
             y = simo(x)
             return y, Tangent{typeof(y)}(ẋ, 2ẋ)
         end

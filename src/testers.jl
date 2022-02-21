@@ -72,7 +72,7 @@ end
     test_frule([config::RuleConfig,] f, args..; kwargs...)
 
 # Arguments
-- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
+- `config`: defaults to `ChainRulesTestUtils.TestConfig`.
 - `f`: function for which the `frule` should be tested. Its tangent can be provided using `f ⊢ ḟ`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
@@ -92,8 +92,7 @@ end
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(args...; kwargs...)
-    config = ChainRulesTestUtils.ADviaRuleConfig()
-    test_frule(config, args...; kwargs...)
+    test_frule(TestConfig(), args...; kwargs...)
 end
 
 function test_frule(
@@ -146,7 +145,7 @@ end
     test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
 # Arguments
-- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
+- `config`: defaults to `ChainRulesTestUtils.TestConfig`.
 - `f`: function for which the `rrule` should be tested. Its tangent can be provided using `f ⊢ f̄`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
@@ -168,8 +167,7 @@ end
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(args...; kwargs...)
-    config = ChainRulesTestUtils.ADviaRuleConfig()
-    test_rrule(config, args...; kwargs...)
+    test_rrule(TestConfig(), args...; kwargs...)
 end
 
 function test_rrule(

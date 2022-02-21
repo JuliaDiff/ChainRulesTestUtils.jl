@@ -49,4 +49,66 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         errors(() -> test_rrule(has_config, rand()), "no method matching rrule")
         errors(() -> test_rrule(has_trait, rand()), "no method matching rrule")
     end
+
+    @testset "TestConfig direct" begin
+        poly(x) = x^2 + 3.2x
+
+        x = 2.1
+        config = ChainRulesTestUtils.TestConfig()
+
+        @testset "rrule" begin
+            y, pb = rrule_via_ad(config, poly, x)
+            @test y == poly(x)
+            test_approx(pb(1.0), (NoTangent(), (2*x + 3.2) * 1.0))
+            # and automatically
+            test_rrule(config, poly, rand(); rrule_f=rrule_via_ad, check_inferred=false)
+        end
+
+        @testset "frule" begin
+            ḟ, ẋ = (NoTangent(), rand())
+            Ω, ΔΩ = frule_via_ad(config, (ḟ, ẋ), poly, x)
+            @test Ω == poly(x)
+            test_approx(ΔΩ, (2*x + 3.2) * ẋ)
+            # and automatically
+            test_frule(config, poly, x; frule_f=frule_via_ad, check_inferred=false)
+        end
+
+        # more functions
+        simo(x) = (x, 2x, 3x)
+        miso(x, y, z) = x+y
+        test_rrule(config, simo, x; rrule_f=rrule_via_ad, check_inferred=false)
+        test_rrule(config, miso, x, 2x, "s"; rrule_f=rrule_via_ad, check_inferred=false)
+
+        test_frule(config, simo, x; frule_f=frule_via_ad, check_inferred=false)
+        test_frule(config, miso, x, x, "s"; frule_f=frule_via_ad, check_inferred=false)
+    end
+
+    @testset "TestConfig in a rule" begin
+        inner(x, y) = x^2 + 2*y + 3
+        outer(f, x) = 2 * f(x, 3.2)
+
+        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(outer), f, x)
+            fx, pb_f = rrule_via_ad(config, f, x, 3.2)
+            outer_pb(ȳ) = (NoTangent(), pb_f(2 * ȳ)[1:2]...)
+            return outer(f, x), outer_pb
+        end
+
+        function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (ȯuter, ḟ, ẋ), ::typeof(outer), f, x)
+            inner, inner_dot = frule_via_ad(config, (ḟ, ẋ, NoTangent()), f, x, 3.2)
+            return 2 * inner, 2 * inner_dot
+        end
+
+        config = ChainRulesTestUtils.TestConfig()
+        test_rrule(config, outer, inner, rand(); rrule_f=rrule_via_ad, check_inferred=false)
+        test_frule(config, outer, inner, rand(); frule_f=frule_via_ad, check_inferred=false)
+    end
+
+    @testset "Catch incorrect rules" begin
+        myid(x) = x
+        function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(myid), x)
+            wrong_pb(dy) = (NoTangent(), 8dy)
+            return x, wrong_pb
+        end
+        @test fails(() -> test_rrule(myid, 3.0; rrule_f=rrule_via_ad, check_inferred=false))
+    end
 end
