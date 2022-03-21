@@ -75,6 +75,13 @@ end
                 FakeNaturalDiffWithIsApprox(1.4),
                 Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
             )
+
+            # ambig with CRC after:
+            # https://github.com/JuliaDiff/ChainRulesCore.jl/pull/524#issuecomment-1074037647
+            test_approx(
+                Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
+                @thunk(Tangent{Tuple{Float64,Float64}}(1.0, 2.0)),
+            )
         end
         @testset "negative case" begin
             @test fails(() -> test_approx(1.0, 2.0))
