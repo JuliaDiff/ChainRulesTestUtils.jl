@@ -123,6 +123,10 @@ function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T
 end
 test_approx(x, y::Tangent, msg=""; kwargs...) = test_approx(y, x, msg; kwargs...)
 
+function test_approx(actual::Tangent, expected::AbstractThunk, msg=""; kwargs...)
+    return test_approx(actual, unthunk(expected), msg; kwargs...)
+end
+
 # This catches comparisons of Tangents and Tuples/NamedTuple
 # and gives an error message complaining about that. the `@test` will definitely fail
 const LegacyZygoteCompTypes = Union{Tuple,NamedTuple}
