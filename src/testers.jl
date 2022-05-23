@@ -227,7 +227,7 @@ function test_rrule(
         end
 
         if check_thunked_output_tangent
-            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:")
+            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:"; isapprox_kwargs...)
             check_inferred && _test_inferred(pullback, @thunk(ȳ))
         end
     end  # top-level testset

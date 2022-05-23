@@ -683,7 +683,10 @@ end
         function ChainRulesCore.rrule(::typeof(my_id), x)
             my_id_pb(ȳ) = (NoTangent(), ȳ)
             function my_id_pb(ȳ::AbstractThunk)
-                precision = rand() > 0.5 ? Float64 : Float32
+                # We use a condition that always evaluates to true to avoid issues with tolerances
+                # (see https://github.com/JuliaDiff/ChainRulesTestUtils.jl/pull/247)
+                # The function is type unstable for `Float64` inputs nevertheless
+                precision = rand() >= 0.0 ? Float64 : Float32
                 return (NoTangent(), precision(unthunk(ȳ)))
             end
             return x, my_id_pb
