@@ -142,6 +142,7 @@ function test_approx(actual::A, expected::E, msg=""; kwargs...) where {A,E}
     if _can_pass_early(actual, expected)
         @test true
     else
+        # Works around https://github.com/JuliaLang/julia/issues/43847 on pre-Julia v1.9
         c_actual = collect(Broadcast.materialize(actual))
         c_expected = collect(Broadcast.materialize(expected))
         if (c_actual isa A) && (c_expected isa E)  # prevent stack-overflow

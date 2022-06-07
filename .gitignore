@@ -27,3 +27,6 @@ docs/site/
 
 # JetBrains meta files
 .idea/*
+
+# VS Code meta files
+.vscode/
