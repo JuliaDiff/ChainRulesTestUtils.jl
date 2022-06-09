@@ -36,6 +36,7 @@ end
 
             test_approx([1.0, 2.0], [1.0, 2.0])
             test_approx([[1.0], [2.0]], [[1.0], [2.0]])
+            test_approx(Broadcast.broadcasted(identity, [1.0 2.0; 3.0 4.0]), [1.0 2.0; 3.0 4.0])
 
             test_approx(@thunk(10 * 0.1 * [[1.0], [2.0]]), [[1.0], [2.0]])
 
