@@ -117,7 +117,7 @@ test_scalar: relu at -0.5 |   11     11
 
 ## Testing constructors and functors (callable objects)
 
-Testing constructor and functors works as you would expect. For struct `Foo`
+Testing constructor and functors works as you would expect. For struct `Foo`,
 ```julia
 struct Foo
     a::Float64
@@ -127,7 +127,27 @@ Base.length(::Foo) = 1
 Base.iterate(f::Foo) = iterate(f.a)
 Base.iterate(f::Foo, state) = iterate(f.a, state)
 ```
-the `f/rrule`s can be tested by
+
+after defining the constructor and functor `f/rule`s,
+
+```julia
+function ChainRulesCore.rrule(::Type{Foo}, val) # constructor rrule
+    y = Foo(val)
+    Foo_pb(ΔFoo) = (NoTangent(), unthunk(ΔFoo).a)
+    return y, Foo_pb
+end
+
+function ChainRulesCore.rrule(foo::Foo, val) # functor rrule
+    y = foo(val)
+    function foo_pb(Δ)
+        Δut = unthunk(Δ)
+        return (Tangent{Foo}(;a=Δut), Δut)
+    end
+    return y, foo_pb
+end
+```
+
+both `f/rrule`s can be tested by
 ```julia
 test_rrule(Foo, rand()) # constructor
 
