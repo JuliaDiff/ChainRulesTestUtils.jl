@@ -125,7 +125,7 @@ function test_frule(
         end
 
         res = call_on_copy(frule_f, config, tangents, primals...)
-        res === nothing && throw(MethodError(frule_f, typeof(primals)))
+        res === nothing && throw(MethodError(frule_f, Tuple{Core.Typeof.(primals)...}))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
         Ω = call_on_copy(primals...)
@@ -201,7 +201,7 @@ function test_rrule(
             _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
         res = rrule_f(config, primals...; fkwargs...)
-        res === nothing && throw(MethodError(rrule_f, typeof(primals)))
+        res === nothing && throw(MethodError(rrule_f, Tuple{Core.Typeof.(primals)...}))
         y_ad, pullback = res
         y = call(primals...)
         test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
