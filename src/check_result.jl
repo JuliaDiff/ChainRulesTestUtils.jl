@@ -132,8 +132,8 @@ function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T
 end
 test_approx(x, y::Tangent, msg=""; kwargs...) = test_approx(y, x, msg; kwargs...)
 
-test_approx(z::AbstractZero, t::Tangent, msg=""; kwargs...) = all(iszero.(t))
-test_approx(t::Tangent, z::AbstractZero, msg=""; kwargs...) = all(iszero.(t))
+test_approx(z::AbstractZero, t::Tangent, msg=""; kwargs...) = all(iszero, t)
+test_approx(t::Tangent, z::AbstractZero, msg=""; kwargs...) = all(iszero, t)
 
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
