@@ -83,6 +83,20 @@ end
                 Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
                 @thunk(Tangent{Tuple{Float64,Float64}}(1.0, 2.0)),
             )
+            test_approx(
+                @thunk(Tangent{Tuple{Float64,Float64}}(1.0, 2.0)),
+                Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
+            )
+            test_approx(@thunk(ZeroTangent()), ZeroTangent())
+            test_approx(ZeroTangent(), @thunk(ZeroTangent()))
+            test_approx(
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), NoTangent()),
+                NoTangent(),
+            )
+            test_approx(
+                NoTangent(),
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), NoTangent()),
+            )
         end
         @testset "negative case" begin
             @test fails(() -> test_approx(1.0, 2.0))

@@ -24,7 +24,16 @@ function test_approx(
     @test_msg msg isapprox(actual, expected; kwargs...)
 end
 
-for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
+for (T1, T2) in
+    (
+        (AbstractThunk, Any),
+        (AbstractThunk, AbstractThunk),
+        (Any, AbstractThunk),
+        (Tangent, AbstractThunk),
+        (AbstractThunk, Tangent),
+        (AbstractZero, AbstractThunk),
+        (AbstractThunk, AbstractZero),
+    )
     @eval function test_approx(actual::$T1, expected::$T2, msg=""; kwargs...)
         return test_approx(unthunk(actual), unthunk(expected), msg; kwargs...)
     end
@@ -123,9 +132,8 @@ function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T
 end
 test_approx(x, y::Tangent, msg=""; kwargs...) = test_approx(y, x, msg; kwargs...)
 
-function test_approx(actual::Tangent, expected::AbstractThunk, msg=""; kwargs...)
-    return test_approx(actual, unthunk(expected), msg; kwargs...)
-end
+test_approx(z::NoTangent, t::Tangent, msg=""; kwargs...) = all(==(NoTangent()), t)
+test_approx(t::Tangent, z::NoTangent, msg=""; kwargs...) = all(==(NoTangent()), t)
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
 # and gives an error message complaining about that. the `@test` will definitely fail
