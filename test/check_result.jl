@@ -38,6 +38,8 @@ end
             test_approx([[1.0], [2.0]], [[1.0], [2.0]])
             test_approx([[0.0], [0.0]], ZeroTangent())
             test_approx(ZeroTangent(), [[0.0], [0.0]])
+            test_approx(ZeroTangent(), [[0.0, 0.0], [[0.0, 0.0], [0.0, 0.0]]])
+            test_approx([[0.0, 0.0], [[0.0, 0.0], [0.0, 0.0]]], NoTangent())
             test_approx(Broadcast.broadcasted(identity, [1.0 2.0; 3.0 4.0]), [1.0 2.0; 3.0 4.0])
 
             test_approx(@thunk(10 * 0.1 * [[1.0], [2.0]]), [[1.0], [2.0]])
@@ -112,6 +114,8 @@ end
             @test fails(() -> test_approx([[1.0], [2.0]], [[1.1], [2.0]]))
             @test fails(() -> test_approx([[0.0], [0.1]], ZeroTangent()))
             @test fails(() -> test_approx(ZeroTangent(), [[0.1], [0.0]]))
+            @test fails(() -> test_approx([[0.0], [0.0], [[0.0, 0.1], [0.0]]], ZeroTangent()))
+            @test fails(() -> test_approx(ZeroTangent(), [[0.0], [0.0], [[0.0, 0.1], [0.0]]]))
 
             @test fails(() -> test_approx(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
 
