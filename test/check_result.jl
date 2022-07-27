@@ -117,6 +117,15 @@ end
             @test fails(() -> test_approx([[0.0], [0.0], [[0.0, 0.1], [0.0]]], ZeroTangent()))
             @test fails(() -> test_approx(ZeroTangent(), [[0.0], [0.0], [[0.0, 0.1], [0.0]]]))
 
+            @test fails(() -> test_approx(
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), 0.1),
+                NoTangent(),
+            ))
+            @test fails(() -> test_approx(
+                NoTangent(),
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), 0.1),
+            ))
+
             @test fails(() -> test_approx(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
 
             @test fails(() -> test_approx(@not_implemented("a"), @not_implemented("b")))
