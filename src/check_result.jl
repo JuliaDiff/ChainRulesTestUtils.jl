@@ -40,11 +40,16 @@ for (T1, T2) in
 end
 
 test_approx(::AbstractZero, x, msg=""; kwargs...) = test_approx(zero(x), x, msg; kwargs...)
-test_approx(::AbstractZero, x::AbstractArray{<:AbstractArray}, msg=""; kwargs...) = test_approx(map(zero, x), x, msg; kwargs...)
 test_approx(x, ::AbstractZero, msg=""; kwargs...) = test_approx(x, zero(x), msg; kwargs...)
-test_approx(x::AbstractArray{<:AbstractArray}, ::AbstractZero, msg=""; kwargs...) = test_approx(x, map(zero, x), msg; kwargs...)
 test_approx(x::ZeroTangent, y::ZeroTangent, msg=""; kwargs...) = @test true
 test_approx(x::NoTangent, y::NoTangent, msg=""; kwargs...) = @test true
+
+function test_approx(z::AbstractZero, x::AbstractArray{<:AbstractArray}, msg=""; kwargs...)
+    for el in x
+        test_approx(el, z, msg; kwargs...)
+    end
+end
+test_approx(x::AbstractArray{<:AbstractArray}, z::AbstractZero, msg=""; kwargs...) = test_approx(z, x, msg; kwargs...)
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
 test_approx(x::NoTangent, y::Nothing, msg=""; kwargs...) = @test true
@@ -134,8 +139,8 @@ function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T
 end
 test_approx(x, y::Tangent, msg=""; kwargs...) = test_approx(y, x, msg; kwargs...)
 
-test_approx(z::NoTangent, t::Tangent, msg=""; kwargs...) = all(==(NoTangent()), t)
-test_approx(t::Tangent, z::NoTangent, msg=""; kwargs...) = all(==(NoTangent()), t)
+test_approx(z::NoTangent, t::Tangent, msg=""; kwargs...) = @test all(==(NoTangent()), t)
+test_approx(t::Tangent, z::NoTangent, msg=""; kwargs...) = @test all(==(NoTangent()), t)
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
 # and gives an error message complaining about that. the `@test` will definitely fail
