@@ -725,4 +725,15 @@ end
         test_frule(f_vec_of_tuples, x_tuples)
         test_rrule(f_vec_of_tuples, x_tuples)
     end
+    @testset "check passing of testset_name kwarg" begin
+        name = "my test name"
+        double(x) = 2x
+        @scalar_rule(double(x), 2)
+        x = test_scalar(double, 2.1; testset_name=name)
+        @test x.description == name
+        x = test_frule(identity, 1.0; testset_name=name)
+        @test x.description == name
+        x = test_rrule(identity, 1.0; testset_name=name)
+        @test x.description == name
+    end
 end

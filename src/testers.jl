@@ -12,14 +12,17 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - `fdm`: the finite differencing method to use.
 - `fkwargs` are passed to `f` as keyword arguments.
 - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` and `rrule` are checked.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
 - All remaining keyword arguments are passed to `isapprox`.
 """
-function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, testset_name=nothing, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
+    testset_name = isnothing(testset_name) ? "test_scalar: $f at $z" : testset_name
 
-    @testset "test_scalar: $f at $z" begin
+    @testset "$(testset_name)" begin
         # z = x + im * y
         # Ω = u(x, y) + im * v(x, y)
         Ω = f(z; fkwargs...)
@@ -89,6 +92,8 @@ end
    - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(args...; kwargs...)
@@ -106,15 +111,16 @@ function test_frule(
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
     atol::Real=1e-9,
+    testset_name=nothing,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-
+    testset_name = isnothing(testset_name) ? "test_frule: $f on $(_string_typeof(args))" : testset_name
     # and define a helper closure
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...)
 
-    @testset "test_frule: $f on $(_string_typeof(args))" begin
+    @testset "$(testset_name)" begin
 
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
         primals = primal.(primals_and_tangents)
@@ -164,6 +170,8 @@ end
  - If `check_inferred=true`, then the inferrability (type-stability) of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(args...; kwargs...)
@@ -182,15 +190,16 @@ function test_rrule(
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
     atol::Real=1e-9,
+    testset_name=nothing,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-
+    testset_name = isnothing(testset_name) ? "test_rrule: $f on $(_string_typeof(args))" : testset_name
     # and define helper closure over fkwargs
     call(f, xs...) = f(xs...; fkwargs...)
 
-    @testset "test_rrule: $f on $(_string_typeof(args))" begin
+    @testset "$(testset_name)" begin
 
         # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
