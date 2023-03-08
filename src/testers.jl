@@ -13,6 +13,7 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - `fkwargs` are passed to `f` as keyword arguments.
 - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` and `rrule` are checked.
 - `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
 - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, testset_name=nothing, kwargs...)
@@ -91,7 +92,8 @@ end
    - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
-   - `testset_name`: if provided, the name of the testset used to wrap the tests.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(args...; kwargs...)
@@ -168,7 +170,8 @@ end
  - If `check_inferred=true`, then the inferrability (type-stability) of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
- - `testset_name`: if provided, the name of the testset used to wrap the tests.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(args...; kwargs...)
