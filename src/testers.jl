@@ -20,7 +20,7 @@ function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(),
     # To simplify some of the calls we make later lets group the kwargs for reuse
     rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-    testset_name = isnothing(testset_name) ? "test_scalar: $f at $z" : testset_name
+    testset_name = testset_name === nothing ? "test_scalar: $f at $z" : testset_name
 
     @testset "$(testset_name)" begin
         # z = x + im * y
@@ -116,7 +116,7 @@ function test_frule(
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-    testset_name = isnothing(testset_name) ? "test_frule: $f on $(_string_typeof(args))" : testset_name
+    testset_name = testset_name === nothing ? "test_frule: $f on $(_string_typeof(args))" : testset_name
     # and define a helper closure
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...)
 
@@ -195,7 +195,7 @@ function test_rrule(
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-    testset_name = isnothing(testset_name) ? "test_rrule: $f on $(_string_typeof(args))" : testset_name
+    testset_name = testset_name === nothing ? "test_rrule: $f on $(_string_typeof(args))" : testset_name
     # and define helper closure over fkwargs
     call(f, xs...) = f(xs...; fkwargs...)
 
