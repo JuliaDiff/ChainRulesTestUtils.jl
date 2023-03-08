@@ -196,7 +196,7 @@ function test_rrule(
     # and define helper closure over fkwargs
     call(f, xs...) = f(xs...; fkwargs...)
 
-    @testset "test_rrule: $f on $(_string_typeof(args))" begin
+    @testset "$(testset_name)" begin
 
         # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
