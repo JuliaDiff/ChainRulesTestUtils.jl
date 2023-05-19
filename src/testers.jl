@@ -1,5 +1,5 @@
 """
-    test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+    test_scalar(f, z; rtol=1e-9, atol=0.0, fdm=central_fdm(5, 1), fkwargs=NamedTuple(), check_inferred=true, kwargs...)
 
 Given a function `f` with scalar input and scalar output, perform finite differencing checks,
 at input point `z` to confirm that there are correct `frule` and `rrule`s provided.
@@ -14,7 +14,7 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` and `rrule` are checked.
 - All remaining keyword arguments are passed to `isapprox`.
 """
-function test_scalar(f, z; rtol=1e-9, atol=1e-9, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=0.0, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
@@ -106,7 +106,7 @@ function test_frule(
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
-    atol::Real=1e-9,
+    atol::Real=0.0,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
@@ -183,7 +183,7 @@ function test_rrule(
     check_inferred::Bool=true,
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
-    atol::Real=1e-9,
+    atol::Real=0.0,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
