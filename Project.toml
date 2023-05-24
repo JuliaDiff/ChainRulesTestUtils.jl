@@ -15,3 +15,9 @@ ChainRulesCore = "1.11.2"
 Compat = "3, 4"
 FiniteDifferences = "0.12.12"
 julia = "1"
+
+[extras]
+MetaTesting = "9e32d19f-1e4f-477a-8631-b16c78aa0f56"
+
+[targets]
+test = ["MetaTesting"]
