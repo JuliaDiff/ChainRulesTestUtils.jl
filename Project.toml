@@ -1,6 +1,6 @@
 name = "ChainRulesTestUtils"
 uuid = "cdddcdb0-9152-4a09-a978-84456f9df70a"
-version = "1.10.1"
+version = "1.11.0"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -14,4 +14,11 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ChainRulesCore = "1.11.2"
 Compat = "3, 4"
 FiniteDifferences = "0.12.12"
+MetaTesting = "0.1"
 julia = "1"
+
+[extras]
+MetaTesting = "9e32d19f-1e4f-477a-8631-b16c78aa0f56"
+
+[targets]
+test = ["MetaTesting"]
