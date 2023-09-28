@@ -17,7 +17,17 @@ export ⊢, rand_tangent
 export @maybe_inferred
 export test_method_tables
 
-__init__() = init_test_inferred_setting!()
+function __init__()
+    init_test_inferred_setting!()
+
+    # Try to disable backtrace scrubbing so that full failures are shown
+    try
+        isdefined(Test, :scrub_backtrace) || error("Test.scrub_backtrace not defined")
+        @eval Test scrub_backtrace(bt, file_ts, file_t) = bt  # make it do nothing
+    catch err
+        @warn "Failed to monkey=patch scrub_backtrace. Code is functional but stacktraces may be less useful" exception=(err, catch_backtrace())
+    end
+end
 
 include("global_config.jl")
 
@@ -36,3 +46,4 @@ include("testers.jl")
 include("deprecated.jl")
 include("global_checks.jl")
 end # module
+
