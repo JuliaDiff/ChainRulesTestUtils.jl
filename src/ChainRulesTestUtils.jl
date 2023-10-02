@@ -30,7 +30,7 @@ function __init__()
             @eval Test scrub_backtrace(bt, file_ts, file_t) = bt  # make it do nothing
         end
     catch err
-        @warn "Failed to monkey=patch scrub_backtrace. Code is functional but stacktraces may be less useful" exception=(err, catch_backtrace())
+        @warn "Failed to monkey-patch scrub_backtrace. Code is functional but stacktraces may be less useful" exception=(err, catch_backtrace())
     end
 end
 
