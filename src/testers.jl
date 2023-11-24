@@ -213,7 +213,7 @@ function test_rrule(
         res === nothing && throw(MethodError(rrule_f, Tuple{Core.Typeof.(primals)...}))
         y_ad, pullback = res
         y = call(primals...)
-        test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+        test_approx(y_ad, y, "Failed primal value check"; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
@@ -231,7 +231,8 @@ function test_rrule(
         # Correctness testing via finite differencing.
         is_ignored = isa.(accum_cotangents, NoTangent)
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
-        foreach(accum_cotangents, ad_cotangents, fd_cotangents) do args...
+        msgs = ntuple(i->"cotangent for input $i, $(summary(fd_cotangents[i]))", length(fd_cotangents))
+        foreach(accum_cotangents, ad_cotangents, fd_cotangents, msgs) do args...
             _test_cotangent(args...; check_inferred=check_inferred, isapprox_kwargs...)
         end
 
@@ -298,14 +299,15 @@ If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-diff
 function _test_cotangent(
     accum_cotangent,
     ad_cotangent,
-    fd_cotangent;
+    fd_cotangent,
+    msg="";
     check_inferred=true,
     kwargs...,
 )
     ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 
     # The main test of the actual derivative being correct:
-    test_approx(ad_cotangent, fd_cotangent; kwargs...)
+    test_approx(ad_cotangent, fd_cotangent, msg; kwargs...)
     _test_add!!_behaviour(accum_cotangent, ad_cotangent; kwargs...)
 end
 
