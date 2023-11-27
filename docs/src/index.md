@@ -1,5 +1,5 @@
 ```@meta
-DocTestFilters = r"[0-9\.]+s"
+DocTestFilters = [r"[0-9\.]+s",r"isapprox\(.*\)"]
 ```
 # ChainRulesTestUtils
 
@@ -41,12 +41,12 @@ end
 # output
 
 ```
-and `rrule`
+and `rrule` which contains a mistake in the first cotangent
 ```jldoctest ex
 function ChainRulesCore.rrule(::typeof(two2three), x1, x2)
     y = two2three(x1, x2)
     function two2three_pullback(Ȳ)
-        return (NoTangent(), 2.0*Ȳ[2], 3.0*Ȳ[3])
+        return (NoTangent(), 2.1*Ȳ[2], 3.0*Ȳ[3])
     end
     return y, two2three_pullback
 end
@@ -69,21 +69,26 @@ julia> using ChainRulesTestUtils;
 
 julia> test_frule(two2three, 3.33, -7.77);
 Test Summary:                            | Pass  Total  Time
-test_frule: two2three on Float64,Float64 |    6      6  2.4s
+test_frule: two2three on Float64,Float64 |    6      6  2.7s
 
 ```
 
 ### Testing the `rrule`
 
-[`test_rrule`](@ref) takes in the function `f`, and primal inputsr `x`.
+[`test_rrule`](@ref) takes in the function `f`, and primal inputs `x`.
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
 ```jldoctest ex
 julia> test_rrule(two2three, 3.33, -7.77);
-Test Summary:                            | Pass  Total  Time
-test_rrule: two2three on Float64,Float64 |   10     10  0.9s
-
+test_rrule: two2three on Float64,Float64: Test Failed at /home/lior/.julia/dev/ChainRulesTestUtils/src/check_result.jl:24
+  Expression: isapprox(actual, expected; kwargs...)
+  Problem: cotangent for input 2, Float64
+   Evaluated: isapprox(-4.032, -3.840000000001641; rtol = 1.0e-9, atol = 1.0e-9)
+[...]
 ```
+
+The output of the test indicates to us the cause of the failure under "Problem:" with the expected (`rrule` derived) and actual finite difference results.
+The Problem lies with the cotangent corresponding to input 2 of `rrule`, which is the first cotangent as expected. 
 
 ## Scalar example
 
@@ -109,7 +114,7 @@ call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total  Time
-test_scalar: relu at 0.5 |   12     12  1.0s
+test_scalar: relu at 0.5 |   12     12  1.2s
 
 
 julia> test_scalar(relu, -0.5);
