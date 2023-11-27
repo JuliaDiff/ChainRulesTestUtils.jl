@@ -10,8 +10,8 @@ makedocs(;
         "ChainRulesTestUtils" => "index.md",
         "API" => "api.md",
     ],
-    strict=true,
     checkdocs=:exports,
+    # doctest=:fix
    )
 
 const repo = "github.com/JuliaDiff/ChainRulesTestUtils.jl.git"
