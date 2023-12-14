@@ -312,10 +312,10 @@ function _test_cotangent(
 end
 
 # we marked the argument as non-differentiable
-function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent, msg=""; kwargs...)
     @test ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent, msg=""; kwargs...)
     error(
         "The pullback in the rrule should use NoTangent()" *
         " rather than ZeroTangent() for non-perturbable arguments."
@@ -324,7 +324,8 @@ end
 function _test_cotangent(
     ::NoTangent,
     ad_cotangent::ChainRulesCore.NotImplemented,
-    ::NoTangent;
+    ::NoTangent,
+    msg="";
     kwargs...,
 )
     # this situation can occur if a cotangent is not implemented and
@@ -334,6 +335,6 @@ function _test_cotangent(
     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
     @test_broken ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent, msg=""; kwargs...)
     error("cotangent obtained with finite differencing has to be NoTangent()")
 end
