@@ -283,13 +283,15 @@ function _is_inferrable(f, args...; kwargs...)
 end
 
 """
-    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent; kwargs...)
+    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent[, msg]; kwargs...)
 
 Check if the cotangent `ad_cotangent` from `rrule` is consistent with `accum_tangent` and
 approximately equal to the cotangent `fd_cotangent` obtained with finite differencing.
 
 If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-differentiable,
 `ad_cotangent` and `fd_cotangent` should be `NoTangent()` as well.
+
+If a msg string is given, it is emmited on test failure.
 
 # Keyword arguments
 - If `check_inferred=true` (the default) and `ad_cotangent` is a thunk, then it is checked if
