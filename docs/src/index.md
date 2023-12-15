@@ -114,12 +114,12 @@ call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total  Time
-test_scalar: relu at 0.5 |   12     12  1.2s
+test_scalar: relu at 0.5 |   11     11  0.5s
 
 
 julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total  Time
-test_scalar: relu at -0.5 |   12     12  0.0s
+test_scalar: relu at -0.5 |   11     11  0.0s
 
 ```
 
