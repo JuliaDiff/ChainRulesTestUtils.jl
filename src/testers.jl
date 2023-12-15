@@ -213,7 +213,7 @@ function test_rrule(
         res === nothing && throw(MethodError(rrule_f, Tuple{Core.Typeof.(primals)...}))
         y_ad, pullback = res
         y = call(primals...)
-        test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+        test_approx(y_ad, y, "Failed primal value check"; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
@@ -231,7 +231,8 @@ function test_rrule(
         # Correctness testing via finite differencing.
         is_ignored = isa.(accum_cotangents, NoTangent)
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
-        foreach(accum_cotangents, ad_cotangents, fd_cotangents) do args...
+        msgs = ntuple(i->"cotangent for input $i, $(summary(fd_cotangents[i]))", length(fd_cotangents))
+        foreach(accum_cotangents, ad_cotangents, fd_cotangents, msgs) do args...
             _test_cotangent(args...; check_inferred=check_inferred, isapprox_kwargs...)
         end
 
@@ -282,13 +283,15 @@ function _is_inferrable(f, args...; kwargs...)
 end
 
 """
-    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent; kwargs...)
+    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent[, msg]; kwargs...)
 
 Check if the cotangent `ad_cotangent` from `rrule` is consistent with `accum_tangent` and
 approximately equal to the cotangent `fd_cotangent` obtained with finite differencing.
 
 If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-differentiable,
 `ad_cotangent` and `fd_cotangent` should be `NoTangent()` as well.
+
+If a msg string is given, it is emmited on test failure.
 
 # Keyword arguments
 - If `check_inferred=true` (the default) and `ad_cotangent` is a thunk, then it is checked if
@@ -298,22 +301,23 @@ If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-diff
 function _test_cotangent(
     accum_cotangent,
     ad_cotangent,
-    fd_cotangent;
+    fd_cotangent,
+    msg="";
     check_inferred=true,
     kwargs...,
 )
     ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 
     # The main test of the actual derivative being correct:
-    test_approx(ad_cotangent, fd_cotangent; kwargs...)
+    test_approx(ad_cotangent, fd_cotangent, msg; kwargs...)
     _test_add!!_behaviour(accum_cotangent, ad_cotangent; kwargs...)
 end
 
 # we marked the argument as non-differentiable
-function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent, msg=""; kwargs...)
     @test ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent, msg=""; kwargs...)
     error(
         "The pullback in the rrule should use NoTangent()" *
         " rather than ZeroTangent() for non-perturbable arguments."
@@ -322,7 +326,8 @@ end
 function _test_cotangent(
     ::NoTangent,
     ad_cotangent::ChainRulesCore.NotImplemented,
-    ::NoTangent;
+    ::NoTangent,
+    msg="";
     kwargs...,
 )
     # this situation can occur if a cotangent is not implemented and
@@ -332,6 +337,6 @@ function _test_cotangent(
     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
     @test_broken ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent, msg=""; kwargs...)
     error("cotangent obtained with finite differencing has to be NoTangent()")
 end
