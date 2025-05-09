@@ -13,19 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - "1.0"  # LTS
-          - "1"    # Latest Release
+          - "lts"
+          - "1"  # Latest Release
         os:
           - ubuntu-latest
-          - macOS-latest
+          - macOS-latest  # Apple silicon
           - windows-latest
-        arch:
-          - x86
-          - x64
-        exclude:
-          # 32-bit Julia binaries are not available on macOS
-          - os: macOS-latest
-            arch: x86
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
