@@ -1,5 +1,12 @@
 # Test.get_test_result generates code that uses the following so we must import them
-using Test: Returned, Threw, eval_test
+using Test: Returned, Threw
+
+# depends on the version
+@static if VERSION ≤ v"1.12"
+    using Test: eval_test
+else
+    using Test: eval_test_comparison, eval_test_function
+end
 
 "A cunning hack to carry extra message along with the original expression in a test"
 struct ExprAndMsg
