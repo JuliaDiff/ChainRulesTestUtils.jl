@@ -1,10 +1,12 @@
 # Test.get_test_result generates code that uses the following so we must import them
-using Test: Returned, Threw, eval_test
+using Test: Returned, Threw
 
 @static if VERSION >= v"1.13.0-DEV.300"
     # https://github.com/JuliaLang/julia/commit/d934b032ea5bf63b353371ad285605128c735873
-    # used by `Test.do_test` in `macro test_msg`
+    # replaced `eval_test` by `eval_test_comparison` and `eval_test_function`
     using Test: eval_test_comparison, eval_test_function
+else
+    using Test: eval_test
 end
 
 "A cunning hack to carry extra message along with the original expression in a test"
