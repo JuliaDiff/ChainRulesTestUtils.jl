@@ -4,7 +4,6 @@ module ChainRulesTestUtils
 
 using ChainRulesCore
 using ChainRulesCore: frule, rrule
-using Compat: only
 using FiniteDifferences
 using FiniteDifferences: to_vec
 using LinearAlgebra

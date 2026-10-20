@@ -1,5 +1,8 @@
 ```@meta
-DocTestFilters = [r"[0-9\.]+s",r"isapprox\(.*\)"]
+# `Test Summary` tables depend on the Julia version and on whether the doctests
+# run in `makedocs` or in `doctest`, so we do not compare them. The group is optional
+# since Documenter only applies filters that match both the expected and actual output.
+DocTestFilters = [r"(Test Summary:[^\n]*\n[^\n]*\|[^\n]*)?"]
 ```
 # ChainRulesTestUtils
 
@@ -78,7 +81,7 @@ test_frule: two2three on Float64,Float64 |    6      6  2.7s
 [`test_rrule`](@ref) takes in the function `f`, and primal inputs `x`.
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
-```jldoctest ex
+```julia
 julia> test_rrule(two2three, 3.33, -7.77);
 test_rrule: two2three on Float64,Float64: Test Failed at /home/lior/.julia/dev/ChainRulesTestUtils/src/check_result.jl:24
   Expression: isapprox(actual, expected; kwargs...)
@@ -114,12 +117,12 @@ call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
 Test Summary:            | Pass  Total  Time
-test_scalar: relu at 0.5 |   12     12  1.2s
+test_scalar: relu at 0.5 |   11     11  1.2s
 
 
 julia> test_scalar(relu, -0.5);
 Test Summary:             | Pass  Total  Time
-test_scalar: relu at -0.5 |   12     12  0.0s
+test_scalar: relu at -0.5 |   11     11  0.0s
 
 ```
 

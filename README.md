@@ -10,9 +10,9 @@
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaDiff.github.io/ChainRulesTestUtils.jl/stable)
 
 
-| ⚠️ The ChainRules project is currently seeking a new primary maintainer ⚠️                                                                                                                                                                                                                                                                    |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| See this [Discourse thread](https://discourse.julialang.org/t/chainrules-project-looking-for-a-new-primary-maintainer/115636). We currently have many secondary maintainers and contributors with commit rights, but noone who has committed to leading the efforts. Until this is resolved PRs and issues may not recieve timely response. |
+| ⚠️ The ChainRules project is currently seeking a new primary maintainer ⚠️                                                                                                                                                                                                                                                                     |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| See this [Discourse thread](https://discourse.julialang.org/t/chainrules-project-looking-for-a-new-primary-maintainer/115636). We currently have many secondary maintainers and contributors with commit rights, but no one who has committed to leading the efforts. Until this is resolved PRs and issues may not receive timely response. |
 
 > Collection of utilities for testing forward- and reverse-mode AD sensitivities.
 

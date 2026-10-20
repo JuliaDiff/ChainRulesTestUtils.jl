@@ -1,10 +1,12 @@
 # Test.get_test_result generates code that uses the following so we must import them
-using Test: Returned, Threw, eval_test
+using Test: Returned, Threw
 
 @static if VERSION >= v"1.13.0-DEV.300"
     # https://github.com/JuliaLang/julia/commit/d934b032ea5bf63b353371ad285605128c735873
-    # used by `Test.do_test` in `macro test_msg`
+    # replaced `eval_test` by `eval_test_comparison` and `eval_test_function`
     using Test: eval_test_comparison, eval_test_function
+else
+    using Test: eval_test
 end
 
 "A cunning hack to carry extra message along with the original expression in a test"
@@ -14,12 +16,12 @@ struct ExprAndMsg
 end
 
 """
-    @test_msg msg condion kws...
+    @test_msg msg condition kws...
 
-This is per `Test.@test condion kws...` except that if it fails it also prints the `msg`.
+This is per `Test.@test condition kws...` except that if it fails it also prints the `msg`.
 If `msg==""` then this is just like `@test`, nothing is printed
 
-### Examles
+### Examples
 ```julia
 julia> @test_msg "It is required that the total is under 10" sum(1:1000) < 10;
 Test Failed at REPL[1]:1

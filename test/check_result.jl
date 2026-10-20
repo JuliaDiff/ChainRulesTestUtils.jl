@@ -54,7 +54,7 @@ end
             )
 
             diag_eg = Diagonal(randn(5))
-            test_approx( # Structual == Structural
+            test_approx( # Structural == Structural
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
             )
