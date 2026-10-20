@@ -107,8 +107,7 @@ struct Bar
         @test x + (rand_tangent(x) + rand_tangent(x)) isa typeof(x)
     end
 
-    # Julia 1.6 changed to using Ryu printing algorithm and seems better at printing short
-    VERSION >= v"1.6" && @testset "niceness of printing" begin
+    @testset "niceness of printing" begin
         rng = MersenneTwister(1)
         for i in 1:50
             @test length(string(rand_tangent(rng, 1.0))) <= 6
