@@ -2,7 +2,7 @@ const _fdm = central_fdm(5, 1; max_range=1e-2)
 const TEST_INFERRED = Ref(true)
 const TRANSFORMS_TO_ALT_TANGENTS = Function[x->@thunk(x)] # e.g. [_ -> ZeroTangent(), x -> rebasis(x)]
 
-"sets up TEST_INFERRED based ion enviroment variables"
+"sets up TEST_INFERRED based on environment variables"
 function init_test_inferred_setting!()
     TEST_INFERRED[] = if haskey(ENV, "CHAINRULES_TEST_INFERRED")
         parse(Bool, "CHAINRULES_TEST_INFERRED")

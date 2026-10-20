@@ -46,7 +46,7 @@ struct Bar
         (transpose(randn(5)), Transpose{Float64, Vector{Float64}}),  # row-vector: special
         (transpose(randn(5, 4)), Matrix{Float64}),                   # matrix: generic dense
 
-        # AbstactArrays of non-perturbable types
+        # AbstractArrays of non-perturbable types
         (1:10, NoTangent),
         (1:2:10, NoTangent),
         ([false, true], NoTangent),

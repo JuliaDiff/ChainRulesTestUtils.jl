@@ -120,12 +120,12 @@ function test_approx(
     @test ActualPrimal === ExpectedPrimal
 end
 
-# Some structual differential and a natural differential
+# Some structural differential and a natural differential
 function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T,P}
     if _can_pass_early(actual, expected)
         @test true
     else
-        @assert (T <: NamedTuple)  # it should be a structual differential if we hit this
+        @assert (T <: NamedTuple)  # it should be a structural differential if we hit this
 
         # We are only checking the properties that are in the Tangent
         # the natural differential is allowed to have other properties that we ignore

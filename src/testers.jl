@@ -291,7 +291,7 @@ approximately equal to the cotangent `fd_cotangent` obtained with finite differe
 If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-differentiable,
 `ad_cotangent` and `fd_cotangent` should be `NoTangent()` as well.
 
-If a msg string is given, it is emmited on test failure.
+If a msg string is given, it is emitted on test failure.
 
 # Keyword arguments
 - If `check_inferred=true` (the default) and `ad_cotangent` is a thunk, then it is checked if

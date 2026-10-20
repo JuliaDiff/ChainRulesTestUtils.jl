@@ -442,7 +442,7 @@ end
             return x, ẋ
         end
 
-        # these pass in tangents explictly so that we can check them after
+        # these pass in tangents explicitly so that we can check them after
         x = randn(3)
         ẋ = [4.0, 5.0, 6.0]
         xcopy, ẋcopy = copy(x), copy(ẋ)
