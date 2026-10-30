@@ -36,6 +36,11 @@ end
 
             test_approx([1.0, 2.0], [1.0, 2.0])
             test_approx([[1.0], [2.0]], [[1.0], [2.0]])
+            test_approx([[0.0], [0.0]], ZeroTangent())
+            test_approx(ZeroTangent(), [[0.0], [0.0]])
+            test_approx(ZeroTangent(), [[0.0, 0.0], [[0.0, 0.0], [0.0, 0.0]]])
+            test_approx([[0.0, 0.0], [[0.0, 0.0], [0.0, 0.0]]], NoTangent())
+            test_approx(Broadcast.broadcasted(identity, [1.0 2.0; 3.0 4.0]), [1.0 2.0; 3.0 4.0])
 
             test_approx(@thunk(10 * 0.1 * [[1.0], [2.0]]), [[1.0], [2.0]])
 
@@ -49,7 +54,7 @@ end
             )
 
             diag_eg = Diagonal(randn(5))
-            test_approx( # Structual == Structural
+            test_approx( # Structural == Structural
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
                 Tangent{typeof(diag_eg)}(; diag=diag_eg.diag),
             )
@@ -75,6 +80,27 @@ end
                 FakeNaturalDiffWithIsApprox(1.4),
                 Tangent{FakeNaturalDiffWithIsApprox}(; x=1.4),
             )
+
+            # ambig with CRC after:
+            # https://github.com/JuliaDiff/ChainRulesCore.jl/pull/524#issuecomment-1074037647
+            test_approx(
+                Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
+                @thunk(Tangent{Tuple{Float64,Float64}}(1.0, 2.0)),
+            )
+            test_approx(
+                @thunk(Tangent{Tuple{Float64,Float64}}(1.0, 2.0)),
+                Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
+            )
+            test_approx(@thunk(ZeroTangent()), ZeroTangent())
+            test_approx(ZeroTangent(), @thunk(ZeroTangent()))
+            test_approx(
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), NoTangent()),
+                NoTangent(),
+            )
+            test_approx(
+                NoTangent(),
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), NoTangent()),
+            )
         end
         @testset "negative case" begin
             @test fails(() -> test_approx(1.0, 2.0))
@@ -86,10 +112,31 @@ end
 
             @test fails(() -> test_approx([1.0, 2.0], [1.0, 3.9]))
             @test fails(() -> test_approx([[1.0], [2.0]], [[1.1], [2.0]]))
+            @test fails(() -> test_approx([[0.0], [0.1]], ZeroTangent()))
+            @test fails(() -> test_approx(ZeroTangent(), [[0.1], [0.0]]))
+            @test fails(() -> test_approx([[0.0], [0.0], [[0.0, 0.1], [0.0]]], ZeroTangent()))
+            @test fails(() -> test_approx(ZeroTangent(), [[0.0], [0.0], [[0.0, 0.1], [0.0]]]))
+
+            @test fails(() -> test_approx(
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), 0.1),
+                NoTangent(),
+            ))
+            @test fails(() -> test_approx(
+                NoTangent(),
+                Tangent{Tuple{Float64,Float64}}(NoTangent(), 0.1),
+            ))
 
             @test fails(() -> test_approx(@thunk(10 * [[1.0], [2.0]]), [[1.0], [2.0]]))
 
             @test fails(() -> test_approx(@not_implemented("a"), @not_implemented("b")))
+
+            # should fail, not ambig error
+            @test fails() do 
+                test_approx(
+                    Tangent{Tuple{Float64,Float64}}(1.0, 2.0),
+                    @thunk(Tangent{Tuple{Float64,Float64}}(2.0, 2.0)),
+                )
+            end
         end
         @testset "type negative" begin
             @test fails() do  # these have different primals so should not be equal

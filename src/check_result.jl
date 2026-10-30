@@ -24,7 +24,16 @@ function test_approx(
     @test_msg msg isapprox(actual, expected; kwargs...)
 end
 
-for (T1, T2) in ((AbstractThunk, Any), (AbstractThunk, AbstractThunk), (Any, AbstractThunk))
+for (T1, T2) in
+    (
+        (AbstractThunk, Any),
+        (AbstractThunk, AbstractThunk),
+        (Any, AbstractThunk),
+        (Tangent, AbstractThunk),
+        (AbstractThunk, Tangent),
+        (AbstractZero, AbstractThunk),
+        (AbstractThunk, AbstractZero),
+    )
     @eval function test_approx(actual::$T1, expected::$T2, msg=""; kwargs...)
         return test_approx(unthunk(actual), unthunk(expected), msg; kwargs...)
     end
@@ -34,6 +43,13 @@ test_approx(::AbstractZero, x, msg=""; kwargs...) = test_approx(zero(x), x, msg;
 test_approx(x, ::AbstractZero, msg=""; kwargs...) = test_approx(x, zero(x), msg; kwargs...)
 test_approx(x::ZeroTangent, y::ZeroTangent, msg=""; kwargs...) = @test true
 test_approx(x::NoTangent, y::NoTangent, msg=""; kwargs...) = @test true
+
+function test_approx(z::AbstractZero, x::AbstractArray{<:AbstractArray}, msg=""; kwargs...)
+    for el in x
+        test_approx(el, z, msg; kwargs...)
+    end
+end
+test_approx(x::AbstractArray{<:AbstractArray}, z::AbstractZero, msg=""; kwargs...) = test_approx(z, x, msg; kwargs...)
 
 # remove once https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/113
 test_approx(x::NoTangent, y::Nothing, msg=""; kwargs...) = @test true
@@ -104,12 +120,12 @@ function test_approx(
     @test ActualPrimal === ExpectedPrimal
 end
 
-# Some structual differential and a natural differential
+# Some structural differential and a natural differential
 function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T,P}
     if _can_pass_early(actual, expected)
         @test true
     else
-        @assert (T <: NamedTuple)  # it should be a structual differential if we hit this
+        @assert (T <: NamedTuple)  # it should be a structural differential if we hit this
 
         # We are only checking the properties that are in the Tangent
         # the natural differential is allowed to have other properties that we ignore
@@ -122,6 +138,9 @@ function test_approx(actual::Tangent{P,T}, expected, msg=""; kwargs...) where {T
     end
 end
 test_approx(x, y::Tangent, msg=""; kwargs...) = test_approx(y, x, msg; kwargs...)
+
+test_approx(z::NoTangent, t::Tangent, msg=""; kwargs...) = @test all(==(NoTangent()), t)
+test_approx(t::Tangent, z::NoTangent, msg=""; kwargs...) = @test all(==(NoTangent()), t)
 
 # This catches comparisons of Tangents and Tuples/NamedTuple
 # and gives an error message complaining about that. the `@test` will definitely fail
@@ -138,8 +157,9 @@ function test_approx(actual::A, expected::E, msg=""; kwargs...) where {A,E}
     if _can_pass_early(actual, expected)
         @test true
     else
-        c_actual = collect(actual)
-        c_expected = collect(expected)
+        # Works around https://github.com/JuliaLang/julia/issues/43847 on pre-Julia v1.9
+        c_actual = collect(Broadcast.materialize(actual))
+        c_expected = collect(Broadcast.materialize(expected))
         if (c_actual isa A) && (c_expected isa E)  # prevent stack-overflow
             throw(MethodError, test_approx, (actual, expected))
         end

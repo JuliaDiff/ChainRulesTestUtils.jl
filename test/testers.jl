@@ -53,9 +53,13 @@ function ChainRulesCore.frule((Δf, Δx), f::Foo, x)
     return f(x), Δf.a + Δx
 end
 
-# testing configs
-abstract type MySpecialTrait end
-struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
+# Type-stable derivative for test below
+struct FVecOfTuplesPullback{T} end
+function (f::FVecOfTuplesPullback{T})(Δ) where {T}
+    ΔΩ_first, ΔΩ_last = unthunk(Δ)
+    Δx = map(z -> Tangent{T}(z, ΔΩ_last), ΔΩ_first)
+    return NoTangent(), Δx
+end
 
 @testset "testers.jl" begin
     @testset "test_scalar" begin
@@ -281,11 +285,11 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
 
     @testset "single input, multiple output" begin
         simo(x) = (x, 2x)
-        function ChainRulesCore.rrule(simo, x)
+        function ChainRulesCore.rrule(::typeof(simo), x)
             simo_pullback((a, b)) = (NoTangent(), a .+ 2 .* b)
             return simo(x), simo_pullback
         end
-        function ChainRulesCore.frule((_, ẋ), simo, x)
+        function ChainRulesCore.frule((_, ẋ), ::typeof(simo), x)
             y = simo(x)
             return y, Tangent{typeof(y)}(ẋ, 2ẋ)
         end
@@ -438,7 +442,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             return x, ẋ
         end
 
-        # these pass in tangents explictly so that we can check them after
+        # these pass in tangents explicitly so that we can check them after
         x = randn(3)
         ẋ = [4.0, 5.0, 6.0]
         xcopy, ẋcopy = copy(x), copy(ẋ)
@@ -608,7 +612,7 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
             test_rrule(
                 does_not_accept_thunk_id, [1.0, 2.0]; check_thunked_output_tangent=false
             )
-            @test errors(r"MethodError.*Thunk") do 
+            @test errors(r"MethodError.*Thunk") do
                 test_rrule(does_not_accept_thunk_id, [1.0, 2.0])
             end
         end
@@ -656,53 +660,6 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         test_rrule(f_notimplemented2, identity, randn())
     end
 
-    @testset "custom rrule_f" begin
-        only2x(x, y) = 2x
-        custom(::RuleConfig, ::typeof(only2x), x, y) = only2x(x, y), Δ -> (NoTangent(), 2Δ, ZeroTangent())
-        wrong1(::RuleConfig, ::typeof(only2x), x, y) = only2x(x, y), Δ -> (ZeroTangent(), 2Δ, ZeroTangent())
-        wrong2(::RuleConfig, ::typeof(only2x), x, y) = only2x(x, y), Δ -> (NoTangent(), 2.1Δ, ZeroTangent())
-        wrong3(::RuleConfig, ::typeof(only2x), x, y) = only2x(x, y), Δ -> (NoTangent(), 2Δ)
-
-        test_rrule(only2x, 2.0, 3.0; rrule_f=custom, check_inferred=false)
-        @test errors(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong1, check_inferred=false))
-        @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong2, check_inferred=false))
-        @test fails(() -> test_rrule(only2x, 2.0, 3.0; rrule_f=wrong3, check_inferred=false))
-    end
-
-    @testset "custom frule_f" begin
-        mytuple(x, y) = return 2x, 1.0
-        T = Tuple{Float64, Float64}
-        custom(::RuleConfig, (Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, ZeroTangent())
-        wrong1(::RuleConfig, (Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2.1Δx, ZeroTangent())
-        wrong2(::RuleConfig, (Δf, Δx, Δy), ::typeof(mytuple), x, y) = mytuple(x, y), Tangent{T}(2Δx, 1.0)
-
-        test_frule(mytuple, 2.0, 3.0; frule_f=custom, check_inferred=false)
-        @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong1, check_inferred=false))
-        @test fails(() -> test_frule(mytuple, 2.0, 3.0; frule_f=wrong2, check_inferred=false))
-    end
-
-    @testset "custom_config" begin
-        has_config(x) = 2x
-        function ChainRulesCore.rrule(::MySpecialConfig, ::typeof(has_config), x)
-            has_config_pullback(ȳ) = return (NoTangent(), 2ȳ)
-            return has_config(x), has_config_pullback
-        end
-
-        has_trait(x) = 2x
-        function ChainRulesCore.rrule(::RuleConfig{<:MySpecialTrait}, ::typeof(has_trait), x)
-            has_trait_pullback(ȳ) = return (NoTangent(), 2ȳ)
-            return has_trait(x), has_trait_pullback
-        end
-
-        # it works if the special config is provided
-        test_rrule(MySpecialConfig(), has_config, rand())
-        test_rrule(MySpecialConfig(), has_trait, rand())
-
-        # but it doesn't work for the default config
-        errors(() -> test_rrule(has_config, rand()), "no method matching rrule")
-        errors(() -> test_rrule(has_trait, rand()), "no method matching rrule")
-    end
-
     @testset "@maybe_inferred" begin
         f_noninferrable(x) = Ref{Real}(x)[]
 
@@ -726,7 +683,10 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         function ChainRulesCore.rrule(::typeof(my_id), x)
             my_id_pb(ȳ) = (NoTangent(), ȳ)
             function my_id_pb(ȳ::AbstractThunk)
-                precision = rand() > 0.5 ? Float64 : Float32
+                # We use a condition that always evaluates to true to avoid issues with tolerances
+                # (see https://github.com/JuliaDiff/ChainRulesTestUtils.jl/pull/247)
+                # The function is type unstable for `Float64` inputs nevertheless
+                precision = rand() >= 0.0 ? Float64 : Float32
                 return (NoTangent(), precision(unthunk(ȳ)))
             end
             return x, my_id_pb
@@ -735,5 +695,45 @@ struct MySpecialConfig <: RuleConfig{Union{MySpecialTrait}} end
         @test errors(() -> test_rrule(my_id, 2.0))
         test_rrule(my_id, 2.0; check_inferred=false)
         test_rrule(my_id, 2.0; check_thunked_output_tangent=false)
+    end
+
+    # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/pull/224
+    @testset "vectors of tuples" begin
+        function f_vec_of_tuples(x::AbstractVector{<:Tuple{<:Any,<:Any}})
+            return map(first, x), sum(last, x)
+        end
+        function ChainRulesCore.frule(
+            (_, Δx),
+            ::typeof(f_vec_of_tuples),
+            x::AbstractVector{<:Tuple{<:Any,<:Any}},
+        )
+            Ω = f_vec_of_tuples(x)
+            Ω̄ = Tangent{typeof(Ω)}(f_vec_of_tuples(map(ChainRulesCore.backing, Δx))...)
+            return Ω, Ω̄
+        end
+        function ChainRulesCore.rrule(
+            ::typeof(f_vec_of_tuples),
+            x::AbstractVector{<:Tuple{<:Any,<:Any}},
+        )
+            Ω = f_vec_of_tuples(x)
+            # We use a functor here to fix type inference
+            f_vec_of_tuples_pullback = FVecOfTuplesPullback{eltype(x)}()
+            return Ω, f_vec_of_tuples_pullback
+        end
+
+        x_tuples = [(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)]
+        test_frule(f_vec_of_tuples, x_tuples)
+        test_rrule(f_vec_of_tuples, x_tuples)
+    end
+    @testset "check passing of testset_name kwarg" begin
+        name = "my test name"
+        double(x) = 2x
+        @scalar_rule(double(x), 2)
+        x = test_scalar(double, 2.1; testset_name=name)
+        @test x.description == name
+        x = test_frule(identity, 1.0; testset_name=name)
+        @test x.description == name
+        x = test_rrule(identity, 1.0; testset_name=name)
+        @test x.description == name
     end
 end

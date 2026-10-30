@@ -1,3 +1,9 @@
+```@meta
+# `Test Summary` tables depend on the Julia version and on whether the doctests
+# run in `makedocs` or in `doctest`, so we do not compare them. The group is optional
+# since Documenter only applies filters that match both the expected and actual output.
+DocTestFilters = [r"(Test Summary:[^\n]*\n[^\n]*\|[^\n]*)?"]
+```
 # ChainRulesTestUtils
 
 [![CI](https://github.com/JuliaDiff/ChainRulesTestUtils.jl/workflows/CI/badge.svg?branch=main)](https://github.com/JuliaDiff/ChainRulesTestUtils.jl/actions?query=workflow%3ACI)
@@ -9,7 +15,13 @@ For information about ChainRules, including how to write rules, refer to the gen
 [![](https://img.shields.io/badge/docs-main-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/dev)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaDiff.github.io/ChainRulesCore.jl/stable)
 
-## Canonical example
+## Testing Method Table Sensibility
+A basic feature of ChainRulesTestUtils is its ability to check that the method tables for `rrule` and `frule` remain sensible.
+This searches the method tables for methods that should not exist and when it fails tells you where they were defined.
+By calling [`test_method_tables`](@ref) ChainRulesTestUtils will check for things such as having attracted a rule to `DataType` rather than attaching it to a constructor.
+Basically all packages using ChainRulesTestUtils can use [`test_method_tables`](@ref), as it is independent of what rules you have written.
+
+## Canonical example of testing frule and rrule
 
 Let's suppose a custom transformation has been defined
 ```jldoctest ex
@@ -32,12 +44,12 @@ end
 # output
 
 ```
-and `rrule`
+and `rrule` which contains a mistake in the first cotangent
 ```jldoctest ex
 function ChainRulesCore.rrule(::typeof(two2three), x1, x2)
     y = two2three(x1, x2)
     function two2three_pullback(Ȳ)
-        return (NoTangent(), 2.0*Ȳ[2], 3.0*Ȳ[3])
+        return (NoTangent(), 2.1*Ȳ[2], 3.0*Ȳ[3])
     end
     return y, two2three_pullback
 end
@@ -59,22 +71,27 @@ Keep this in mind when testing discontinuous rules for functions like [ReLU](htt
 julia> using ChainRulesTestUtils;
 
 julia> test_frule(two2three, 3.33, -7.77);
-Test Summary:                            | Pass  Total
-test_frule: two2three on Float64,Float64 |    6      6
+Test Summary:                            | Pass  Total  Time
+test_frule: two2three on Float64,Float64 |    6      6  2.7s
 
 ```
 
 ### Testing the `rrule`
 
-[`test_rrule`](@ref) takes in the function `f`, and primal inputsr `x`.
+[`test_rrule`](@ref) takes in the function `f`, and primal inputs `x`.
 The call will test the `rrule` for function `f` at the point `x`, and similarly to `frule` some rules should be tested at multiple points in the domain.
 
-```jldoctest ex
+```julia
 julia> test_rrule(two2three, 3.33, -7.77);
-Test Summary:                            | Pass  Total
-test_rrule: two2three on Float64,Float64 |    9      9
-
+test_rrule: two2three on Float64,Float64: Test Failed at /home/lior/.julia/dev/ChainRulesTestUtils/src/check_result.jl:24
+  Expression: isapprox(actual, expected; kwargs...)
+  Problem: cotangent for input 2, Float64
+   Evaluated: isapprox(-4.032, -3.840000000001641; rtol = 1.0e-9, atol = 1.0e-9)
+[...]
 ```
+
+The output of the test indicates to us the cause of the failure under "Problem:" with the expected (`rrule` derived) and actual finite difference results.
+The Problem lies with the cotangent corresponding to input 2 of `rrule`, which is the first cotangent as expected. 
 
 ## Scalar example
 
@@ -99,19 +116,19 @@ with the `frule` and `rrule` defined with the help of `@scalar_rule` macro
 call.
 ```jldoctest ex
 julia> test_scalar(relu, 0.5);
-Test Summary:            | Pass  Total
-test_scalar: relu at 0.5 |   11     11
+Test Summary:            | Pass  Total  Time
+test_scalar: relu at 0.5 |   11     11  1.2s
 
 
 julia> test_scalar(relu, -0.5);
-Test Summary:             | Pass  Total
-test_scalar: relu at -0.5 |   11     11
+Test Summary:             | Pass  Total  Time
+test_scalar: relu at -0.5 |   11     11  0.0s
 
 ```
 
 ## Testing constructors and functors (callable objects)
 
-Testing constructor and functors works as you would expect. For struct `Foo`
+Testing constructor and functors works as you would expect. For struct `Foo`,
 ```julia
 struct Foo
     a::Float64
@@ -121,7 +138,27 @@ Base.length(::Foo) = 1
 Base.iterate(f::Foo) = iterate(f.a)
 Base.iterate(f::Foo, state) = iterate(f.a, state)
 ```
-the `f/rrule`s can be tested by
+
+after defining the constructor and functor `f/rule`s,
+
+```julia
+function ChainRulesCore.rrule(::Type{Foo}, val) # constructor rrule
+    y = Foo(val)
+    Foo_pb(ΔFoo) = (NoTangent(), unthunk(ΔFoo).a)
+    return y, Foo_pb
+end
+
+function ChainRulesCore.rrule(foo::Foo, val) # functor rrule
+    y = foo(val)
+    function foo_pb(Δ)
+        Δut = unthunk(Δ)
+        return (Tangent{Foo}(;a=Δut), Δut)
+    end
+    return y, foo_pb
+end
+```
+
+both `f/rrule`s can be tested by
 ```julia
 test_rrule(Foo, rand()) # constructor
 
@@ -274,3 +311,4 @@ Test.DefaultTestSet("test_rrule: abs on Float64", Any[], 5, false, false)
 
 This behavior can also be overridden globally by setting the environment variable `CHAINRULES_TEST_INFERRED` before ChainRulesTestUtils is loaded or by changing `ChainRulesTestUtils.TEST_INFERRED[]` from inside Julia.
 ChainRulesTestUtils can detect whether a test is run as part of [PkgEval](https://github.com/JuliaCI/PkgEval.jl) and in this case disables inference tests automatically. Packages can use [`@maybe_inferred`](@ref) to get the same behavior for other inference tests.
+

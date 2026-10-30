@@ -1,27 +1,37 @@
 name: fix_doctests
 on:
   pull_request:
+
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: always.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # Required by reviewdog/action-suggester to post suggestions
+
 jobs:
   doctests:
     name: Fix doctests (Julia ${{ matrix.julia-version }} - ${{ github.event_name }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        julia-version: [1.6]
+        julia-version:
+          - '1'
     steps:
-      - uses: julia-actions/setup-julia@latest
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.julia-version }}
-      - uses: actions/checkout@v1
       - name: Fix doctests
         shell: julia --project=docs/ {0}
         run: |
-          using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()
+          using Pkg; Pkg.instantiate()
           using Documenter
           using ChainRulesTestUtils
           doctest(ChainRulesTestUtils, fix=true)
-          # don't push changes to Manifest in suggestions, as it removes `path=..`
-          run(`git restore docs/Manifest.toml`)
       - uses: reviewdog/action-suggester@v1
         if: github.event_name == 'pull_request'
         with:

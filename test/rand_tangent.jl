@@ -17,7 +17,7 @@ struct Bar
         (4, NoTangent),
         (FiniteDifferences, NoTangent),  # Module object
         # Types (not instances of type)
-        (Bar, NoTangent),  
+        (Bar, NoTangent),
         (Union{Int, Bar}, NoTangent),
         (Union{Int, Bar}, NoTangent),
         (Vector, NoTangent),
@@ -42,14 +42,17 @@ struct Bar
         # Co-Arrays
         (randn(5)', Adjoint{Float64, Vector{Float64}}),  # row-vector: special
         (randn(5, 4)', Matrix{Float64}),                 # matrix: generic dense
-        
+
         (transpose(randn(5)), Transpose{Float64, Vector{Float64}}),  # row-vector: special
         (transpose(randn(5, 4)), Matrix{Float64}),                   # matrix: generic dense
-        
-        # AbstactArrays of non-perturbable types
+
+        # AbstractArrays of non-perturbable types
         (1:10, NoTangent),
         (1:2:10, NoTangent),
         ([false, true], NoTangent),
+
+        # Broadcasted.
+        (Broadcast.broadcasted(sin, randn(5, 4)), Matrix{Float64}),
 
         # Tuples.
         ((4.0, ), Tangent{Tuple{Float64}}),
@@ -104,8 +107,7 @@ struct Bar
         @test x + (rand_tangent(x) + rand_tangent(x)) isa typeof(x)
     end
 
-    # Julia 1.6 changed to using Ryu printing algorithm and seems better at printing short
-    VERSION >= v"1.6" && @testset "niceness of printing" begin
+    @testset "niceness of printing" begin
         rng = MersenneTwister(1)
         for i in 1:50
             @test length(string(rand_tangent(rng, 1.0))) <= 6

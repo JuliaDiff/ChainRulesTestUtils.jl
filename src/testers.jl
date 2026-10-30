@@ -12,14 +12,17 @@ at input point `z` to confirm that there are correct `frule` and `rrule`s provid
 - `fdm`: the finite differencing method to use.
 - `fkwargs` are passed to `f` as keyword arguments.
 - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` and `rrule` are checked.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
 - All remaining keyword arguments are passed to `isapprox`.
 """
-function test_scalar(f, z; rtol=1e-9, atol=0.0, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, kwargs...)
+function test_scalar(f, z; rtol=1e-9, atol=0.0, fdm=_fdm, fkwargs=NamedTuple(), check_inferred=true, testset_name=nothing, kwargs...)
     # To simplify some of the calls we make later lets group the kwargs for reuse
     rule_test_kwargs = (; rtol=rtol, atol=atol, fdm=fdm, fkwargs=fkwargs, check_inferred=check_inferred, kwargs...)
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
+    testset_name = testset_name === nothing ? "test_scalar: $f at $z" : testset_name
 
-    @testset "test_scalar: $f at $z" begin
+    @testset "$(testset_name)" begin
         # z = x + im * y
         # Ω = u(x, y) + im * v(x, y)
         Ω = f(z; fkwargs...)
@@ -72,7 +75,7 @@ end
     test_frule([config::RuleConfig,] f, args..; kwargs...)
 
 # Arguments
-- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
+- `config`: defaults to `ChainRulesTestUtils.TestConfig`.
 - `f`: function for which the `frule` should be tested. Its tangent can be provided using `f ⊢ ḟ`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ ẋ`
@@ -89,11 +92,12 @@ end
    - If `check_inferred=true`, then the inferrability (type-stability) of the `frule` is checked,
      as long as `f` is itself inferrable.
    - `fkwargs` are passed to `f` as keyword arguments.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
    - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_frule(args...; kwargs...)
-    config = ChainRulesTestUtils.ADviaRuleConfig()
-    test_frule(config, args...; kwargs...)
+    test_frule(TestConfig(), args...; kwargs...)
 end
 
 function test_frule(
@@ -107,15 +111,16 @@ function test_frule(
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
     atol::Real=0.0,
+    testset_name=nothing,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-
+    testset_name = testset_name === nothing ? "test_frule: $f on $(_string_typeof(args))" : testset_name
     # and define a helper closure
     call_on_copy(f, xs...) = deepcopy(f)(deepcopy(xs)...; deepcopy(fkwargs)...)
 
-    @testset "test_frule: $f on $(_string_typeof(args))" begin
+    @testset "$(testset_name)" begin
 
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
         primals = primal.(primals_and_tangents)
@@ -126,7 +131,7 @@ function test_frule(
         end
 
         res = call_on_copy(frule_f, config, tangents, primals...)
-        res === nothing && throw(MethodError(frule_f, typeof(primals)))
+        res === nothing && throw(MethodError(frule_f, Tuple{Core.Typeof.(primals)...}))
         @test_msg "The frule should return (y, ∂y), not $res." res isa Tuple{Any,Any}
         Ω_ad, dΩ_ad = res
         Ω = call_on_copy(primals...)
@@ -146,7 +151,7 @@ end
     test_rrule([config::RuleConfig,] f, args...; kwargs...)
 
 # Arguments
-- `config`: defaults to `ChainRulesTestUtils.ADviaRuleConfig`.
+- `config`: defaults to `ChainRulesTestUtils.TestConfig`.
 - `f`: function for which the `rrule` should be tested. Its tangent can be provided using `f ⊢ f̄`.
   (You can enter `⊢` via `\\vdash` + tab in the Julia REPL and supporting editors.)
 - `args...`: either the primal args `x`, or primals and their tangents: `x ⊢ x̄`
@@ -165,11 +170,12 @@ end
  - If `check_inferred=true`, then the inferrability (type-stability) of the `rrule` is checked
    — if `f` is itself inferrable — along with the inferrability of the pullback it returns.
  - `fkwargs` are passed to `f` as keyword arguments.
+- `testset_name`: if provided, the name of the testset used to wrap the tests.
+  Otherwise it is determined from the function and argument types.
  - All remaining keyword arguments are passed to `isapprox`.
 """
 function test_rrule(args...; kwargs...)
-    config = ChainRulesTestUtils.ADviaRuleConfig()
-    test_rrule(config, args...; kwargs...)
+    test_rrule(TestConfig(), args...; kwargs...)
 end
 
 function test_rrule(
@@ -184,15 +190,16 @@ function test_rrule(
     fkwargs::NamedTuple=NamedTuple(),
     rtol::Real=1e-9,
     atol::Real=0.0,
+    testset_name=nothing,
     kwargs...,
 )
     # To simplify some of the calls we make later lets group the kwargs for reuse
     isapprox_kwargs = (; rtol=rtol, atol=atol, kwargs...)
-
+    testset_name = testset_name === nothing ? "test_rrule: $f on $(_string_typeof(args))" : testset_name
     # and define helper closure over fkwargs
     call(f, xs...) = f(xs...; fkwargs...)
 
-    @testset "test_rrule: $f on $(_string_typeof(args))" begin
+    @testset "$(testset_name)" begin
 
         # Check correctness of evaluation.
         primals_and_tangents = auto_primal_and_tangent.((f, args...))
@@ -203,10 +210,10 @@ function test_rrule(
             _test_inferred(rrule_f, config, primals...; fkwargs...)
         end
         res = rrule_f(config, primals...; fkwargs...)
-        res === nothing && throw(MethodError(rrule_f, typeof(primals)))
+        res === nothing && throw(MethodError(rrule_f, Tuple{Core.Typeof.(primals)...}))
         y_ad, pullback = res
         y = call(primals...)
-        test_approx(y_ad, y; isapprox_kwargs...)  # make sure primal is correct
+        test_approx(y_ad, y, "Failed primal value check"; isapprox_kwargs...)  # make sure primal is correct
 
         ȳ = output_tangent isa Auto ? rand_tangent(y) : output_tangent
 
@@ -224,12 +231,13 @@ function test_rrule(
         # Correctness testing via finite differencing.
         is_ignored = isa.(accum_cotangents, NoTangent)
         fd_cotangents = _make_j′vp_call(fdm, call, ȳ, primals, is_ignored)
-        foreach(accum_cotangents, ad_cotangents, fd_cotangents) do args...
+        msgs = ntuple(i->"cotangent for input $i, $(summary(fd_cotangents[i]))", length(fd_cotangents))
+        foreach(accum_cotangents, ad_cotangents, fd_cotangents, msgs) do args...
             _test_cotangent(args...; check_inferred=check_inferred, isapprox_kwargs...)
         end
 
         if check_thunked_output_tangent
-            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:")
+            test_approx(ad_cotangents, pullback(@thunk(ȳ)), "pulling back a thunk:"; isapprox_kwargs...)
             check_inferred && _test_inferred(pullback, @thunk(ȳ))
         end
     end  # top-level testset
@@ -275,13 +283,15 @@ function _is_inferrable(f, args...; kwargs...)
 end
 
 """
-    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent; kwargs...)
+    _test_cotangent(accum_cotangent, ad_cotangent, fd_cotangent[, msg]; kwargs...)
 
 Check if the cotangent `ad_cotangent` from `rrule` is consistent with `accum_tangent` and
 approximately equal to the cotangent `fd_cotangent` obtained with finite differencing.
 
 If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-differentiable,
 `ad_cotangent` and `fd_cotangent` should be `NoTangent()` as well.
+
+If a msg string is given, it is emitted on test failure.
 
 # Keyword arguments
 - If `check_inferred=true` (the default) and `ad_cotangent` is a thunk, then it is checked if
@@ -291,22 +301,23 @@ If `accum_cotangent` is `NoTangent()`, i.e., the argument was marked as non-diff
 function _test_cotangent(
     accum_cotangent,
     ad_cotangent,
-    fd_cotangent;
+    fd_cotangent,
+    msg="";
     check_inferred=true,
     kwargs...,
 )
     ad_cotangent isa AbstractThunk && check_inferred && _test_inferred(unthunk, ad_cotangent)
 
     # The main test of the actual derivative being correct:
-    test_approx(ad_cotangent, fd_cotangent; kwargs...)
+    test_approx(ad_cotangent, fd_cotangent, msg; kwargs...)
     _test_add!!_behaviour(accum_cotangent, ad_cotangent; kwargs...)
 end
 
 # we marked the argument as non-differentiable
-function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, ::NoTangent, msg=""; kwargs...)
     @test ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent; kwargs...)
+function _test_cotangent(::NoTangent, ::ZeroTangent, ::NoTangent, msg=""; kwargs...)
     error(
         "The pullback in the rrule should use NoTangent()" *
         " rather than ZeroTangent() for non-perturbable arguments."
@@ -315,7 +326,8 @@ end
 function _test_cotangent(
     ::NoTangent,
     ad_cotangent::ChainRulesCore.NotImplemented,
-    ::NoTangent;
+    ::NoTangent,
+    msg="";
     kwargs...,
 )
     # this situation can occur if a cotangent is not implemented and
@@ -325,6 +337,6 @@ function _test_cotangent(
     # https://github.com/JuliaDiff/ChainRulesTestUtils.jl/issues/217
     @test_broken ad_cotangent isa NoTangent
 end
-function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent; kwargs...)
+function _test_cotangent(::NoTangent, ad_cotangent, fd_cotangent, msg=""; kwargs...)
     error("cotangent obtained with finite differencing has to be NoTangent()")
 end

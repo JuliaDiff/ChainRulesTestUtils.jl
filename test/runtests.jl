@@ -3,6 +3,7 @@ using ChainRulesTestUtils
 using ChainRulesTestUtils: rand_tangent
 using FiniteDifferences
 using LinearAlgebra
+using MetaTesting
 using Random
 using Test
 
@@ -10,10 +11,12 @@ using Test
 ChainRulesTestUtils.TEST_INFERRED[] = true
 
 @testset "ChainRulesTestUtils.jl" begin
-    include("meta_testing_tools.jl")
     include("iterator.jl")
     include("check_result.jl")
     include("testers.jl")
     include("data_generation.jl")
     include("rand_tangent.jl")
+    include("rule_config.jl")
+
+    include("global_checks.jl")
 end
