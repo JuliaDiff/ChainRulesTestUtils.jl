@@ -21,7 +21,7 @@ function test_approx(
     msg="";
     kwargs...,
 )
-    @test_msg msg isapprox(actual, expected; kwargs...)
+    @test_msg msg isapprox(actual, expected; nans=true, kwargs...)
 end
 
 for (T1, T2) in
@@ -78,7 +78,7 @@ The `kwargs` are passed on to `isapprox`
 function _can_pass_early(actual, expected; kwargs...)
     actual == expected && return true
     try
-        return isapprox(actual, expected; kwargs...)
+        return isapprox(actual, expected; nans=true, kwargs...)
     catch err
         # Might MethodError, might DimensionMismatch, might fail for some other reason
         # we don't care, whatever errored it means we can't quit early
@@ -178,7 +178,7 @@ It matters primarily for types that overload `add!!` such as `InplaceableThunk`s
 `acc` is the value that has been accumulated so far.
 `val` is a deriviative, being accumulated into `acc`.
 
-`kwargs` are all passed on to isapprox
+`kwargs` are all passed on to `isapprox`
 """
 function _test_add!!_behaviour(acc, val; kwargs...)
     # Note, we don't test that `acc` is actually mutated because it doesn't have to be
